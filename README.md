@@ -6,6 +6,8 @@
 
 **mikan chat**は、WindowsとmacOSで動く、無料・オープンソースのローカルAIキャラクターチャットアプリです。
 
+目指すのは、ライトユーザー向けの、手軽でちょうどいいAIキャラクターチャットシミュレーターです。
+
 キャラクターパックを選ぶ、または外部からインポートして、テキストや音声で会話できます。会話とAI処理は、自分のPC内で完結することを基本とします。
 
 > 現在は構想・初期開発段階です。ダウンロードできるアプリはまだありません。
@@ -50,6 +52,8 @@
 ## English
 
 **mikan chat** is a free and open-source local AI character chat app for Windows and macOS.
+
+It aims to be a simple, approachable, and just-right AI character chat simulator for casual users.
 
 Choose or import a community-created character pack, then talk by text or voice while keeping conversations and AI inference on your own computer by default.
 
