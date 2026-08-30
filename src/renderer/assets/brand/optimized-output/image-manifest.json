@@ -1,0 +1,116 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "mikan-basket-decoration.png",
+      "original_bytes": 1633493,
+      "mode": "seo",
+      "role": "decorative",
+      "slug": "mikan-basket-sidebar-decoration",
+      "alt": "",
+      "original_width": 1122,
+      "original_height": 1402,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 64,
+          "height": 80,
+          "file": "images/mikan-basket-sidebar-decoration-64w.webp",
+          "bytes": 3782,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 64,
+          "height": 80,
+          "file": "images/mikan-basket-sidebar-decoration-64w.png",
+          "bytes": 9680,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 320,
+          "height": 400,
+          "file": "images/mikan-basket-sidebar-decoration-320w.webp",
+          "bytes": 37280,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 320,
+          "height": 400,
+          "file": "images/mikan-basket-sidebar-decoration-320w.png",
+          "bytes": 158252,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Decorative image should usually use empty alt text.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "mikan-brand-mark.png",
+      "original_bytes": 1099651,
+      "mode": "seo",
+      "role": "logo",
+      "slug": "mikan-chat-brand-mark",
+      "alt": "葉付きのみかんのmikan chatロゴ",
+      "original_width": 1254,
+      "original_height": 1254,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 64,
+          "height": 64,
+          "file": "images/mikan-chat-brand-mark-64w.webp",
+          "bytes": 1866,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 64,
+          "height": 64,
+          "file": "images/mikan-chat-brand-mark-64w.png",
+          "bytes": 5020,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 320,
+          "height": 320,
+          "file": "images/mikan-chat-brand-mark-320w.webp",
+          "bytes": 14854,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 320,
+          "height": 320,
+          "file": "images/mikan-chat-brand-mark-320w.png",
+          "bytes": 84306,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    }
+  ]
+}

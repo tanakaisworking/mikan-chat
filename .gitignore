@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+coverage/
+.DS_Store
+
+# 元画像と配布用ZIPはローカル保管。アプリは最適化済みWebPを参照する。
+src/renderer/assets/**/raw/
+src/renderer/assets/**/*.zip
+src/renderer/assets/characters/*.png

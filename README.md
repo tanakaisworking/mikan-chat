@@ -8,7 +8,18 @@
 
 WindowsとmacOSで動き、キャラクターパックを選ぶか外部からインポートするだけで、テキストや音声の会話を始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
 
-> 現在は構想・初期開発段階です。ダウンロードできるアプリはまだありません。
+> 現在はUIプロトタイプの実装段階です。配布用ビルドと実際のAI・音声接続はまだありません。
+
+## 開発用プレビュー
+
+Node.js 20以降を用意し、次のコマンドで起動します。
+
+```bash
+npm install
+npm run dev
+```
+
+Electron上で確認する場合は `npm run dev:electron`、品質チェックは `npm run lint && npm run typecheck && npm run test && npm run build` を使います。
 
 ## 目指すもの
 
@@ -53,7 +64,18 @@ WindowsとmacOSで動き、キャラクターパックを選ぶか外部から�
 
 Choose or import a community-created character pack, then talk by text or voice while keeping conversations and AI inference on your own computer by default.
 
-> The project is currently at the concept and early-development stage. There is no downloadable build yet.
+> The UI prototype is now implemented. Distribution builds and real AI/voice integrations are not available yet.
+
+### Development preview
+
+With Node.js 20 or later installed:
+
+```bash
+npm install
+npm run dev
+```
+
+Use `npm run dev:electron` for the Electron shell. Run `npm run lint && npm run typecheck && npm run test && npm run build` for the full quality check.
 
 ### Goals
 

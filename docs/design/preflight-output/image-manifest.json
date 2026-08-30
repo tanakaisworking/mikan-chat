@@ -1,0 +1,47 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "exec-2751f8fa-8836-40b9-a91b-52ccad883f99.png",
+      "original_bytes": 1604081,
+      "mode": "other",
+      "role": "screenshot",
+      "slug": "mikan-chat-talk-screen-approved",
+      "alt": "左側に会話、右側に9:16のキャラクター画像、画面下全体に入力欄を配置したmikan chatのトーク画面",
+      "original_width": 1487,
+      "original_height": 1058,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 1440,
+          "height": 1025,
+          "file": "images/mikan-chat-talk-screen-approved-optimized.webp",
+          "bytes": 104592,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 1440,
+          "height": 1025,
+          "file": "images/mikan-chat-talk-screen-approved-optimized.jpg",
+          "bytes": 182147,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "内部のデザイン資料で参照する承認済みUIモックとして最適化する",
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [
+        "生成モック内のキャラクター画像は仮素材であり、製品への収録権利は別途確認する"
+      ],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image.",
+        "Reduced width to max-width 1440px using necessary-sufficiency principle."
+      ]
+    }
+  ]
+}

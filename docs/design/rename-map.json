@@ -1,0 +1,14 @@
+{
+  "exec-2751f8fa-8836-40b9-a91b-52ccad883f99.png": {
+    "mode": "other",
+    "role": "screenshot",
+    "slug": "mikan-chat-talk-screen-approved",
+    "alt": "左側に会話、右側に9:16のキャラクター画像、画面下全体に入力欄を配置したmikan chatのトーク画面",
+    "assumptions": [
+      "内部のデザイン資料で参照する承認済みUIモックとして最適化する"
+    ],
+    "warnings": [
+      "生成モック内のキャラクター画像は仮素材であり、製品への収録権利は別途確認する"
+    ]
+  }
+}

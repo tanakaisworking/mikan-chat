@@ -1,0 +1,228 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "aoi-stage.png",
+      "original_bytes": 1970023,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "aoi-stage",
+      "alt": "",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/aoi-stage-optimized.webp",
+          "bytes": 170232,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/aoi-stage-optimized.jpg",
+          "bytes": 266242,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    },
+    {
+      "original_file": "aoi-welcome.png",
+      "original_bytes": 1959652,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "aoi-welcome",
+      "alt": "",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/aoi-welcome-optimized.webp",
+          "bytes": 157572,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/aoi-welcome-optimized.jpg",
+          "bytes": 258114,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    },
+    {
+      "original_file": "koharu-stage.png",
+      "original_bytes": 2070555,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "koharu-stage",
+      "alt": "",
+      "original_width": 936,
+      "original_height": 1664,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 936,
+          "height": 1664,
+          "file": "images/koharu-stage-optimized.webp",
+          "bytes": 209302,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 936,
+          "height": 1664,
+          "file": "images/koharu-stage-optimized.jpg",
+          "bytes": 295077,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    },
+    {
+      "original_file": "mia-stage.png",
+      "original_bytes": 2119192,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "mia-stage",
+      "alt": "",
+      "original_width": 936,
+      "original_height": 1664,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 936,
+          "height": 1664,
+          "file": "images/mia-stage-optimized.webp",
+          "bytes": 225806,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 936,
+          "height": 1664,
+          "file": "images/mia-stage-optimized.jpg",
+          "bytes": 317652,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    },
+    {
+      "original_file": "rin-stage.png",
+      "original_bytes": 1535540,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "rin-stage",
+      "alt": "",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rin-stage-optimized.webp",
+          "bytes": 100898,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rin-stage-optimized.jpg",
+          "bytes": 187889,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    },
+    {
+      "original_file": "shizuku-stage.png",
+      "original_bytes": 1818387,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "shizuku-stage",
+      "alt": "",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/shizuku-stage-optimized.webp",
+          "bytes": 153176,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/shizuku-stage-optimized.jpg",
+          "bytes": 239643,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    }
+  ]
+}
