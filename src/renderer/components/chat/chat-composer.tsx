@@ -55,7 +55,7 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
   return (
     <div className="relative flex h-full items-center border-t border-border/75 bg-background px-9 max-[1100px]:px-6 max-md:px-2 max-md:pb-[env(safe-area-inset-bottom)]" data-testid="chat-composer">
       {speechError ? <p className="absolute inset-x-4 top-1 text-center text-xs text-danger" role="alert">{speechError}</p> : null}
-      <div className="flex h-[92px] min-w-0 flex-1 items-center gap-3 rounded-full border border-primary-bright/70 bg-surface px-6 shadow-soft focus-within:ring-2 focus-within:ring-primary/15 max-[1100px]:h-[72px] max-[1100px]:px-5 max-md:h-14 max-md:gap-1 max-md:px-3">
+      <div className="flex h-[92px] min-w-0 flex-1 items-center gap-3 rounded-full border border-primary-bright/70 bg-surface px-6 shadow-soft max-[1100px]:h-[72px] max-[1100px]:px-5 max-md:h-14 max-md:gap-1 max-md:px-3">
         <textarea
           value={value}
           rows={1}
