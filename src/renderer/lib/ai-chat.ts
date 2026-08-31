@@ -93,9 +93,9 @@ async function streamModelReply({
       .map((message) => ({
         role: message.role === "user" ? "user" as const : "assistant" as const,
         content: message.role === "narration"
-          ? `[narration] ${message.text}`
+          ? `>: ${message.text}`
           : message.role === "character"
-            ? `[dialogue] ${message.speakerName ?? character.name}: ${message.text}`
+            ? `${message.speakerName ?? character.name}: ${message.text}`
             : message.text,
       })),
     maxOutputTokens: 600,
@@ -164,7 +164,7 @@ export function getConnectionError(connection: ConnectionSettings) {
 }
 
 export function parseAssistantResponse(text: string, character: Character) {
-  const names = readCharacterNames(character)
+  const names = new Set([character.name, ...readCharacterNames(character).values()])
   const events: Array<{ role: "narration" | "character"; text: string; speakerName?: string }> = []
   let current: (typeof events)[number] | null = null
 
@@ -172,12 +172,15 @@ export function parseAssistantResponse(text: string, character: Character) {
     if (current?.text.trim()) events.push({ ...current, text: current.text.trim() })
   }
   for (const line of text.split(/\r?\n/)) {
-    const marker = line.match(/^\[(narration|dialogue:([a-z][a-z0-9-]{0,63}))\]\s*(.*)$/)
-    if (marker) {
+    const narration = line.match(/^>[：:]\s*(.*)$/)
+    const dialogue = line.match(/^([^:：\r\n]+?)\s*[：:]\s*(.*)$/)
+    const speakerName = dialogue?.[1].trim()
+    if (narration) {
       flush()
-      current = marker[1] === "narration"
-        ? { role: "narration", text: marker[3] }
-        : { role: "character", text: marker[3], speakerName: names.get(marker[2]) ?? marker[2] }
+      current = { role: "narration", text: narration[1] }
+    } else if (dialogue && speakerName && names.has(speakerName)) {
+      flush()
+      current = { role: "character", text: dialogue[2], speakerName }
     } else if (current) {
       current.text += `${current.text ? "\n" : ""}${line}`
     }
@@ -209,6 +212,7 @@ function buildSystemPrompt(character: Character) {
       return [`- ${item.name}: ${item.profile}`]
     })
     : [`- ${character.name}: ${character.description}`]
+  const exampleSpeaker = readCharacterNames(character).values().next().value ?? character.name
   const premise = typeof plot?.premise === "string" ? plot.premise : character.description
   const instructions = typeof plot?.instructions === "string" ? plot.instructions : ""
   const style = isRecord(plot?.style) ? JSON.stringify(plot.style) : ""
@@ -218,7 +222,8 @@ function buildSystemPrompt(character: Character) {
     "登場人物の性格と関係性を守り、ユーザーの発言や行動を勝手に決めないでください。",
     "必要に応じて、台詞だけでなく短い情景描写や仕草も入れてください。",
     "複数の登場人物がいる場合は、話者名が分かる形で必要な人物だけを登場させてください。",
-    "返答は各イベントを別の行にし、情景描写は [narration] 本文、台詞は [dialogue:人物ID] 本文 の形式で出力してください。これ以外の形式は使わないでください。",
+    "返答は各イベントを別の行にしてください。台詞は「キャラクター名: 発話内容」、情景描写や仕草など台詞以外は「>: 内容」の形式で出力してください。記号は半角のコロンを使い、これ以外の形式やラベルは使わないでください。",
+    `出力例:\n>: 窓の外で雨音が強くなる。\n${exampleSpeaker}: もう少し、ここにいてもいい？`,
     `シナリオ: ${premise}`,
     `登場人物:\n${characters.join("\n")}`,
     instructions ? `追加指示: ${instructions}` : "",

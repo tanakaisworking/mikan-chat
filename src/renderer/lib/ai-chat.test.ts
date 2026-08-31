@@ -165,9 +165,9 @@ describe("AI chat transport", () => {
 
   it("複数話者と情景描写をイベントへ分解する", () => {
     const events = parseAssistantResponse([
-      "[narration] 暖炉の火が揺れる。",
-      "[dialogue:mia] 報酬は弾むわ。",
-      "[dialogue:noah] 危険も大きい。",
+      ">: 暖炉の火が揺れる。",
+      "ミア: 報酬は弾むわ。",
+      "ノア: 危険も大きい。",
     ].join("\n"), {
       id: "tavern",
       name: "ミア・ノア",
@@ -181,6 +181,25 @@ describe("AI chat transport", () => {
       { role: "narration", text: "暖炉の火が揺れる。" },
       { role: "character", speakerName: "ミア", text: "報酬は弾むわ。" },
       { role: "character", speakerName: "ノア", text: "危険も大きい。" },
+    ])
+  })
+
+  it("全角コロンと複数行の発話も分解する", () => {
+    const events = parseAssistantResponse([
+      ">： ノアが声を落とす。",
+      "ノア： 一つだけ、",
+      "約束して。",
+    ].join("\n"), {
+      id: "noah",
+      name: "ノア",
+      description: "酒場の店主",
+      lastMessage: "",
+      lastActive: "",
+    })
+
+    expect(events).toEqual([
+      { role: "narration", text: "ノアが声を落とす。" },
+      { role: "character", speakerName: "ノア", text: "一つだけ、\n約束して。" },
     ])
   })
 })
