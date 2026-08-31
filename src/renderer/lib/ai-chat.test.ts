@@ -4,6 +4,7 @@ import {
   GOOGLE_AI_STUDIO_ENDPOINT,
   GOOGLE_AI_STUDIO_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
+  GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL,
   getConnectionError,
   getEndpointError,
   parseAssistantResponse,
@@ -130,6 +131,36 @@ describe("AI chat transport", () => {
     })).rejects.toThrow()
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("2つのlatestモデルが503なら安定版Flash-Liteへ切り替える", async () => {
+    const successStream = new Response([
+      `data: {"id":"chatcmpl-stable","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL}","choices":[{"index":0,"delta":{"content":"安定版で成功"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-stable","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL}","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+      "data: [DONE]\n\n",
+    ].join(""), { headers: { "Content-Type": "text/event-stream" } })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ error: { message: "overloaded" } }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ error: { message: "overloaded" } }, { status: 503 }))
+      .mockResolvedValueOnce(successStream)
+    vi.stubGlobal("fetch", fetchMock)
+
+    const reply = await streamCharacterReply({
+      connection: {
+        type: "online",
+        endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+        apiKey: "gemini-test-key",
+        model: GOOGLE_AI_STUDIO_MODEL,
+      },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: vi.fn(),
+    })
+
+    expect(reply).toBe("安定版で成功")
+    expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).model))
+      .toEqual([GOOGLE_AI_STUDIO_MODEL, GOOGLE_AI_STUDIO_FALLBACK_MODEL, GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL])
   })
 
   it("複数話者と情景描写をイベントへ分解する", () => {

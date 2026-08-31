@@ -17,6 +17,7 @@ type StreamReplyOptions = {
 export const GOOGLE_AI_STUDIO_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai"
 export const GOOGLE_AI_STUDIO_MODEL = "gemini-flash-latest"
 export const GOOGLE_AI_STUDIO_FALLBACK_MODEL = "gemini-flash-lite-latest"
+export const GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 export function isGoogleAIStudioEndpoint(endpoint: string) {
   try {
@@ -68,7 +69,7 @@ export async function testAIConnection(connection: ConnectionSettings, signal?: 
   const modelCandidates = getModelCandidates(connection)
   const availableModels = new Set(result.data.data.map((model) => model.id.replace(/^models\//, "")))
   const googleAliases = isGoogleAIStudioEndpoint(connection.endpoint)
-    && modelCandidates.every((candidate) => candidate === GOOGLE_AI_STUDIO_MODEL || candidate === GOOGLE_AI_STUDIO_FALLBACK_MODEL)
+    && modelCandidates.slice(0, 2).every((candidate) => candidate === GOOGLE_AI_STUDIO_MODEL || candidate === GOOGLE_AI_STUDIO_FALLBACK_MODEL)
   if (!googleAliases && !modelCandidates.some((candidate) => availableModels.has(candidate))) {
     throw new Error(`モデル「${modelCandidates.join("」または「")}」が接続先に見つかりません。`)
   }
@@ -98,6 +99,7 @@ async function streamModelReply({
             : message.text,
       })),
     maxOutputTokens: 600,
+    maxRetries: 0,
     abortSignal: signal,
     onError: () => undefined,
   })
@@ -117,7 +119,7 @@ async function streamModelReply({
 function getModelCandidates(connection: ConnectionSettings) {
   const model = connection.model.trim()
   return isGoogleAIStudioEndpoint(connection.endpoint) && model === GOOGLE_AI_STUDIO_MODEL
-    ? [model, GOOGLE_AI_STUDIO_FALLBACK_MODEL]
+    ? [model, GOOGLE_AI_STUDIO_FALLBACK_MODEL, GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL]
     : [model]
 }
 
