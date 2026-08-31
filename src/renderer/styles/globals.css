@@ -116,13 +116,11 @@ button:disabled {
   background: var(--surface-accent);
 }
 
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
-}
-
-[data-testid="chat-composer"] textarea:focus-visible {
-  outline: none;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

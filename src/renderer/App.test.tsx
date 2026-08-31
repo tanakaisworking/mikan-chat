@@ -82,7 +82,7 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByText("わかった。聞かせて。")).toBeInTheDocument()
     expect(screen.getByText("ミア")).toBeInTheDocument()
     expect(screen.getByText("ノア")).toBeInTheDocument()
-    expect(screen.getAllByAltText("場面")).toHaveLength(1)
+    expect(screen.queryByAltText("場面")).not.toBeInTheDocument()
   })
 
   it("Web版の読み込み失敗後に再試行できる", async () => {

@@ -55,13 +55,13 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
   return (
     <div className="relative flex min-h-[136px] items-center border-t border-border/75 bg-background px-9 py-[22px] max-[1100px]:min-h-28 max-[1100px]:px-6 max-[1100px]:py-5 max-md:min-h-20 max-md:px-2 max-md:py-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]" data-testid="chat-composer">
       {speechError ? <p className="absolute inset-x-4 top-1 text-center text-xs text-danger" role="alert">{speechError}</p> : null}
-      <div className="flex min-h-[92px] min-w-0 flex-1 items-center gap-3 rounded-full border border-primary-bright/70 bg-surface px-6 shadow-soft max-[1100px]:min-h-[72px] max-[1100px]:px-5 max-md:min-h-14 max-md:gap-1 max-md:px-3">
+      <div className="flex min-h-[92px] min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-[46px] border border-primary-bright/70 bg-surface px-6 py-3 shadow-soft max-[1100px]:min-h-[72px] max-[1100px]:rounded-[36px] max-[1100px]:px-5 max-md:min-h-14 max-md:gap-1 max-md:rounded-[28px] max-md:px-3">
         <textarea
           value={value}
           rows={1}
           placeholder={speechStatus === "listening" ? "聞き取り中…" : "メッセージを入力"}
           aria-label="メッセージ"
-          className="max-h-40 min-h-8 flex-1 resize-none overflow-y-auto bg-transparent text-lg leading-8 outline-none [field-sizing:content] placeholder:text-muted-foreground/70 max-[1100px]:text-base max-md:max-h-32 max-md:min-w-0 max-md:text-base"
+          className="min-h-8 min-w-0 flex-1 resize-none appearance-none overflow-y-auto rounded-none border-0 bg-transparent p-0 text-lg leading-8 outline-none [field-sizing:content] placeholder:text-muted-foreground/70 focus-visible:outline-none max-h-40 max-[1100px]:text-base max-md:max-h-32 max-md:text-base"
           onChange={(event) => setValue(event.target.value)}
           onCompositionStart={() => {
             isComposing.current = true
