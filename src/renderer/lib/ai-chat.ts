@@ -65,7 +65,10 @@ export async function testAIConnection(connection: ConnectionSettings, signal?: 
   const result = modelListSchema.safeParse(await response.json())
   if (!result.success) throw new Error("接続先のモデル一覧を確認できませんでした。")
   const modelCandidates = getModelCandidates(connection)
-  if (!modelCandidates.some((candidate) => result.data.data.some((model) => model.id === candidate))) {
+  const availableModels = new Set(result.data.data.map((model) => model.id.replace(/^models\//, "")))
+  const googleAliases = isGoogleAIStudioEndpoint(connection.endpoint)
+    && modelCandidates.every((candidate) => candidate === GOOGLE_AI_STUDIO_MODEL || candidate === GOOGLE_AI_STUDIO_FALLBACK_MODEL)
+  if (!googleAliases && !modelCandidates.some((candidate) => availableModels.has(candidate))) {
     throw new Error(`モデル「${modelCandidates.join("」または「")}」が接続先に見つかりません。`)
   }
 }

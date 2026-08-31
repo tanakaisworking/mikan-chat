@@ -45,7 +45,7 @@ describe("AI chat transport", () => {
 
   it("Google AI Studioのモデル一覧をBearer認証で確認する", async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json({
-      data: [{ id: GOOGLE_AI_STUDIO_MODEL }],
+      data: [{ id: "models/gemini-3.6-flash" }, { id: "models/gemini-3.5-flash-lite" }],
     }))
     vi.stubGlobal("fetch", fetchMock)
 
