@@ -89,7 +89,7 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
             <Square className="size-5 fill-current" />
           </IconButton>
         ) : (
-          <IconButton label="送信" className="size-14 bg-primary text-white hover:bg-primary/90 disabled:opacity-45 max-[1100px]:size-12 max-md:size-11" disabled={!value.trim()} onClick={submit}>
+          <IconButton label="送信" className="size-14 bg-primary-bright text-white hover:bg-primary disabled:opacity-45 max-[1100px]:size-12 max-md:size-11" disabled={!value.trim()} onClick={submit}>
             <Send className="translate-x-[-1px]" />
           </IconButton>
         )}
