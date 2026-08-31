@@ -121,6 +121,10 @@ button:disabled {
   outline-offset: 3px;
 }
 
+[data-testid="chat-composer"] textarea:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
