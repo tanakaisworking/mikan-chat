@@ -14,7 +14,7 @@ WindowsとmacOSで動き、シチュエーション中心のチャットパッ�
 
 [ブラウザでmikan chatを試す](https://mikanchat.mikan-chat.workers.dev/)
 
-Web版では、Google AI Studioで発行したGemini APIキーを使って会話できます。標準の`gemini-flash-latest`が利用できない場合は、`gemini-flash-lite-latest`、`gemini-3.5-flash-lite`の順に自動で切り替えます。その他のOpenAI互換APIも設定可能です。APIキーはブラウザタブ内だけに保持され、mikan chatのサーバーには保存されません。マイク入力にはブラウザ標準の音声認識を使います。
+Web版では、Google AI Studioで発行したGemini APIキーを使って会話できます。標準の`gemini-flash-latest`が利用できない場合は、`gemini-flash-lite-latest`、`gemini-3.5-flash-lite`の順に自動で切り替えます。その他のOpenAI互換APIも設定可能です。APIキーは同じブラウザタブの再読み込み後も保持され、タブを閉じると破棄されます。mikan chatのサーバーには保存されません。マイク入力にはブラウザ標準の音声認識を使います。
 
 ## 開発用プレビュー
 

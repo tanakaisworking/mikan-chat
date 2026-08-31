@@ -7,7 +7,7 @@ import { VoiceSettingsSheet } from "@/components/settings/voice-settings-sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { characters, type Character } from "@/data/characters"
 import { loadScenarios } from "@/data/scenario-source"
-import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL } from "@/lib/ai-chat"
+import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL, getConnectionError } from "@/lib/ai-chat"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
@@ -17,6 +17,40 @@ import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
 type Screen = "setup" | "home" | "talk" | "docs"
 type Overlay = "connection" | "import" | "voice" | "history" | null
+const CONNECTION_SESSION_KEY = "mikan-chat.connection.v1"
+
+function createDefaultConnection(): ConnectionSettings {
+  return {
+    type: window.mikan ? "local" : "online",
+    apiKey: "",
+    endpoint: window.mikan ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT,
+    model: window.mikan ? "" : GOOGLE_AI_STUDIO_MODEL,
+  }
+}
+
+function readInitialConnection() {
+  const fallback = createDefaultConnection()
+  if (window.mikan) return fallback
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(CONNECTION_SESSION_KEY) ?? "null") as unknown
+    if (!stored || typeof stored !== "object") return fallback
+    const candidate = stored as Partial<ConnectionSettings>
+    if (candidate.type !== "online" || typeof candidate.apiKey !== "string" || typeof candidate.endpoint !== "string" || typeof candidate.model !== "string") return fallback
+    const connection: ConnectionSettings = { type: candidate.type, apiKey: candidate.apiKey, endpoint: candidate.endpoint, model: candidate.model }
+    return getConnectionError(connection) ? fallback : connection
+  } catch {
+    return fallback
+  }
+}
+
+function persistConnection(connection: ConnectionSettings) {
+  if (window.mikan) return
+  try {
+    window.sessionStorage.setItem(CONNECTION_SESSION_KEY, JSON.stringify(connection))
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
+}
 
 function readInitialState() {
   const params = new URLSearchParams(window.location.search)
@@ -50,12 +84,7 @@ export function App() {
   const [scenariosError, setScenariosError] = useState<string | null>(null)
   const [overlay, setOverlay] = useState<Overlay>(initialState.overlay)
   const [activeConversationId, setActiveConversationId] = useState("today")
-  const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>({
-    type: window.mikan ? "local" : "online",
-    apiKey: "",
-    endpoint: window.mikan ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT,
-    model: window.mikan ? "" : GOOGLE_AI_STUDIO_MODEL,
-  })
+  const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>(readInitialConnection)
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
 
   const refreshScenarios = useCallback(async () => {
@@ -212,6 +241,7 @@ export function App() {
           setOverlayOpen("connection", open)
         }}
         onConfirm={(settings) => {
+          persistConnection(settings)
           setConnectionSettings(settings)
           setConnectionType(settings.type)
           setOverlay(null)

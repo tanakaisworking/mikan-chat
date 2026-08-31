@@ -13,6 +13,7 @@ vi.mock("@/lib/ai-chat", async (importOriginal) => ({
 describe("mikan chat UI flow", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/?screen=home")
+    window.sessionStorage.clear()
     window.mikan = {
       platform: "darwin",
       speech: {
@@ -250,6 +251,23 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "設定" }))
 
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
+  })
+
+  it("Web版は再読み込み後も同じタブの接続設定を復元する", () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json({ items: [] }))))
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    const firstRender = render(<App />)
+
+    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
+    fireEvent.click(screen.getByRole("button", { name: "この接続を使う" }))
+    firstRender.unmount()
+
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
+    expect(screen.getByRole("textbox", { name: /モデル名/ })).toHaveValue("gemini-flash-latest")
   })
 
   it("接続対象を変えると以前のテスト結果を消す", async () => {
