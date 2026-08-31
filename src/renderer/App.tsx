@@ -1,32 +1,26 @@
 import { useMemo, useState } from "react"
 
 import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
-import { ImportCharacterDialog } from "@/components/library/import-character-dialog"
+import { ImportChatPackDialog } from "@/components/library/import-chat-pack-dialog"
 import { AIConnectionDialog, type ConnectionSettings, type ConnectionType } from "@/components/settings/ai-connection-dialog"
 import { VoiceSettingsSheet } from "@/components/settings/voice-settings-sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { assets, characters, type Character } from "@/data/characters"
-import { HomeScreen } from "@/screens/HomeScreen"
+import { characters, type Character } from "@/data/characters"
+import type { LoadedChatPack } from "@/lib/chat-pack"
+import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
 import { SetupScreen } from "@/screens/SetupScreen"
 import { TalkScreen } from "@/screens/TalkScreen"
+import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
-type Screen = "setup" | "home" | "talk"
+type Screen = "setup" | "home" | "talk" | "docs"
 type Overlay = "connection" | "import" | "voice" | "history" | null
-
-const importedCharacter: Character = {
-  id: "shizuku",
-  name: "雫",
-  description: "閉店後の喫茶店で出会った、少し不思議な常連客。",
-  lastMessage: "雨の音、落ち着きますね。",
-  lastActive: "たった今",
-  image: assets.shizukuStage,
-}
 
 function readInitialState() {
   const params = new URLSearchParams(window.location.search)
   const requestedScreen = params.get("screen")
   const requestedOverlay = params.get("overlay")
-  const screen: Screen = requestedScreen === "setup" || requestedScreen === "talk" ? requestedScreen : "home"
+  const docsPath = window.location.pathname === "/docs" || window.location.pathname === "/docs/"
+  const screen: Screen = docsPath ? "docs" : requestedScreen === "setup" || requestedScreen === "talk" || requestedScreen === "docs" ? requestedScreen : "home"
   const overlay: Overlay =
     requestedOverlay === "connection" ||
     requestedOverlay === "import" ||
@@ -41,6 +35,7 @@ function readInitialState() {
 export function App() {
   const initialState = useMemo(readInitialState, [])
   const [screen, setScreen] = useState<Screen>(initialState.screen)
+  const [homeTab, setHomeTab] = useState<HomeTab>("home")
   const [selectedCharacter, setSelectedCharacter] = useState<Character>(characters[0])
   const [library, setLibrary] = useState<Character[]>(characters)
   const [overlay, setOverlay] = useState<Overlay>(initialState.overlay)
@@ -53,6 +48,12 @@ export function App() {
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
 
   const openOverlay = (nextOverlay: Exclude<Overlay, null>) => setOverlay(nextOverlay)
+  const showScreen = (nextScreen: Screen) => {
+    if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+      window.history.replaceState({}, "", nextScreen === "docs" ? "/docs/" : "/")
+    }
+    setScreen(nextScreen)
+  }
   const openConnection = (connection: ConnectionType = connectionSettings.type) => {
     setConnectionType(connection)
     openOverlay("connection")
@@ -61,24 +62,60 @@ export function App() {
     setOverlay((current) => (open ? target : current === target ? null : current))
   }
 
-  const talkWith = (character: Character) => {
+  const talkWith = (character: Character, source: HomeTab = "home") => {
     setSelectedCharacter(character)
     setActiveConversationId("today")
+    setHomeTab(source)
     setScreen("talk")
   }
 
-  const addImportedCharacter = () => {
-    setLibrary((current) => current.some((character) => character.id === importedCharacter.id) ? current : [...current, importedCharacter])
+  const toCharacter = (loaded: LoadedChatPack): Character => {
+    const primary = loaded.pack.plot.characters[0]
+    const names = new Map(loaded.pack.plot.characters.map((character) => [character.id, character.name]))
+    const resolveText = (text: string) => text.replaceAll("{{user}}さん", "あなた").replaceAll("{{user}}", "あなた")
+    const opening = loaded.pack.plot.opening.map((event) => {
+      const image = event.image ? loaded.assets[event.image] : undefined
+      if (event.type === "narration") return { role: "narration" as const, text: resolveText(event.text), image }
+      if (event.speaker === "user") return { role: "user" as const, text: resolveText(event.text), image }
+      const dialogue = resolveText(event.text)
+      return { role: "character" as const, text: dialogue, speakerName: names.get(event.speaker) ?? event.speaker, image }
+    })
+    const lastMessage = [...opening].reverse().find((event) => event.role === "character")?.text ?? loaded.pack.summary
+
+    return {
+      id: loaded.pack.id,
+      name: primary.name,
+      packTitle: loaded.pack.title,
+      tags: loaded.pack.discovery.tags,
+      conversationLabel: `${loaded.pack.plot.characters.length}人と会話`,
+      description: loaded.pack.discovery.description ?? loaded.pack.summary,
+      lastMessage,
+      lastActive: "たった今",
+      image: loaded.assets[loaded.pack.discovery.covers[0]],
+      stageImage: loaded.assets[primary.image],
+      opening,
+    }
   }
 
-  const importToLibrary = () => {
-    addImportedCharacter()
+  const addImportedPack = (loaded: LoadedChatPack) => {
+    const imported = toCharacter(loaded)
+    const existing = library.find((character) => character.id === imported.id)
+    if (existing) return null
+    setLibrary((current) => [...current, imported])
+    return imported
+  }
+
+  const importToLibrary = (loaded: LoadedChatPack) => {
+    if (!addImportedPack(loaded)) return "同じIDのチャットパックは追加済みです。更新機能は今後対応します。"
     setOverlay(null)
   }
 
-  const importAndTalk = () => {
-    addImportedCharacter()
-    setSelectedCharacter(importedCharacter)
+  const importAndTalk = (loaded: LoadedChatPack) => {
+    const imported = addImportedPack(loaded)
+    if (!imported) return "同じIDのチャットパックは追加済みです。既存のパックをホームから開いてください。"
+    setSelectedCharacter(imported)
+    setActiveConversationId("today")
+    setHomeTab("home")
     setOverlay(null)
     setScreen("talk")
   }
@@ -95,8 +132,11 @@ export function App() {
       {screen === "home" ? (
         <HomeScreen
           characters={library}
+          activeTab={homeTab}
+          onTabChange={setHomeTab}
           onSelectCharacter={talkWith}
-          onAddCharacter={() => openOverlay("import")}
+          onAddPack={() => openOverlay("import")}
+          onOpenDocs={() => showScreen("docs")}
           onOpenSettings={() => openConnection()}
         />
       ) : null}
@@ -105,10 +145,17 @@ export function App() {
         <TalkScreen
           character={selectedCharacter}
           conversationId={activeConversationId}
-          onBack={() => setScreen("home")}
+          onBack={() => showScreen("home")}
           onOpenConnection={() => openConnection()}
           onOpenVoice={() => openOverlay("voice")}
           onOpenHistory={() => openOverlay("history")}
+        />
+      ) : null}
+
+      {screen === "docs" ? (
+        <TechDocsScreen
+          onBack={() => showScreen("home")}
+          onTryDemo={() => openOverlay("import")}
         />
       ) : null}
 
@@ -128,7 +175,7 @@ export function App() {
           if (screen === "setup") setScreen("home")
         }}
       />
-      <ImportCharacterDialog
+      <ImportChatPackDialog
         open={overlay === "import"}
         onOpenChange={(open) => setOverlayOpen("import", open)}
         onAddToLibrary={importToLibrary}
@@ -139,8 +186,10 @@ export function App() {
         onOpenChange={(open) => setOverlayOpen("voice", open)}
       />
       <ConversationHistorySheet
+        key={selectedCharacter.id}
         open={overlay === "history"}
         characterName={selectedCharacter.name}
+        importedPack={Boolean(selectedCharacter.opening)}
         activeConversationId={activeConversationId}
         onOpenChange={(open) => setOverlayOpen("history", open)}
         onSelectConversation={(conversationId) => {

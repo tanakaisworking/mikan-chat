@@ -132,6 +132,134 @@ button:disabled {
   }
 }
 
+.technical-document {
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+.technical-document > h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+}
+
+.technical-document h2 {
+  margin: 4rem 0 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.4;
+}
+
+.technical-document h3 {
+  margin: 2.5rem 0 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.technical-document p,
+.technical-document ul,
+.technical-document ol {
+  margin: 1rem 0;
+}
+
+.technical-document ul,
+.technical-document ol {
+  padding-left: 1.5rem;
+}
+
+.technical-document li + li {
+  margin-top: 0.4rem;
+}
+
+.technical-document blockquote {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--primary-bright);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+}
+
+.technical-document code {
+  border-radius: 0.35rem;
+  background: var(--surface-soft);
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+}
+
+.technical-document pre {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #2f2925;
+  padding: 1.25rem;
+  color: #fff9f4;
+  box-shadow: var(--shadow-soft);
+}
+
+.technical-document pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.technical-document table {
+  display: block;
+  width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.technical-document th,
+.technical-document td {
+  min-width: 8rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.technical-document th {
+  background: var(--surface-soft);
+  font-weight: 600;
+}
+
+.technical-document a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.technical-document hr {
+  margin: 3rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .technical-document {
+    font-size: 0.95rem;
+    line-height: 1.85;
+  }
+
+  .technical-document h2 {
+    margin-top: 3rem;
+  }
+
+  .technical-document pre {
+    margin-inline: -0.5rem;
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    font-size: 0.8rem;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

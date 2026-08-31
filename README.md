@@ -6,9 +6,15 @@
 
 **mikan chat**は、ライトユーザーが手軽に楽しめる、ちょうどいいAIキャラクターチャットシミュレーターを目指す無料・オープンソースのアプリです。
 
-WindowsとmacOSで動き、キャラクターパックを選ぶか外部からインポートするだけで、テキストや音声の会話を始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
+WindowsとmacOSで動き、シチュエーション中心のチャットパックを選ぶか外部からインポートするだけで、1対1・多人数の物語をテキストや音声で始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
 
 > 現在はUIプロトタイプの実装段階です。配布用ビルドと実際のAI・音声接続はまだありません。
+
+## Web Early Access
+
+[ブラウザでmikan chatを試す](https://mikanchat.mikan-chat.workers.dev/)
+
+現在はUIプレビューです。AI接続、音声会話、キャラクター追加などの処理はダミーで、実際のAPIキーや個人情報は入力しないでください。
 
 ## 開発用プレビュー
 
@@ -21,15 +27,19 @@ npm run dev
 
 Electron上で確認する場合は `npm run dev:electron`、品質チェックは `npm run lint && npm run typecheck && npm run test && npm run build` を使います。
 
+Web版はCloudflare Workers Static Assetsで配信します。ローカル確認は `npm run dev:worker`、本番反映は `npm run deploy:worker` を使います。運営が所有するAPIキーはソースコードへ書かず、実装時にWorker Secretsへ登録します。
+
 ## 目指すもの
 
 - ローカルLLMでキャラクターとの会話を動かす
 - Whisper互換の音声認識で話しかけられるようにする
 - Irodori TTSでキャラクターの返答を読み上げる
-- コミュニティが作ったキャラクター／シナリオパックを無料でインポートできるようにする
+- コミュニティが作ったチャットパックを無料で作成・共有・インポートできるようにする
 - 会話履歴と推論データを原則としてPC内に保存する
 - ローカルAIの専門知識がなくてもWindowsとmacOSで使えるようにする
 - 他のツールでも実装できる、公開されたパック仕様を作る
+
+チャットパックの初期仕様は、[Web技術ドキュメント](https://mikanchat.mikan-chat.workers.dev/docs/)と[mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md)で公開しています。
 
 ## 最初に作る範囲
 
@@ -37,8 +47,8 @@ Electron上で確認する場合は `npm run dev:electron`、品質チェック�
 
 - ローカルでのテキスト会話とターン制音声会話
 - ローカルAIモデルの簡単なセットアップ
-- キャラクター画像、プロンプト、最初のメッセージ、会話例
-- 持ち運べるキャラクターパックのインポート／エクスポート
+- シチュエーション、ユーザー役、複数キャラクター、情景描写、導入シーン
+- 持ち運べるチャットパックの作成・インポート・エクスポート
 - Character Card、CharX形式との互換性調査
 - 再配布可能な少数のサンプルパック
 
@@ -62,9 +72,15 @@ Electron上で確認する場合は `npm run dev:electron`、品質チェック�
 
 **mikan chat** is a free and open-source local AI character chat simulator for casual users who want something simple, approachable, and just right. It runs on Windows and macOS.
 
-Choose or import a community-created character pack, then talk by text or voice while keeping conversations and AI inference on your own computer by default.
+Choose or import a community-created Chat Pack, then enter a one-on-one or multi-character scenario by text or voice while keeping conversations and AI inference on your own computer by default.
 
 > The UI prototype is now implemented. Distribution builds and real AI/voice integrations are not available yet.
+
+### Web Early Access
+
+[Try mikan chat in your browser](https://mikanchat.mikan-chat.workers.dev/).
+
+This is currently a UI preview. AI connections, voice chat, and character imports are simulated. Do not enter real API keys or personal information.
 
 ### Development preview
 
@@ -77,15 +93,19 @@ npm run dev
 
 Use `npm run dev:electron` for the Electron shell. Run `npm run lint && npm run typecheck && npm run test && npm run build` for the full quality check.
 
+The web preview runs on Cloudflare Workers Static Assets. Use `npm run dev:worker` locally and `npm run deploy:worker` for production deployment. Operator-owned API keys must be stored as Worker Secrets rather than committed to the repository.
+
 ### Goals
 
 - Run character conversations with a local LLM.
 - Accept voice input through Whisper-compatible speech recognition.
 - Return spoken responses through Irodori TTS.
-- Import community-created character and scenario packs for free.
+- Create, share, and import community-created Chat Packs for free.
 - Keep chat history and inference data local by default.
 - Make local character chat approachable on Windows and macOS.
 - Publish an open, documented pack format.
+
+The initial format is available in the [web documentation](https://mikanchat.mikan-chat.workers.dev/docs/) and [mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md).
 
 Accounts, payments, DRM, paid packs, and an official marketplace are outside the initial scope. We will first validate that people can create, share, import, and enjoy packs with the free application.
 

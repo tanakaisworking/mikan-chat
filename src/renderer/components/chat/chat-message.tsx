@@ -5,10 +5,12 @@ import { cn } from "@/lib/utils"
 
 export type ChatMessageData = {
   id: string
-  role: "character" | "user"
+  role: "narration" | "character" | "user"
   text: string
   time: string
   audio?: boolean
+  speakerName?: string
+  image?: string
 }
 
 export function ChatMessage({
@@ -20,11 +22,28 @@ export function ChatMessage({
   isPlaying: boolean
   onToggleAudio: () => void
 }) {
+  if (message.role === "narration") {
+    return (
+      <article className="mx-auto max-w-2xl px-8 py-2 text-center max-md:px-4">
+        {message.image ? <img src={message.image} alt="場面" className="mb-3 h-36 w-full rounded-lg object-cover shadow-soft max-md:h-28" /> : null}
+        <p className="text-[15px] leading-8 text-muted-foreground italic max-md:rounded-2xl max-md:bg-black/42 max-md:px-4 max-md:py-3 max-md:text-sm max-md:leading-7 max-md:text-white max-md:not-italic max-md:shadow-overlay max-md:backdrop-blur-md">
+          {message.text}
+        </p>
+      </article>
+    )
+  }
+
   const isUser = message.role === "user"
 
   return (
     <article className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[78%] max-md:max-w-[86%]", isUser ? "items-end" : "items-start")}>
+        {message.image ? <img src={message.image} alt="場面" className="mb-2 h-36 w-full rounded-lg object-cover shadow-soft max-md:h-28" /> : null}
+        {!isUser && message.speakerName ? (
+          <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground max-md:text-white max-md:drop-shadow-md">
+            {message.speakerName}
+          </p>
+        ) : null}
         <div
           className={cn(
             "flex min-h-[90px] items-center gap-3 rounded-lg border px-8 py-5 text-[19px] leading-[1.75] shadow-soft max-[1100px]:min-h-20 max-[1100px]:px-6 max-[1100px]:text-[17px] max-md:min-h-0 max-md:rounded-2xl max-md:px-4 max-md:py-3 max-md:text-[15px] max-md:leading-relaxed max-md:shadow-overlay max-md:backdrop-blur-md",

@@ -2,6 +2,10 @@ node_modules/
 dist/
 out/
 coverage/
+.wrangler/
+.dev.vars
+.env*
+!.env.example
 .DS_Store
 
 # 元画像と配布用ZIPはローカル保管。アプリは最適化済みWebPを参照する。

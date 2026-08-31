@@ -29,17 +29,19 @@ const initialConversations = [
 export function ConversationHistorySheet({
   open,
   characterName,
+  importedPack = false,
   activeConversationId,
   onOpenChange,
   onSelectConversation,
 }: {
   open: boolean
   characterName: string
+  importedPack?: boolean
   activeConversationId: string
   onOpenChange: (open: boolean) => void
   onSelectConversation: (conversationId: string) => void
 }) {
-  const [conversations, setConversations] = useState(initialConversations)
+  const [conversations, setConversations] = useState(() => importedPack ? [initialConversations[0]] : initialConversations)
   const [renameId, setRenameId] = useState<string | null>(null)
   const [renameTitle, setRenameTitle] = useState("")
 

@@ -13,3 +13,8 @@ Object.defineProperty(Element.prototype, "scrollIntoView", {
   configurable: true,
   value: vi.fn(),
 })
+
+Object.defineProperty(globalThis, "createImageBitmap", {
+  configurable: true,
+  value: vi.fn().mockResolvedValue({ width: 1, height: 1, close: vi.fn() }),
+})

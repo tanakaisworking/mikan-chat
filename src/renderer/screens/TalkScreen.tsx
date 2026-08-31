@@ -57,6 +57,22 @@ const seededConversations: Record<string, ChatMessageData[]> = {
 }
 const emptyMessages: ChatMessageData[] = []
 
+function getSeededConversations(character: Character) {
+  if (!character.opening?.length) return seededConversations
+
+  return {
+    today: character.opening.map((event, index) => ({
+      id: `opening-${index}`,
+      role: event.role,
+      text: event.text,
+      time: "導入",
+      audio: event.role === "character",
+      speakerName: event.speakerName,
+      image: event.image,
+    })),
+  } satisfies Record<string, ChatMessageData[]>
+}
+
 export function TalkScreen({
   character,
   conversationId,
@@ -65,7 +81,7 @@ export function TalkScreen({
   onOpenVoice,
   onOpenHistory,
 }: TalkScreenProps) {
-  const [messageStore, setMessageStore] = useState<Record<string, ChatMessageData[]>>(seededConversations)
+  const [messageStore, setMessageStore] = useState<Record<string, ChatMessageData[]>>(() => getSeededConversations(character))
   const [isGenerating, setIsGenerating] = useState(false)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
   const generationTimer = useRef<number | null>(null)
@@ -141,7 +157,7 @@ export function TalkScreen({
         }
       />
 
-      <CharacterStage image={character.image} name={character.name} className="max-md:col-start-1 max-md:row-start-2" />
+      <CharacterStage image={character.stageImage ?? character.image} name={character.name} className="max-md:col-start-1 max-md:row-start-2" />
 
       <ChatTimeline
         characterName={character.name}

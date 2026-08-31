@@ -23,6 +23,8 @@
   },
   "include": [
     "src",
+    "worker",
+    "worker-configuration.d.ts",
     "vite.config.ts",
     "electron.vite.config.ts",
     "vitest.config.ts",

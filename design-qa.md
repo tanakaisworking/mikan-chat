@@ -57,6 +57,7 @@ P0: 0 / P1: 0 / P2: 0
 - `docs/design/implementation/home-1024x720.png`
 - `docs/design/implementation/talk-1024x720.png`
 - `docs/design/implementation/mobile-home.png`
+- `docs/design/implementation/mobile-chat-list.png`
 - `docs/design/implementation/mobile-talk.png`
 - `docs/design/implementation/mobile-talk-320x700.png`
 - `docs/design/implementation/mobile-setup.png`
@@ -65,7 +66,7 @@ P0: 0 / P1: 0 / P2: 0
 - `docs/design/implementation/mobile-voice.png`
 - `docs/design/implementation/mobile-history.png`
 - 1024 × 720で横あふれ、到達不能な操作、画像変形なし。
-- 390 × 844と320 × 700で横あふれ、到達不能な操作、画像変形なし。
+- 390 × 844と320 × 700で横あふれ、到達不能な操作、画像変形なし。スマホホームの「ホーム / チャット」下部タブと、トーク画面でタブが消えることを確認。
 - ブラウザ実操作で、インポート、送信と返答、生成停止、接続テスト、APIキー確定／キャンセル、音声テスト、履歴選択／新規／名前変更／削除を確認。
 - 新規ブラウザタブで会話履歴を開き、console error / warning 0件を確認。
 
@@ -73,6 +74,6 @@ P0: 0 / P1: 0 / P2: 0
 
 - `npm run lint`: 成功、警告0
 - `npm run typecheck`: 成功
-- `npm run test -- --run`: 16件成功
+- `npm run test -- --run`: 18件成功
 - `npm run build`: 成功
 - 独立レビュー: PC 7画面とモバイル7画面のレポートすべて passed
