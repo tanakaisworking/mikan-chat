@@ -7,11 +7,14 @@ import type { ChatMessageData } from "@/components/chat/chat-message"
 import { ChatTimeline } from "@/components/chat/chat-timeline"
 import { AppHeader } from "@/components/ui/app-header"
 import { IconButton } from "@/components/ui/icon-button"
+import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
+import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
 
 type TalkScreenProps = {
   character: Character
   conversationId: string
+  connection: ConnectionSettings
   onBack: () => void
   onOpenConnection: () => void
   onOpenVoice: () => void
@@ -36,13 +39,12 @@ const initialMessages: ChatMessageData[] = [
     role: "character",
     text: "もちろん。ゆっくり聞かせて。",
     time: "20:43",
-    audio: true,
   },
 ]
 
 const rainMessages: ChatMessageData[] = [
   { id: "rain-user", role: "user", text: "雨、まだ降ってるかな？", time: "18:17" },
-  { id: "rain-character", role: "character", text: "うん。でも傘はちゃんと持ってきたよ。", time: "18:18", audio: true },
+  { id: "rain-character", role: "character", text: "うん。でも傘はちゃんと持ってきたよ。", time: "18:18" },
 ]
 
 const seededConversations: Record<string, ChatMessageData[]> = {
@@ -66,7 +68,6 @@ function getSeededConversations(character: Character) {
       role: event.role,
       text: event.text,
       time: "導入",
-      audio: event.role === "character",
       speakerName: event.speakerName,
       image: event.image,
     })),
@@ -76,6 +77,7 @@ function getSeededConversations(character: Character) {
 export function TalkScreen({
   character,
   conversationId,
+  connection,
   onBack,
   onOpenConnection,
   onOpenVoice,
@@ -83,8 +85,9 @@ export function TalkScreen({
 }: TalkScreenProps) {
   const [messageStore, setMessageStore] = useState<Record<string, ChatMessageData[]>>(() => getSeededConversations(character))
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
-  const generationTimer = useRef<number | null>(null)
+  const generationController = useRef<AbortController | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
   const messages = messageStore[conversationId] ?? emptyMessages
 
@@ -92,43 +95,86 @@ export function TalkScreen({
     timelineEnd.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isGenerating])
 
-  useEffect(() => () => {
-    if (generationTimer.current) window.clearTimeout(generationTimer.current)
-  }, [])
+  useEffect(() => () => generationController.current?.abort(), [])
 
   const sendMessage = (text: string) => {
+    if (!isConnectionReady(connection)) {
+      setGenerationError("先に会話に使うAIを設定してください。")
+      onOpenConnection()
+      return false
+    }
+    void generateReply(text)
+    return true
+  }
+
+  const generateReply = async (text: string) => {
     const targetConversationId = conversationId
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
+    const userMessage: ChatMessageData = { id: crypto.randomUUID(), role: "user", text, time: now }
+    const replyId = crypto.randomUUID()
+    const promptMessages = [...messages, userMessage]
     setMessageStore((current) => ({
       ...current,
       [targetConversationId]: [
         ...(current[targetConversationId] ?? []),
-        { id: crypto.randomUUID(), role: "user", text, time: now },
+        userMessage,
       ],
     }))
+    setGenerationError(null)
     setIsGenerating(true)
-    generationTimer.current = window.setTimeout(() => {
+    const controller = new AbortController()
+    generationController.current = controller
+    try {
+      const replyText = await streamCharacterReply({
+        connection,
+        character,
+        messages: promptMessages,
+        signal: controller.signal,
+        onText: (reply) => setMessageStore((current) => {
+          const currentMessages = current[targetConversationId] ?? []
+          const existing = currentMessages.some((message) => message.id === replyId)
+          const nextReply: ChatMessageData = {
+            id: replyId,
+            role: "character",
+            text: reply,
+            time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
+          }
+          return {
+            ...current,
+            [targetConversationId]: existing
+              ? currentMessages.map((message) => message.id === replyId ? nextReply : message)
+              : [...currentMessages, nextReply],
+          }
+        }),
+      })
+      const events = parseAssistantResponse(replyText, character)
       setMessageStore((current) => ({
         ...current,
-        [targetConversationId]: [
-          ...(current[targetConversationId] ?? []),
-          {
-            id: crypto.randomUUID(),
-            role: "character",
-            text: "うん。急がなくて大丈夫。今日はどんなことがあったの？",
-            time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
-            audio: true,
-          },
-        ],
+        [targetConversationId]: (current[targetConversationId] ?? []).flatMap((message) => message.id === replyId
+          ? events.map((event, index) => ({
+            id: `${replyId}-${index}`,
+            role: event.role,
+            text: event.text,
+            speakerName: event.speakerName,
+            time: message.time,
+          }))
+          : [message]),
       }))
-      setIsGenerating(false)
-      generationTimer.current = null
-    }, 900)
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setGenerationError(error instanceof Error ? error.message : "AIから返答を受け取れませんでした。")
+      }
+    } finally {
+      if (generationController.current === controller) {
+        generationController.current = null
+        setIsGenerating(false)
+      }
+    }
   }
 
   const stopGeneration = () => {
-    if (generationTimer.current) window.clearTimeout(generationTimer.current)
-    generationTimer.current = null
+    generationController.current?.abort()
+    generationController.current = null
     setIsGenerating(false)
   }
 
@@ -139,7 +185,6 @@ export function TalkScreen({
     >
       <AppHeader
         title={character.name}
-        status="このPCで処理"
         onBack={onBack}
         className="col-span-2 max-md:col-span-1"
         actions={
@@ -163,6 +208,7 @@ export function TalkScreen({
         characterName={character.name}
         messages={messages}
         isGenerating={isGenerating}
+        error={generationError}
         playingMessageId={playingMessageId}
         onToggleAudio={(messageId) => setPlayingMessageId((current) => (current === messageId ? null : messageId))}
         endRef={timelineEnd}
@@ -174,7 +220,6 @@ export function TalkScreen({
           onSend={sendMessage}
           isGenerating={isGenerating}
           onStop={stopGeneration}
-          onOpenVoice={onOpenVoice}
         />
       </div>
     </main>

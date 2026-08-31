@@ -1,15 +1,37 @@
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { zipSync, strToU8 } from "fflate"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { App } from "@/App"
+import { streamCharacterReply } from "@/lib/ai-chat"
+
+vi.mock("@/lib/ai-chat", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/ai-chat")>(),
+  streamCharacterReply: vi.fn(),
+}))
 
 describe("mikan chat UI flow", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/?screen=home")
+    window.mikan = {
+      platform: "darwin",
+      speech: {
+        start: vi.fn().mockResolvedValue(undefined),
+        send: vi.fn(),
+        stop: vi.fn().mockResolvedValue(undefined),
+        onEvent: vi.fn().mockReturnValue(vi.fn()),
+      },
+    }
+    vi.mocked(streamCharacterReply).mockReset()
+    vi.mocked(streamCharacterReply).mockImplementation(async ({ onText }) => {
+      const reply = "うん。急がなくて大丈夫。今日はどんなことがあったの？"
+      onText(reply)
+      return reply
+    })
   })
 
   afterEach(() => {
+    delete window.mikan
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -23,11 +45,118 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByPlaceholderText("メッセージを入力")).toBeInTheDocument()
   })
 
+  it("Web版はAPIからシナリオを読み込む", async () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      items: [{
+        id: "api-scenario",
+        slug: "api-scenario",
+        title: "DBから届いたシナリオ",
+        characterName: "ミア・ノア",
+        summary: "D1に保存されたシナリオ。",
+        coverPath: "/scenario-covers/aoi.webp",
+        rating: "all",
+        tags: ["テスト"],
+        conversationLabel: "2人と会話",
+        lastMessage: "{{user}}さん、話を聞いて。",
+        lastActive: "",
+        pack: {},
+        opening: [
+          { role: "narration", text: "酒場の扉が静かに閉まる。", image: "/scenario-covers/mia.webp" },
+          { role: "character", speakerName: "ミア", text: "{{user}}さん、頼みがあるの。", image: null },
+          { role: "character", speakerName: "ノア", text: "まず話を聞け。", image: null },
+          { role: "user", text: "わかった。聞かせて。", image: null },
+        ],
+      }],
+    })))
+
+    render(<App />)
+
+    expect(await screen.findByRole("button", { name: "DBから届いたシナリオ" })).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledWith("/api/scenarios")
+    fireEvent.click(screen.getByRole("button", { name: "DBから届いたシナリオ" }))
+    expect(screen.getByRole("heading", { name: "ミア・ノア" })).toBeInTheDocument()
+    expect(screen.getByText("酒場の扉が静かに閉まる。")).toBeInTheDocument()
+    expect(screen.getByText("あなた、頼みがあるの。")).toBeInTheDocument()
+    expect(screen.getByText("まず話を聞け。")).toBeInTheDocument()
+    expect(screen.getByText("わかった。聞かせて。")).toBeInTheDocument()
+    expect(screen.getByText("ミア")).toBeInTheDocument()
+    expect(screen.getByText("ノア")).toBeInTheDocument()
+    expect(screen.getAllByAltText("場面")).toHaveLength(1)
+  })
+
+  it("Web版の読み込み失敗後に再試行できる", async () => {
+    delete window.mikan
+    const item = {
+      id: "retry-scenario",
+      slug: "retry-scenario",
+      title: "再試行で届いたシナリオ",
+      characterName: "みかん",
+      summary: "再試行後に表示される。",
+      coverPath: null,
+      rating: "all",
+      tags: [],
+      conversationLabel: "1人と会話",
+      lastMessage: "こんにちは",
+      lastActive: "",
+      pack: {},
+    }
+    vi.stubGlobal("fetch", vi.fn()
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce(Response.json({ items: [item] })))
+
+    render(<App />)
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("シナリオを読み込めませんでした")
+    fireEvent.click(screen.getByRole("button", { name: "もう一度試す" }))
+    expect(await screen.findByRole("button", { name: "再試行で届いたシナリオ" })).toBeInTheDocument()
+  })
+
+  it("API読み込み中に開始したインポート会話を完了後も維持する", async () => {
+    delete window.mikan
+    let resolveScenarios!: (response: Response) => void
+    const scenarios = new Promise<Response>((resolve) => { resolveScenarios = resolve })
+    vi.stubGlobal("fetch", vi.fn().mockImplementation((input: RequestInfo | URL) =>
+      String(input).includes("/api/scenarios") ? scenarios : Promise.resolve(createDemoPackResponse()),
+    ))
+    window.history.replaceState({}, "", "/?screen=home&overlay=import")
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: "デモを読み込む" }))
+    await screen.findByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })
+    fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
+    expect(screen.getByRole("heading", { name: "葵" })).toBeInTheDocument()
+
+    await act(async () => {
+      resolveScenarios(Response.json({ items: [{
+        id: "server-scenario",
+        slug: "server-scenario",
+        title: "サーバーのシナリオ",
+        characterName: "別の人物",
+        summary: "APIから届く。",
+        coverPath: null,
+        rating: "all",
+        tags: [],
+        conversationLabel: "1人と会話",
+        lastMessage: "こんにちは",
+        lastActive: "",
+        pack: {},
+      }] }))
+    })
+
+    expect(screen.getByRole("heading", { name: "葵" })).toBeInTheDocument()
+    expect(screen.getByText(/こんな時間に、どうしたんですか/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "戻る" }))
+    expect(screen.getByRole("button", { name: "サーバーのシナリオ" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
+  })
+
   it("スマホ用タブでホームとチャットを切り替えられる", () => {
     render(<App />)
 
-    const homeTab = screen.getByRole("button", { name: "ホーム" })
-    const chatTab = screen.getByRole("button", { name: "チャット" })
+    const mobileNavigation = screen.getByRole("navigation", { name: "モバイルメインナビゲーション" })
+    const homeTab = within(mobileNavigation).getByRole("button", { name: "ホーム" })
+    const chatTab = within(mobileNavigation).getByRole("button", { name: "チャット" })
     expect(homeTab).toHaveAttribute("aria-current", "page")
 
     fireEvent.click(chatTab)
@@ -36,37 +165,61 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByText("続きから")).toBeInTheDocument()
   })
 
+  it("PCサイドバーでホームとチャットを別ページとして切り替えられる", () => {
+    render(<App />)
+
+    const desktopNavigation = screen.getByRole("navigation", { name: "PCメインナビゲーション" })
+    fireEvent.click(within(desktopNavigation).getByRole("button", { name: "チャット" }))
+
+    expect(screen.getByText("続きから")).toBeInTheDocument()
+    expect(screen.queryByText("シナリオを探す")).not.toBeInTheDocument()
+  })
+
+  it("スマホ下部のシナリオ導線からインポートを開ける", () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: "新しいシナリオを作成&インポート" }))
+
+    expect(screen.getByRole("dialog", { name: "チャットパックを追加" })).toBeInTheDocument()
+  })
+
+  it("スマホヘッダーの補助操作をハンバーガーメニューに格納する", () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }))
+
+    expect(screen.getByRole("menuitem", { name: "技術ドキュメント" })).toBeInTheDocument()
+    expect(screen.getByRole("menuitem", { name: "設定" })).toBeInTheDocument()
+  })
+
   it("チャット一覧から会話を開き、戻るとチャットタブへ戻る", () => {
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: "チャット" }))
+    const mobileNavigation = screen.getByRole("navigation", { name: "モバイルメインナビゲーション" })
+    fireEvent.click(within(mobileNavigation).getByRole("button", { name: "チャット" }))
     fireEvent.click(screen.getByRole("button", { name: /葵 おかえり/ }))
-    expect(screen.queryByRole("navigation", { name: "メインナビゲーション" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("navigation", { name: "モバイルメインナビゲーション" })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "戻る" }))
-    expect(screen.getByRole("button", { name: "チャット" })).toHaveAttribute("aria-current", "page")
+    expect(within(screen.getByRole("navigation", { name: "モバイルメインナビゲーション" })).getByRole("button", { name: "チャット" })).toHaveAttribute("aria-current", "page")
     expect(screen.getByText("続きから")).toBeInTheDocument()
   })
 
   it("メッセージを送るとキャラクターの返答が追加される", async () => {
-    vi.useFakeTimers()
     window.history.replaceState({}, "", "/?screen=talk")
     render(<App />)
+    configureLocalAI()
 
     const composer = screen.getByPlaceholderText("メッセージを入力")
     fireEvent.change(composer, { target: { value: "今日は少し疲れたよ" } })
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
 
     expect(screen.getByText("今日は少し疲れたよ")).toBeInTheDocument()
-    expect(screen.getByText("葵が考えています…")).toBeInTheDocument()
-
-    await act(async () => {
-      vi.advanceTimersByTime(900)
-    })
-
-    expect(screen.getByText("うん。急がなくて大丈夫。今日はどんなことがあったの？")).toBeInTheDocument()
-    vi.useRealTimers()
-  })
+    await waitFor(() => {
+      expect(screen.queryByText("葵が考えています…")).not.toBeInTheDocument()
+      expect(screen.getByText("うん。急がなくて大丈夫。今日はどんなことがあったの？")).toBeInTheDocument()
+    }, { timeout: 5_000 })
+  }, 10_000)
 
   it("URLからAI接続Dialogを確認できる", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
@@ -100,19 +253,44 @@ describe("mikan chat UI flow", () => {
   })
 
   it("接続対象を変えると以前のテスト結果を消す", async () => {
-    vi.useFakeTimers()
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ data: [{ id: "qwen3:8b" }] })))
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
 
+    fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
     fireEvent.click(screen.getByRole("button", { name: "接続をテスト" }))
-    await act(async () => {
-      vi.advanceTimersByTime(500)
-    })
-    expect(screen.getByText("接続できました")).toBeInTheDocument()
+    expect(await screen.findByText("接続できました")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: /オンラインAI/ }))
 
     expect(screen.queryByText("接続できました")).not.toBeInTheDocument()
-    vi.useRealTimers()
+  })
+
+  it("接続テスト中に設定を変えたら古い成功結果を表示しない", async () => {
+    let resolveFetch!: (response: Response) => void
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve })))
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
+    fireEvent.click(screen.getByRole("button", { name: "接続をテスト" }))
+    fireEvent.change(screen.getByRole("textbox", { name: /接続先URL/ }), { target: { value: "http://127.0.0.1:1234/v1" } })
+    await act(async () => {
+      resolveFetch(Response.json({ data: [{ id: "qwen3:8b" }] }))
+    })
+
+    expect(screen.queryByText("接続できました")).not.toBeInTheDocument()
+  })
+
+  it("オンラインAIのHTTP接続先を確定できない", () => {
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: /オンラインAI/ }))
+    fireEvent.change(screen.getByRole("textbox", { name: /接続先URL/ }), { target: { value: "http://example.com/v1" } })
+    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
+
+    expect(screen.getByText("オンラインAIの接続先にはhttpsを指定してください。")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "この接続を使う" })).toBeDisabled()
   })
 
   it("接続設定をキャンセルすると未確定の選択を破棄する", () => {
@@ -124,7 +302,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "あとで設定する" }))
     fireEvent.click(screen.getByRole("button", { name: "設定" }))
 
-    expect(screen.getByRole("button", { name: /このPCのAI 接続できています/ })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: /このPCのAI OllamaやLM Studioへ接続/ })).toHaveAttribute("aria-pressed", "true")
   })
 
   it("日本語入力中とShift+Enterでは送信しない", () => {
@@ -142,23 +320,35 @@ describe("mikan chat UI flow", () => {
     expect(composer).toHaveValue("入力途中")
   })
 
-  it("生成を停止すると返答を追加しない", async () => {
-    vi.useFakeTimers()
+  it("AIが未設定なら入力を残したまま設定画面を開く", () => {
     window.history.replaceState({}, "", "/?screen=talk")
     render(<App />)
+
+    const composer = screen.getByPlaceholderText("メッセージを入力")
+    fireEvent.change(composer, { target: { value: "設定後に送りたい文章" } })
+    fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
+
+    expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
+    expect(composer).toHaveValue("設定後に送りたい文章")
+  })
+
+  it("生成を停止すると返答を追加しない", async () => {
+    vi.mocked(streamCharacterReply).mockImplementation(({ signal }) => new Promise<string>((resolve) => {
+      signal.addEventListener("abort", () => resolve(""), { once: true })
+    }))
+    window.history.replaceState({}, "", "/?screen=talk")
+    render(<App />)
+    configureLocalAI()
 
     const composer = screen.getByPlaceholderText("メッセージを入力")
     fireEvent.change(composer, { target: { value: "ここで止めて" } })
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
     fireEvent.click(screen.getByRole("button", { name: "生成を停止" }))
 
-    await act(async () => {
-      vi.advanceTimersByTime(900)
-    })
+    await act(async () => undefined)
 
     expect(screen.queryByText("うん。急がなくて大丈夫。今日はどんなことがあったの？")).not.toBeInTheDocument()
     expect(screen.queryByText("葵が考えています…")).not.toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it("デモの.mikanchatをライブラリへ追加できる", async () => {
@@ -191,6 +381,26 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByRole("button", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
   })
 
+  it("画像なしのチャットパックを追加して会話できる", async () => {
+    mockDemoPackFetch({
+      discovery: { tags: ["日常"] },
+      plot: {
+        premise: "雨宿りに入った軒先で、旅人と出会う。",
+        characters: [{ id: "traveler", name: "旅人", profile: "穏やかで、短く話す旅人。" }],
+        opening: [{ type: "dialogue", speaker: "traveler", text: "ここ、半分使いますか？" }],
+      },
+    })
+    window.history.replaceState({}, "", "/?screen=home&overlay=import")
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: "デモを読み込む" }))
+    expect(await screen.findByRole("img", { name: "カバー画像はありません" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
+
+    expect(screen.getByRole("img", { name: "旅人の画像はありません" })).toBeInTheDocument()
+    expect(screen.getByText("ここ、半分使いますか？")).toBeInTheDocument()
+  })
+
   it("R18パックは確認前にカバーと追加操作を表示しない", async () => {
     mockDemoPackFetch({ rating: "r18" })
     window.history.replaceState({}, "", "/?screen=home&overlay=import")
@@ -212,7 +422,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "デモを読み込む" }))
     await screen.findByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })
     fireEvent.click(screen.getByRole("button", { name: "ライブラリに追加" }))
-    fireEvent.click(screen.getByRole("button", { name: "チャットパックを追加" }))
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを追加" }))
     fireEvent.click(screen.getByRole("button", { name: "デモを読み込む" }))
     await screen.findByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })
     fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
@@ -228,24 +438,20 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByTestId("tech-docs-screen")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: /mikan Chat Pack Specification v0.1/ })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "rainy-cafe.mikanchat" })).toHaveAttribute("download", "rainy-cafe.mikanchat")
+    expect(screen.getByRole("link", { name: "JSON Schema" })).toHaveAttribute("href", "/schema/chat-pack-0.1.json")
+    expect(screen.getByRole("link", { name: "JSON Schema" })).toHaveAttribute("download", "chat-pack-0.1.json")
   })
 
-  it("音声設定のテスト状態を操作でき、閉じるとリセットされる", () => {
+  it("Electron版の音声設定にHayamimiと未接続のTTSを表示する", () => {
     window.history.replaceState({}, "", "/?screen=talk&overlay=voice")
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: "マイクを試す" }))
-    expect(screen.getByRole("button", { name: "テストを停止" })).toBeInTheDocument()
+    expect(screen.getByText("Hayamimi")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "マイクを試す" })).toBeEnabled()
     const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
-    fireEvent.click(readAloud)
+    expect(readAloud).toHaveAttribute("aria-disabled", "true")
     expect(readAloud).not.toBeChecked()
-    fireEvent.click(screen.getByRole("button", { name: "声を試す" }))
-    expect(screen.getByRole("button", { name: "再生を停止" })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "閉じる" }))
-    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
-
-    expect(screen.getByRole("button", { name: "マイクを試す" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "声を試す" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Irodori TTS接続後に利用できます" })).toBeDisabled()
   })
 
   it("履歴を選ぶと会話内容を切り替える", () => {
@@ -289,14 +495,16 @@ describe("mikan chat UI flow", () => {
     expect(screen.queryByRole("dialog", { name: "会話名を変更" })).not.toBeInTheDocument()
   })
 
-  it("新しい会話のメッセージを履歴の往復後も保持する", () => {
+  it("新しい会話のメッセージを履歴の往復後も保持する", async () => {
     window.history.replaceState({}, "", "/?screen=talk&overlay=history")
     render(<App />)
 
     fireEvent.click(screen.getByRole("button", { name: "新しい会話" }))
+    configureLocalAI()
     const composer = screen.getByPlaceholderText("メッセージを入力")
     fireEvent.change(composer, { target: { value: "この会話を残して" } })
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
+    await act(async () => undefined)
     fireEvent.click(screen.getByRole("button", { name: "会話履歴" }))
     const todayConversation = screen
       .getAllByRole("button", { name: /今日のこと/ })
@@ -314,7 +522,17 @@ describe("mikan chat UI flow", () => {
   })
 })
 
+function configureLocalAI() {
+  fireEvent.click(screen.getByRole("button", { name: "AI接続設定" }))
+  fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
+  fireEvent.click(screen.getByRole("button", { name: "この接続を使う" }))
+}
+
 function mockDemoPackFetch(overrides: Record<string, unknown> = {}) {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => createDemoPackResponse(overrides)))
+}
+
+function createDemoPackResponse(overrides: Record<string, unknown> = {}) {
   const webp = new Uint8Array([
     0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
     0x56, 0x50, 0x38, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -346,5 +564,5 @@ function mockDemoPackFetch(overrides: Record<string, unknown> = {}) {
     "assets/cover.webp": webp,
     "assets/aoi.webp": webp,
   })
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(archive, { status: 200 })))
+  return new Response(archive, { status: 200 })
 }

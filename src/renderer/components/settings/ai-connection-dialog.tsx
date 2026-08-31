@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CheckCircle2, ChevronDown, Cloud, MonitorCog } from "lucide-react"
+import { CheckCircle2, Cloud, MonitorCog } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ChoiceCard } from "@/components/ui/choice-card"
@@ -12,13 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { TextField } from "@/components/ui/text-field"
-import { cn } from "@/lib/utils"
+import { getConnectionError, getEndpointError, testAIConnection } from "@/lib/ai-chat"
 
 export type ConnectionType = "local" | "online"
 export type ConnectionSettings = {
   type: ConnectionType
   apiKey: string
   endpoint: string
+  model: string
 }
 
 export function AIConnectionDialog({
@@ -26,6 +27,8 @@ export function AIConnectionDialog({
   initialConnection,
   initialApiKey,
   initialEndpoint,
+  initialModel,
+  isDesktop,
   onOpenChange,
   onConfirm,
 }: {
@@ -33,45 +36,63 @@ export function AIConnectionDialog({
   initialConnection: ConnectionType
   initialApiKey: string
   initialEndpoint: string
+  initialModel: string
+  isDesktop: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (settings: ConnectionSettings) => void
 }) {
   const [connection, setConnection] = useState<ConnectionType>(initialConnection)
-  const [showManual, setShowManual] = useState(false)
   const [apiKey, setApiKey] = useState(initialApiKey)
   const [endpoint, setEndpoint] = useState(initialEndpoint)
-  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "success">("idle")
-  const testTimer = useRef<number | null>(null)
+  const [model, setModel] = useState(initialModel)
+  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "success" | "error">("idle")
+  const [testError, setTestError] = useState<string | null>(null)
+  const testController = useRef<AbortController | null>(null)
+  const testRequestId = useRef(0)
+  const settings = { type: connection, apiKey, endpoint, model }
+  const connectionError = getConnectionError(settings)
+  const endpointError = endpoint.trim() ? getEndpointError(settings) : undefined
 
   useEffect(() => {
+    testController.current?.abort()
+    testController.current = null
+    testRequestId.current += 1
     if (open) {
-      setConnection(initialConnection)
-      setShowManual(false)
+      setConnection(isDesktop ? initialConnection : "online")
       setApiKey(initialApiKey)
       setEndpoint(initialEndpoint)
+      setModel(initialModel)
       setTestStatus("idle")
-    } else if (testTimer.current) {
-      window.clearTimeout(testTimer.current)
-      testTimer.current = null
+      setTestError(null)
     }
-  }, [initialApiKey, initialConnection, initialEndpoint, open])
+  }, [initialApiKey, initialConnection, initialEndpoint, initialModel, isDesktop, open])
 
-  useEffect(() => () => {
-    if (testTimer.current) window.clearTimeout(testTimer.current)
-  }, [])
-
-  const testConnection = () => {
+  const testConnection = async () => {
+    testController.current?.abort()
+    const controller = new AbortController()
+    testController.current = controller
+    const requestId = ++testRequestId.current
     setTestStatus("testing")
-    testTimer.current = window.setTimeout(() => {
+    setTestError(null)
+    try {
+      await testAIConnection(settings, controller.signal)
+      if (testRequestId.current !== requestId) return
       setTestStatus("success")
-      testTimer.current = null
-    }, 500)
+    } catch (error) {
+      if (controller.signal.aborted || testRequestId.current !== requestId) return
+      setTestStatus("error")
+      setTestError(error instanceof Error ? error.message : "接続を確認できませんでした。")
+    } finally {
+      if (testController.current === controller) testController.current = null
+    }
   }
 
   const resetTest = () => {
-    if (testTimer.current) window.clearTimeout(testTimer.current)
-    testTimer.current = null
+    testController.current?.abort()
+    testController.current = null
+    testRequestId.current += 1
     setTestStatus("idle")
+    setTestError(null)
   }
 
   return (
@@ -83,18 +104,19 @@ export function AIConnectionDialog({
         </DialogHeader>
 
         <div className="grid gap-3">
-          <ChoiceCard
-            size="dialog"
-            selected={connection === "local"}
-            icon={<MonitorCog />}
-            title="このPCのAI"
-            description="接続できています"
-            trailing={connection === "local" ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
-            onClick={() => {
-              resetTest()
-              setConnection("local")
-            }}
-          />
+          {isDesktop ? <ChoiceCard
+              size="dialog"
+              selected={connection === "local"}
+              icon={<MonitorCog />}
+              title="このPCのAI"
+              description="OllamaやLM Studioへ接続"
+              trailing={connection === "local" ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
+              onClick={() => {
+                resetTest()
+                setConnection("local")
+                if (endpoint.startsWith("https://")) setEndpoint("http://127.0.0.1:11434/v1")
+              }}
+            /> : null}
           <ChoiceCard
             size="dialog"
             selected={connection === "online"}
@@ -105,21 +127,38 @@ export function AIConnectionDialog({
             onClick={() => {
               resetTest()
               setConnection("online")
+              if (endpoint.startsWith("http://127.0.0.1")) setEndpoint("https://api.openai.com/v1")
+              if (!model.trim()) setModel("gpt-4.1-mini")
             }}
           />
         </div>
 
-        {connection === "local" ? (
-          <button
-            type="button"
-            className="flex min-h-12 w-full items-center justify-between border-y border-border/70 text-left text-sm text-muted-foreground"
-            aria-expanded={showManual}
-            onClick={() => setShowManual((current) => !current)}
-          >
-            手動で接続先を入力
-            <ChevronDown className={cn("size-5 text-primary-bright transition-transform", showManual && "rotate-180")} />
-          </button>
-        ) : (
+        <div className="grid gap-4 rounded-md bg-surface-soft p-4">
+          <TextField
+            name="endpoint"
+            label="接続先URL"
+            value={endpoint}
+            error={endpointError ?? undefined}
+            placeholder={connection === "local" ? "http://127.0.0.1:11434/v1" : "https://api.openai.com/v1"}
+            onChange={(event) => {
+              resetTest()
+              setEndpoint(event.target.value)
+            }}
+            description="OpenAI互換APIのベースURLを入力します。"
+          />
+          <TextField
+            name="model"
+            label="モデル名"
+            value={model}
+            placeholder={connection === "local" ? "例: qwen3:8b" : "例: gpt-4.1-mini"}
+            onChange={(event) => {
+              resetTest()
+              setModel(event.target.value)
+            }}
+          />
+        </div>
+
+        {connection === "online" ? (
           <TextField
             name="api-key"
             type="password"
@@ -131,37 +170,23 @@ export function AIConnectionDialog({
               resetTest()
               setApiKey(event.target.value)
             }}
-            description="キーはこのPC内に保存します。"
+            description={isDesktop ? "キーはこのアプリを閉じるまで保持します。" : "キーはこのブラウザタブ内だけで使用し、サーバーには保存しません。"}
           />
-        )}
-
-        {connection === "local" && showManual ? (
-          <div className="grid gap-4 rounded-md bg-surface-soft p-4">
-            <TextField
-              name="endpoint"
-              label="接続先URL"
-              value={endpoint}
-              onChange={(event) => {
-                resetTest()
-                setEndpoint(event.target.value)
-              }}
-              description="OllamaやOpenAI互換APIのURLを入力します。"
-            />
-          </div>
         ) : null}
 
         <div className="grid justify-items-center gap-2">
-          <Button variant="outline" size="lg" className="min-w-52" disabled={testStatus === "testing" || (connection === "online" && !apiKey.trim())} onClick={testConnection}>
+          <Button variant="outline" size="lg" className="min-w-52" disabled={testStatus === "testing" || Boolean(connectionError)} onClick={() => void testConnection()}>
             {testStatus === "testing" ? "接続を確認中…" : "接続をテスト"}
           </Button>
           {testStatus === "success" ? <p className="text-sm text-success" role="status">接続できました</p> : null}
+          {testStatus === "error" ? <p className="text-center text-sm text-danger" role="alert">{testError}</p> : null}
         </div>
 
         <DialogFooter>
           <Button variant="outline" size="lg" onClick={() => onOpenChange(false)}>
             キャンセル
           </Button>
-          <Button size="lg" disabled={connection === "online" && !apiKey.trim()} onClick={() => onConfirm({ type: connection, apiKey, endpoint })}>この接続を使う</Button>
+          <Button size="lg" disabled={Boolean(connectionError)} onClick={() => onConfirm(settings)}>この接続を使う</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

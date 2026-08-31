@@ -14,8 +14,9 @@ export type Character = {
   description: string
   lastMessage: string
   lastActive: string
-  image: string
+  image?: string
   stageImage?: string
+  pack?: Record<string, unknown>
   opening?: Array<{
     role: "narration" | "character" | "user"
     text: string

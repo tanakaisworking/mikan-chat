@@ -7,11 +7,12 @@ import { ChoiceCard } from "@/components/ui/choice-card"
 import type { ConnectionType } from "@/components/settings/ai-connection-dialog"
 
 type SetupScreenProps = {
+  isDesktop: boolean
   onContinue: () => void
   onOpenConnection: (connection: ConnectionType) => void
 }
 
-export function SetupScreen({ onContinue, onOpenConnection }: SetupScreenProps) {
+export function SetupScreen({ isDesktop, onContinue, onOpenConnection }: SetupScreenProps) {
   return (
     <main className="grid h-screen grid-cols-[46.5%_53.5%] overflow-hidden bg-background max-md:block max-md:h-dvh max-md:overflow-y-auto" data-testid="setup-screen">
       <section className="relative overflow-hidden border-r border-border/70 bg-surface-soft max-md:h-[42dvh] max-md:min-h-[300px] max-md:border-r-0 max-md:border-b">
@@ -58,19 +59,19 @@ export function SetupScreen({ onContinue, onOpenConnection }: SetupScreenProps) 
           </div>
 
           <div className="grid gap-5">
-            <ChoiceCard
+            {isDesktop ? <ChoiceCard
               size="setup"
               icon={<MonitorCog />}
               title="このPCのAIを使う"
               description="インストール済みのAIを自動で探します"
               trailing={<ChevronRight className="size-8 text-primary-bright transition-transform group-hover:translate-x-0.5" aria-hidden="true" />}
               onClick={() => onOpenConnection("local")}
-            />
+            /> : null}
             <ChoiceCard
               size="setup"
               icon={<Cloud />}
               title="AIサービスに接続する"
-              description="APIキーを使ってオンラインAIにつなぎます"
+              description={isDesktop ? "APIキーを使ってオンラインAIにつなぎます" : "自分のAPIキーでオンラインAIにつなぎます"}
               trailing={<ChevronRight className="size-8 text-primary-bright transition-transform group-hover:translate-x-0.5" aria-hidden="true" />}
               onClick={() => onOpenConnection("online")}
             />

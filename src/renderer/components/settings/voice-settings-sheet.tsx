@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CheckCircle2, Lightbulb, Mic, Square, Volume2 } from "lucide-react"
+import { CheckCircle2, Lightbulb, Mic, Volume2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,38 +10,46 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
+import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type SpeechInputStatus } from "@/lib/speech-input"
 
 export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [readAloud, setReadAloud] = useState(true)
-  const [testingMic, setTestingMic] = useState(false)
-  const [testingVoice, setTestingVoice] = useState(false)
-  const voiceTimer = useRef<number | null>(null)
+  const [micStatus, setMicStatus] = useState<SpeechInputStatus>("idle")
+  const [transcript, setTranscript] = useState("")
+  const [micError, setMicError] = useState<string | null>(null)
+  const speechInput = useRef<SpeechInput | null>(null)
+  const isListening = micStatus === "starting" || micStatus === "listening"
+  const speechSupported = isSpeechInputSupported()
+  const speechStatusLabel = !speechSupported
+    ? "この環境では利用できません"
+    : isListening
+      ? "聞き取り中"
+      : window.mikan
+        ? "開始時にHayamimiへ接続します"
+        : "使用できます"
+
+  useEffect(() => {
+    speechInput.current = createSpeechInput({
+      onInterim: setTranscript,
+      onFinal: setTranscript,
+      onStatus: setMicStatus,
+      onError: setMicError,
+    })
+    return () => speechInput.current?.dispose()
+  }, [])
 
   useEffect(() => {
     if (!open) {
-      setTestingMic(false)
-      setTestingVoice(false)
-      if (voiceTimer.current) window.clearTimeout(voiceTimer.current)
-      voiceTimer.current = null
+      speechInput.current?.stop()
+      setTranscript("")
+      setMicError(null)
     }
   }, [open])
 
-  useEffect(() => () => {
-    if (voiceTimer.current) window.clearTimeout(voiceTimer.current)
-  }, [])
-
-  const testVoice = () => {
-    if (testingVoice) {
-      if (voiceTimer.current) window.clearTimeout(voiceTimer.current)
-      voiceTimer.current = null
-      setTestingVoice(false)
-      return
-    }
-    setTestingVoice(true)
-    voiceTimer.current = window.setTimeout(() => {
-      setTestingVoice(false)
-      voiceTimer.current = null
-    }, 1500)
+  const toggleMic = () => {
+    setMicError(null)
+    setTranscript("")
+    if (isListening) speechInput.current?.stop()
+    else void speechInput.current?.start()
   }
 
   return (
@@ -60,22 +68,15 @@ export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOp
                 <Mic className="size-8" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold">マイク</span>
-                <span className="mt-1 block text-base text-success">使用できます</span>
+                <span className="block text-lg font-semibold">{window.mikan ? "Hayamimi" : "ブラウザ音声入力"}</span>
+                <span className={speechSupported ? "mt-1 block text-base text-success" : "mt-1 block text-base text-muted-foreground"}>{speechStatusLabel}</span>
               </span>
-              <CheckCircle2 className="size-6 text-success" aria-hidden="true" />
+              {speechSupported ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
             </div>
-            <div className="flex h-7 items-center gap-1" role="meter" aria-label="マイク入力レベル" aria-valuemin={0} aria-valuemax={24} aria-valuenow={testingMic ? 16 : 8}>
-              {Array.from({ length: 24 }, (_, index) => (
-                <span
-                  key={index}
-                  aria-hidden="true"
-                  className={index < (testingMic ? 16 : 8) ? "h-6 w-1.5 rounded-full bg-success" : "h-6 w-1.5 rounded-full bg-border/70"}
-                />
-              ))}
-            </div>
-            <Button variant="outline" size="lg" onClick={() => setTestingMic((current) => !current)}>
-              {testingMic ? "テストを停止" : "マイクを試す"}
+            {transcript ? <p className="rounded-md bg-surface-soft p-4 text-sm" role="status">{transcript}</p> : null}
+            {micError ? <p className="text-sm text-danger" role="alert">{micError}</p> : null}
+            <Button variant="outline" size="lg" disabled={!speechSupported} onClick={toggleMic}>
+              {isListening ? "テストを停止" : "マイクを試す"}
             </Button>
 
             <div className="my-2 h-px bg-border/70" />
@@ -87,13 +88,12 @@ export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOp
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-lg font-semibold">Irodori TTS</span>
-                <span className="mt-1 block text-base text-muted-foreground">読み上げる</span>
+                <span className="mt-1 block text-base text-muted-foreground">まだ接続されていません</span>
               </span>
-              <Switch checked={readAloud} onCheckedChange={setReadAloud} aria-label="返答を読み上げる" />
+              <Switch checked={false} disabled aria-label="返答を読み上げる" />
             </div>
-            <Button variant="outline" size="lg" onClick={testVoice}>
-              {testingVoice ? <Square className="fill-current" /> : null}
-              {testingVoice ? "再生を停止" : "声を試す"}
+            <Button variant="outline" size="lg" disabled>
+              Irodori TTS接続後に利用できます
             </Button>
 
             <div className="flex gap-3 rounded-md border border-border/70 bg-surface-soft p-4 text-sm leading-relaxed text-muted-foreground">

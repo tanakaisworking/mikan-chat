@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { Download, FileArchive, FlaskConical } from "lucide-react"
+import { Download, FileArchive, FileJson2, FlaskConical } from "lucide-react"
 import { marked } from "marked"
 
 import { AppHeader } from "@/components/ui/app-header"
@@ -7,9 +7,14 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { demoChatPack } from "@/data/demo-chat-pack"
 import { cn } from "@/lib/utils"
 import specMarkdown from "../../../docs/chat-pack-v0.1.md?raw"
+import schemaUrl from "../../../schema/chat-pack-0.1.json?url"
 
 export function TechDocsScreen({ onBack, onTryDemo }: { onBack: () => void; onTryDemo: () => void }) {
-  const renderedSpec = useMemo(() => marked.parse(specMarkdown, { async: false }) as string, [])
+  const schemaHref = window.location.protocol === "file:" ? schemaUrl : "/schema/chat-pack-0.1.json"
+  const renderedSpec = useMemo(
+    () => marked.parse(specMarkdown.replace("../schema/chat-pack-0.1.json", schemaHref), { async: false }) as string,
+    [schemaHref],
+  )
 
   return (
     <main className="grid h-screen grid-rows-[80px_minmax(0,1fr)] overflow-hidden bg-background max-md:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="tech-docs-screen">
@@ -42,6 +47,10 @@ export function TechDocsScreen({ onBack, onTryDemo }: { onBack: () => void; onTr
               <a href={demoChatPack.url} download={demoChatPack.fileName} className={buttonVariants({ variant: "outline" })}>
                 <FileArchive />
                 rainy-cafe.mikanchat
+              </a>
+              <a href={schemaHref} download="chat-pack-0.1.json" className={buttonVariants({ variant: "outline" })}>
+                <FileJson2 />
+                JSON Schema
               </a>
             </div>
 

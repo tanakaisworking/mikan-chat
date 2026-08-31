@@ -7,6 +7,7 @@ export function ChatTimeline({
   characterName,
   messages,
   isGenerating,
+  error,
   playingMessageId,
   onToggleAudio,
   endRef,
@@ -15,6 +16,7 @@ export function ChatTimeline({
   characterName: string
   messages: ChatMessageData[]
   isGenerating: boolean
+  error?: string | null
   playingMessageId: string | null
   onToggleAudio: (messageId: string) => void
   endRef: RefObject<HTMLDivElement | null>
@@ -46,6 +48,7 @@ export function ChatTimeline({
         {isGenerating ? (
           <p className="ml-2 text-base text-muted-foreground max-md:text-sm max-md:text-white max-md:drop-shadow-md">{characterName}が考えています…</p>
         ) : null}
+        {error ? <p className="mx-auto rounded-md bg-danger/8 px-4 py-2 text-sm text-danger" role="alert">{error}</p> : null}
         <div ref={endRef} />
       </div>
     </section>

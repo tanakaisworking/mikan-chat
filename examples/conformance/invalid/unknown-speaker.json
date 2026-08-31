@@ -1,0 +1,18 @@
+{
+  "spec": "mikan.chat-pack",
+  "specVersion": "0.1",
+  "id": "4ea41ba9-ef65-41bb-8aa6-b4b2155f36e4",
+  "version": "1.0.0",
+  "language": "ja",
+  "title": "不明な話者",
+  "summary": "存在しない人物が発言する。",
+  "author": { "name": "test" },
+  "license": "CC0-1.0",
+  "rating": "all",
+  "discovery": {},
+  "plot": {
+    "premise": "テスト。",
+    "characters": [{ "id": "guide", "name": "案内人", "profile": "案内する。" }],
+    "opening": [{ "type": "dialogue", "speaker": "ghost", "text": "開始。" }]
+  }
+}

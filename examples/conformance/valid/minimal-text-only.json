@@ -1,0 +1,22 @@
+{
+  "spec": "mikan.chat-pack",
+  "specVersion": "0.1",
+  "id": "dc70f03a-ca75-47ad-b26a-222615350741",
+  "version": "1.0.0",
+  "language": "ja",
+  "title": "画像なしの小さな会話",
+  "summary": "文章だけで作れる最小パック。",
+  "author": { "name": "mikan chat contributors" },
+  "license": "CC0-1.0",
+  "rating": "all",
+  "discovery": {},
+  "plot": {
+    "premise": "雨宿りに入った軒先で、旅人と出会う。",
+    "characters": [
+      { "id": "traveler", "name": "旅人", "profile": "穏やかで、短く話す旅人。" }
+    ],
+    "opening": [
+      { "type": "dialogue", "speaker": "traveler", "text": "ここ、半分使いますか？" }
+    ]
+  }
+}

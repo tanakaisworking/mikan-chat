@@ -45,6 +45,12 @@ Chat Packは特定のLLMへ結び付けません。作者はローカルモデ�
 - **SHOULD**: 特別な理由がなければ守る要件
 - **MAY**: 実装が任意で対応できる機能
 
+### 2.1 機械可読な正本
+
+フィールドの型、必須条件、文字列パターン、enumは[`schema/chat-pack-0.1.json`](../schema/chat-pack-0.1.json)を正本とします。本文とJSON Schemaが矛盾する場合はJSON Schemaを優先するMUST。本文は、Schemaだけでは表せない実行時の意味、安全要件、作者向けの判断基準を定めます。
+
+他実装は`examples/conformance/`の適合・不適合フィクスチャを検証へ利用できます。
+
 ## 3. コンテナ形式
 
 Chat Packの拡張子は `.mikanchat` とします。MIME Typeは `application/vnd.mikan.chat+zip` です。
@@ -55,7 +61,6 @@ Chat Packの拡張子は `.mikanchat` とします。MIME Typeは `application/v
 late-night-cafe.mikanchat
 ├── pack.json
 ├── LICENSE.txt                 任意
-├── README.md                   任意
 └── assets/
     ├── cover-main.webp
     ├── aoi.webp
@@ -63,7 +68,7 @@ late-night-cafe.mikanchat
 ```
 
 - `pack.json`はルート直下に1つだけ置くMUST
-- 画像は`assets/`以下へ置くMUST
+- 画像を同梱する場合は`assets/`以下へ置くMUST
 - アセットのファイル名はASCII小文字、数字、ハイフン、ピリオドだけを使うMUST
 - ZIP内のパス区切りには`/`を使うMUST
 - `pack.json`から外部URL上の画像やローカルファイルを参照してはならないMUST NOT
@@ -88,18 +93,14 @@ late-night-cafe.mikanchat
   },
   "license": "All-Rights-Reserved",
   "rating": "all",
-  "discovery": {
-    "covers": ["assets/cover-main.webp"],
-    "tags": ["日常", "ミステリー", "恋愛"]
-  },
+  "discovery": {},
   "plot": {
     "premise": "終電を逃したユーザーは、閉店後も明かりのついた喫茶店へ入る。店内には常連客の葵しかいない。",
     "characters": [
       {
         "id": "aoi",
         "name": "葵",
-        "profile": "物静かな常連客。言葉を選び、落ち着いた口調で話す。",
-        "image": "assets/aoi.webp"
+        "profile": "物静かな常連客。言葉を選び、落ち着いた口調で話す。"
       }
     ],
     "opening": [
@@ -117,7 +118,7 @@ late-night-cafe.mikanchat
 }
 ```
 
-必須項目は、体験を発見し、開始するために必要な情報へ絞ります。音声、設定集、状況例、詳細な演出指定は任意です。
+必須項目は、文章だけで体験を発見し、開始するために必要な情報へ絞ります。画像、音声、設定集、状況例、詳細な演出指定は任意です。
 
 ## 5. トップレベル
 
@@ -127,7 +128,7 @@ late-night-cafe.mikanchat
 | `specVersion` | string | Yes | この版では`0.1` |
 | `id` | UUID string | Yes | パックの同一性を示す永続ID |
 | `version` | semver string | Yes | パック内容の版 |
-| `language` | BCP 47 string | Yes | 原文の言語。例: `ja`, `en` |
+| `language` | language tag | Yes | BCP 47の一般的な言語・地域タグ。例: `ja`, `ja-JP`, `en` |
 | `title` | string | Yes | キャラクター名ではなく体験の題名 |
 | `summary` | string | Yes | 一覧で体験を伝える一言紹介 |
 | `author` | object | Yes | 作者情報 |
@@ -198,8 +199,8 @@ late-night-cafe.mikanchat
 
 | Field | Required | Description |
 |---|---:|---|
-| `covers` | Yes | 一覧用カバー。先頭がメイン |
-| `tags` | No | ジャンル、関係性、状況などの検索語 |
+| `covers` | No | 一覧用カバー。存在する場合は先頭がメイン |
+| `tags` | No | ジャンル、関係性、状況などの検索語。最大10件 |
 | `description` | No | ユーザー向けの長い紹介文 |
 | `authorComment` | No | 更新履歴や遊び方など作者からの補足 |
 | `credits` | No | 個別アセットの出所と権利表記 |
@@ -242,6 +243,8 @@ late-night-cafe.mikanchat
 
 `premise`と`instructions`は役割が異なります。前者は作品世界の事実、後者はAIの振る舞いです。表示用の紹介文とも分離します。
 
+モデル入力を構成する実装は、`premise`、人物の`profile`、有効な設定集、`style`から得た生成ヒント、`instructions`の順に情報を配置するSHOULD。`instructions`を最後に置くことで、作者が記述した振る舞いの制約を設定集や文体指定より明確に扱えます。
+
 ## 8. 登場人物
 
 ```json
@@ -275,7 +278,7 @@ late-night-cafe.mikanchat
 | `id` | Yes | パック内で一意のASCII ID |
 | `name` | Yes | 画面と会話で使う名前 |
 | `profile` | Yes | 人物設定 |
-| `image` | Yes | 会話画面で使う画像 |
+| `image` | No | 会話画面で使う画像 |
 | `voice` | No | 音声の希望設定 |
 
 `characters[].id`に`user`または`narrator`を使ってはならないMUST NOT。大文字小文字を区別し、`^[a-z][a-z0-9-]{0,63}$`へ適合するMUST。
@@ -309,6 +312,8 @@ late-night-cafe.mikanchat
 
 v0.1で定義するテンプレート変数は`{{user}}`だけです。1onNでは指示対象が曖昧になるため、`{{char}}`は定義しません。
 
+未定義の`{{...}}`はエラーや空文字へ変換せず、そのまま表示するMUST。
+
 ## 10. イベントモデル
 
 導入、LLMの返答、会話ログ表示は、同じイベントモデルを使います。
@@ -318,6 +323,7 @@ type NarrationEvent = {
   type: "narration"
   text: string
   image?: string
+  extensions?: Record<string, unknown>
   delivery?: {
     emotion?: string
     intensity?: number
@@ -329,6 +335,7 @@ type DialogueEvent = {
   speaker: string
   text: string
   image?: string
+  extensions?: Record<string, unknown>
   delivery?: {
     emotion?: string
     intensity?: number
@@ -385,7 +392,6 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
 ```json
 {
   "narrator": {
-    "instructions": "会話の合間に、視線、手の動き、周囲の音を簡潔に描写する。",
     "voice": {
       "profile": {
         "language": "ja",
@@ -405,6 +411,8 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
   }
 }
 ```
+
+情景描写に関する自由記述の指示は`narrator`へ重複して持たせず、`plot.instructions`へ記述するMUST。`narrator`は情景描写の音声設定に限定します。`style.writingStyle`は「落ち着いたライトノベル調」のような短い文体指定へ使用し、行動制約や世界設定を書かないSHOULD。
 
 | Field | Values / Type | Default |
 |---|---|---|
@@ -491,7 +499,9 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
 | `entries` | Yes | 1件以上の設定 |
 | `source` | No | 元となった共有設定集の出所 |
 
-各エントリの`activation`は`always`または`keywords`です。`keywords`の場合、直近の会話にいずれかの語が含まれたとき`content`を文脈へ追加します。
+各エントリの`activation`は`always`または`keywords`です。`keywords`の場合、直近3ターンのユーザー発言とAI応答をNFKC正規化し、小文字化した文字列に対して単純部分一致を行うMUST。いずれかの語が含まれたとき`content`を文脈へ追加します。日本語の活用は自動展開しないため、作者は「帰る」ではなく「帰」のような共通部分をキーワードに使えます。
+
+実装は、同時に追加する設定集本文の合計量へ上限を持つMUST。未知の`activation`を`always`として扱ってはならずMUST NOT、そのエントリを文脈へ追加しないMUST。
 
 パックはオフラインで自己完結するMUST。`source`が存在しても、`entries[].content`を省略してはなりませんMUST NOT。v0.1ランタイムは`source.url`を自動取得してはならないMUST NOT。共有設定集を取り込むときは、その時点のスナップショットをパックへ保存します。
 
@@ -538,7 +548,7 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
 
 ## 15. 完全音声対話との接続
 
-Chat Packは音声認識エンジンを指定しません。Whisper互換音声認識は、ユーザーの発話を通常のユーザーイベントへ変換するランタイム機能です。
+Chat Packは音声認識エンジンを指定しません。Web版のブラウザ音声認識やElectron版のHayamimiは、ユーザーの発話を通常のユーザーイベントへ変換するランタイム機能です。
 
 ```text
 ユーザー音声
@@ -558,7 +568,7 @@ LLMの全文生成を待たず、文が確定した単位でTTSへ渡すSHOULD�
 
 ## 16. 外部拡張
 
-標準外のデータは`extensions`へ入れます。
+標準外のデータは`extensions`へ入れます。トップレベルに加えて、人物、ユーザープロフィール、イベント、状況例、設定集と設定集エントリも個別の`extensions`を持てます。
 
 ```json
 {
@@ -574,15 +584,18 @@ LLMの全文生成を待たず、文が確定した単位でTTSへ渡すSHOULD�
 - 標準トップレベルへ`x-*`フィールドを追加してはならないMUST NOT
 - 未知の拡張を解釈して実行してはならないMUST NOT
 - 編集して再エクスポートする実装は、未知フィールドと未知拡張を保持するSHOULD
+- 読み込み時の正規化データとは別に、元の`pack.json`を保持するSHOULD
 
 ## 17. バージョン互換性
 
-`specVersion`のMAJOR変更は破壊的変更、MINOR変更は後方互換のフィールド追加です。
+`specVersion`のMAJOR変更は破壊的変更、MINOR変更は後方互換のフィールド追加です。ただしMAJORが`0`のDraft期間は、MINOR変更も破壊的変更として扱うMUST。
 
 - 対応していないMAJOR版は読み込みを拒否するMUST
-- 同じMAJORの新しいMINOR版は、警告したうえで読み込めるSHOULD
+- MAJORが1以上の場合、同じMAJORの新しいMINOR版は警告したうえで読み込めるSHOULD
 - 未知フィールドは無視するSHOULD
-- 未知のenum値は既定値へフォールバックするSHOULD
+- 未知のenum値は、安全性に影響しない場合に限り既定値へフォールバックできるMAY
+- 未知の`rating`を許容して読み込む実装は、利用可能な最も制限的な区分として扱うMUST。拒否してもよいMAY
+- 未知の`activation`は設定集を注入しない値として扱うMUST
 - 未知フィールドを編集・再出力時に保持するSHOULD
 
 ## 18. 安全なインポート
@@ -602,7 +615,6 @@ Chat Packは第三者が作る信頼できない入力です。検証が完了�
 v0.1で許可するファイルは次のとおりです。
 
 - `pack.json`
-- `README.md`
 - `LICENSE.txt`
 - `.webp`
 - `.png`
@@ -678,11 +690,11 @@ mikanからCCv3への変換では、複数人物、ユーザー役、構造化�
 作者にJSONの直接編集を要求しません。適合する作成アプリは、次の順で最小パックを作れるSHOULD。
 
 1. 体験の題名と一言紹介を書く
-2. カバー画像を選ぶ
-3. どんな状況かを書く
-4. 登場人物を1人以上追加する
-5. 導入シーンをナレーションと発言で作る
-6. 作者名、ライセンス、年齢区分を選ぶ
+2. どんな状況かを書く
+3. 登場人物を1人以上追加する
+4. 導入シーンをナレーションと発言で作る
+5. 作者名、ライセンス、年齢区分を選ぶ
+6. 必要ならカバー画像と人物画像を選ぶ
 7. プレビューして`.mikanchat`を書き出す
 
 音声、設定集、状況例、複数ユーザー役は、必要な作者だけが開く詳細設定に置きます。
@@ -698,7 +710,7 @@ mikanからCCv3への変換では、複数人物、ユーザー役、構造化�
 - 人物IDと設定集IDがパック内で重複しない
 - `opening`に1件以上の有効なイベントがある
 - すべての`speaker`が人物IDまたは`user`へ解決できる
-- すべての画像参照が`assets/`内の実在ファイルへ解決できる
+- 存在するすべての画像参照が`assets/`内の実在ファイルへ解決できる
 - `{{user}}`以外の未定義テンプレートに依存しない
 - 安全性検証を通過する
 
@@ -708,6 +720,7 @@ mikanからCCv3への変換では、複数人物、ユーザー役、構造化�
 
 - パックを安全に検証して読み込む
 - 発見情報を表示する
+- カバーまたは人物画像がない場合、題名や頭文字を使ったプレースホルダーを表示する
 - ユーザー役を選択する
 - 1人以上の人物と導入を開始する
 - `narration`を吹き出し外へ表示する
@@ -717,3 +730,22 @@ mikanからCCv3への変換では、複数人物、ユーザー役、構造化�
 - 同じパックIDの更新時に、既存データを無断で上書きしない
 
 音声入力とTTSはmikan chatの主要機能ですが、他ツールがこの公開ファイル形式へ対応する際の最低条件にはしません。これにより、音声を持たないツールでもChat Packの作成、検証、変換、表示へ参加できます。
+
+## 23. v0.1参照実装の対応状況
+
+仕様が定義するデータと、mikan chatの現在の再生能力は同一ではありません。ローダーは読み込み時に元の`pack.json`を`raw`として返すため、未対応項目を含むパックもコア要件を満たせば利用できます。
+
+| 項目 | v0.1参照実装 |
+|---|---|
+| 題名、紹介、作者、年齢区分 | 表示対応 |
+| 画像なしパック | プレースホルダーで対応 |
+| 複数人物と話者 | 導入イベントの表示に対応 |
+| ナレーションと人物発言 | 表示対応 |
+| `playerProfiles` | 元データを保持、選択UIは未対応 |
+| `style` | 元データを保持、生成への反映は未対応 |
+| `settingBooks` | 元データを保持、注入は未対応 |
+| `voice`と`delivery` | 元データを保持、Irodori TTS接続は未対応 |
+| `situationExamples` | 元データを保持、生成への反映は未対応 |
+| 未知フィールドと`extensions` | `raw`として保持 |
+
+現在のアプリは、ライブラリへの永続保存と再エクスポートにまだ対応していません。`raw`の保持はローダーの返り値までであり、現在のライブラリ登録後も復元可能であることを保証しません。再エクスポートを実装する際は、`raw`または元の`pack.json`を保存して未知フィールドを失わないようにします。未対応項目が現在の会話生成へ反映されることも意味しません。

@@ -2,6 +2,7 @@ node_modules/
 dist/
 out/
 coverage/
+public/schema/
 .wrangler/
 .dev.vars
 .env*

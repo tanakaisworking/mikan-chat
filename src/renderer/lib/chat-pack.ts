@@ -1,4 +1,7 @@
-import { unzip, type UnzipFileInfo, type Unzipped } from "fflate"
+import { Unzip, UnzipInflate, type UnzipFile, type Unzipped } from "fflate"
+
+import validateSchema from "@/lib/generated/chat-pack-validator.js"
+import { getChatPackSemanticIssue } from "@/lib/chat-pack-semantics"
 
 const limits = {
   archive: 32 * 1024 * 1024,
@@ -8,10 +11,13 @@ const limits = {
   json: 512 * 1024,
 }
 
-const allowedRootFiles = new Set(["pack.json", "README.md", "LICENSE.txt"])
+const allowedRootFiles = new Set(["pack.json", "LICENSE.txt"])
 const allowedAssetExtensions = new Set(["webp", "png", "jpg", "jpeg"])
 const reservedCharacterIds = new Set(["user", "narrator"])
 const decoder = new TextDecoder("utf-8", { fatal: true })
+const uuidPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i
+const semverPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
+const assetPathPattern = /^assets\/[a-z0-9][a-z0-9.-]*(?:\/[a-z0-9][a-z0-9.-]*)*$/
 
 export type ChatPackEvent =
   | { type: "narration"; text: string; image?: string }
@@ -21,7 +27,7 @@ export type ChatPackCharacter = {
   id: string
   name: string
   profile: string
-  image: string
+  image?: string
 }
 
 export type ChatPack = {
@@ -37,7 +43,7 @@ export type ChatPack = {
   licenseNotice?: string
   rating: "all" | "r15" | "r18"
   discovery: {
-    covers: string[]
+    covers?: string[]
     tags?: string[]
     description?: string
     authorComment?: string
@@ -53,6 +59,7 @@ export type ChatPack = {
 export type LoadedChatPack = {
   fileName: string
   pack: ChatPack
+  raw: Record<string, unknown>
   assets: Record<string, string>
 }
 
@@ -84,18 +91,21 @@ export async function loadChatPack(file: File): Promise<LoadedChatPack> {
   }
 
   const pack = validatePack(input)
-  const referencedAssets = collectAssetPaths(pack)
-  const assets: Record<string, string> = {}
+  const raw = input as Record<string, unknown>
+  const referencedAssets = collectAssetPaths(pack, raw)
   for (const assetPath of referencedAssets) {
-    const data = entries[assetPath]
-    if (!data) throw new ChatPackError(`画像が見つかりません: ${assetPath}`)
+    if (!entries[assetPath]) throw new ChatPackError(`画像が見つかりません: ${assetPath}`)
+  }
+  const assets: Record<string, string> = {}
+  for (const [assetPath, data] of Object.entries(entries)) {
+    if (!assetPath.startsWith("assets/")) continue
     const mime = detectImageMime(data)
     if (!mime) throw new ChatPackError(`画像形式を確認できません: ${assetPath}`)
     await validateImage(data, mime, assetPath)
     assets[assetPath] = toDataUrl(data, mime)
   }
 
-  return { fileName: file.name, pack, assets }
+  return { fileName: file.name, pack, raw, assets }
 }
 
 function readFileBytes(file: Blob): Promise<Uint8Array> {
@@ -114,39 +124,91 @@ function readFileBytes(file: Blob): Promise<Uint8Array> {
 }
 
 function extractArchive(data: Uint8Array): Promise<Unzipped> {
-  let count = 0
-  let expandedSize = 0
-  let validationError: ChatPackError | null = null
-
   return new Promise((resolve, reject) => {
-    unzip(
-      data,
-      {
-        filter(file) {
-          if (validationError) return false
-          try {
-            validateArchiveEntry(file)
-            count += 1
-            expandedSize += file.originalSize
-            if (count > limits.entries) throw new ChatPackError("パック内のファイル数が多すぎます。")
-            if (expandedSize > limits.expanded) throw new ChatPackError("展開後のサイズが64 MiBの上限を超えています。")
-            return !file.name.endsWith("/")
-          } catch (error) {
-            validationError = error instanceof ChatPackError ? error : new ChatPackError("ZIPの内容を検証できませんでした。")
-            return false
-          }
-        },
-      },
-      (error, files) => {
-        if (validationError) return reject(validationError)
-        if (error) return reject(new ChatPackError("ZIPを展開できませんでした。"))
+    const files: Unzipped = {}
+    const activeFiles = new Set<UnzipFile>()
+    let count = 0
+    let expandedSize = 0
+    let pending = 0
+    let archiveRead = false
+    let settled = false
+
+    const stop = (error: unknown) => {
+      if (settled) return
+      settled = true
+      for (const file of activeFiles) file.terminate()
+      reject(error instanceof ChatPackError ? error : new ChatPackError("ZIPを展開できませんでした。"))
+    }
+    const finish = () => {
+      if (!settled && archiveRead && pending === 0) {
+        settled = true
         resolve(files)
-      },
-    )
+      }
+    }
+    const archive = new Unzip((file) => {
+      if (settled) return file.terminate()
+      try {
+        validateArchiveEntry(file)
+        count += 1
+        if (count > limits.entries) throw new ChatPackError("パック内のファイル数が多すぎます。")
+        if (file.name.endsWith("/")) return file.terminate()
+
+        pending += 1
+        activeFiles.add(file)
+        const chunks: Uint8Array[] = []
+        let fileSize = 0
+        file.ondata = (error, chunk, final) => {
+          if (settled) return
+          if (error) return stop(error)
+          fileSize += chunk.length
+          expandedSize += chunk.length
+          if (fileSize > limits.file) return stop(new ChatPackError(`ファイルが大きすぎます: ${file.name}`))
+          if (expandedSize > limits.expanded) return stop(new ChatPackError("展開後のサイズが64 MiBの上限を超えています。"))
+          chunks.push(chunk)
+          if (!final) return
+          files[file.name] = joinChunks(chunks, fileSize)
+          activeFiles.delete(file)
+          pending -= 1
+          finish()
+        }
+        file.start()
+      } catch (error) {
+        stop(error)
+      }
+    })
+    archive.register(UnzipInflate)
+    let offset = 0
+    const pushNextChunk = () => {
+      if (settled) return
+      const end = Math.min(offset + 8 * 1024, data.length)
+      try {
+        archive.push(data.subarray(offset, end), end === data.length)
+        offset = end
+        if (end < data.length) {
+          setTimeout(pushNextChunk, 0)
+          return
+        }
+        archiveRead = true
+        finish()
+      } catch (error) {
+        stop(error)
+      }
+    }
+    pushNextChunk()
   })
 }
 
-function validateArchiveEntry(file: UnzipFileInfo) {
+function joinChunks(chunks: Uint8Array[], size: number) {
+  const output = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    output.set(chunk, offset)
+    offset += chunk.length
+  }
+  return output
+}
+
+function validateArchiveEntry(file: UnzipFile) {
   const path = file.name
   if (!/^[\x20-\x7e]+$/.test(path) || path.includes("\\") || path.startsWith("/") || path.includes("\0")) {
     throw new ChatPackError("安全でないファイル名が含まれています。")
@@ -154,7 +216,7 @@ function validateArchiveEntry(file: UnzipFileInfo) {
   if (path.split("/").some((part) => part === ".." || part === ".")) {
     throw new ChatPackError("パック外を参照するパスが含まれています。")
   }
-  if (file.originalSize > limits.file) throw new ChatPackError(`ファイルが大きすぎます: ${path}`)
+  if (file.originalSize !== undefined && file.originalSize > limits.file) throw new ChatPackError(`ファイルが大きすぎます: ${path}`)
   if (file.compression !== 0 && file.compression !== 8) throw new ChatPackError("対応していないZIP圧縮方式です。")
   if (path.endsWith("/")) return
   if (allowedRootFiles.has(path)) return
@@ -169,11 +231,13 @@ function validatePack(input: unknown): ChatPack {
     throw new ChatPackError("対応していないChat Pack形式です。")
   }
   if (!isUuid(pack.id)) throw new ChatPackError("パックIDがUUIDではありません。")
-  requireString(pack.version, "version")
-  requireString(pack.language, "language")
-  requireString(pack.title, "title")
-  requireString(pack.summary, "summary")
-  requireString(pack.license, "license")
+  const version = requireString(pack.version, "version")
+  if (!isSemver(version)) throw new ChatPackError("versionはSemantic Versioning形式にしてください。")
+  const language = requireString(pack.language, "language")
+  if (!/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(language)) throw new ChatPackError("languageはBCP 47形式にしてください。")
+  const title = requireString(pack.title, "title")
+  const summary = requireString(pack.summary, "summary")
+  const license = requireString(pack.license, "license")
   if (pack.rating !== "all" && pack.rating !== "r15" && pack.rating !== "r18") {
     throw new ChatPackError("ratingはall、r15、r18のいずれかにしてください。")
   }
@@ -182,7 +246,7 @@ function validatePack(input: unknown): ChatPack {
   const authorName = requireString(author.name, "author.name")
   const authorUrl = optionalString(author.url, "author.url")
   const discovery = requireObject(pack.discovery, "discovery")
-  const covers = requireStringArray(discovery.covers, "discovery.covers", true)
+  const covers = discovery.covers === undefined ? undefined : requireStringArray(discovery.covers, "discovery.covers", true)
   const tags = discovery.tags === undefined ? undefined : requireStringArray(discovery.tags, "discovery.tags")
   const description = optionalString(discovery.description, "discovery.description")
   const authorComment = optionalString(discovery.authorComment, "discovery.authorComment")
@@ -201,11 +265,12 @@ function validatePack(input: unknown): ChatPack {
       throw new ChatPackError(`登場人物IDを確認してください: ${id}`)
     }
     ids.add(id)
+    const image = character.image === undefined ? undefined : requireAssetPath(character.image, `plot.characters[${index}].image`)
     return {
       id,
       name: requireString(character.name, `plot.characters[${index}].name`),
       profile: requireString(character.profile, `plot.characters[${index}].profile`),
-      image: requireAssetPath(character.image, `plot.characters[${index}].image`),
+      ...(image ? { image } : {}),
     }
   })
 
@@ -213,21 +278,27 @@ function validatePack(input: unknown): ChatPack {
     throw new ChatPackError("導入シーンを1件以上設定してください。")
   }
   const opening = plot.opening.map((value, index) => validateEvent(value, index, ids))
+  if (!validateSchema(input)) {
+    const issue = validateSchema.errors?.[0]
+    throw new ChatPackError(`pack.jsonがJSON Schemaに適合しません: ${issue?.instancePath || "/"} ${issue?.message ?? "形式を確認してください。"}`)
+  }
+  const semanticIssue = getChatPackSemanticIssue(input)
+  if (semanticIssue) throw new ChatPackError(semanticIssue)
 
   return {
     spec: "mikan.chat-pack",
     specVersion: "0.1",
     id: pack.id as string,
-    version: pack.version as string,
-    language: pack.language as string,
-    title: pack.title as string,
-    summary: pack.summary as string,
+    version,
+    language,
+    title,
+    summary,
     author: { name: authorName, ...(authorUrl ? { url: authorUrl } : {}) },
-    license: pack.license as string,
+    license,
     ...(optionalString(pack.licenseNotice, "licenseNotice") ? { licenseNotice: pack.licenseNotice as string } : {}),
     rating: pack.rating,
     discovery: {
-      covers,
+      ...(covers ? { covers } : {}),
       ...(tags ? { tags } : {}),
       ...(description ? { description } : {}),
       ...(authorComment ? { authorComment } : {}),
@@ -249,10 +320,23 @@ function validateEvent(input: unknown, index: number, characterIds: Set<string>)
   throw new ChatPackError(`導入イベントのtypeを確認してください: ${index + 1}件目`)
 }
 
-function collectAssetPaths(pack: ChatPack) {
-  const paths = new Set(pack.discovery.covers.map((path) => requireAssetPath(path, "discovery.covers")))
-  for (const character of pack.plot.characters) paths.add(character.image)
+function collectAssetPaths(pack: ChatPack, raw: Record<string, unknown>) {
+  const paths = new Set((pack.discovery.covers ?? []).map((path) => requireAssetPath(path, "discovery.covers")))
+  for (const character of pack.plot.characters) if (character.image) paths.add(character.image)
   for (const event of pack.plot.opening) if (event.image) paths.add(event.image)
+  const discovery = raw.discovery as Record<string, unknown>
+  for (const value of (discovery.credits as Array<Record<string, unknown>> | undefined) ?? []) {
+    paths.add(requireAssetPath(value.asset, "discovery.credits[].asset"))
+  }
+  const plot = raw.plot as Record<string, unknown>
+  for (const value of (plot.playerProfiles as Array<Record<string, unknown>> | undefined) ?? []) {
+    if (value.image !== undefined) paths.add(requireAssetPath(value.image, "plot.playerProfiles[].image"))
+  }
+  for (const example of (plot.situationExamples as Array<Record<string, unknown>> | undefined) ?? []) {
+    for (const event of example.events as Array<Record<string, unknown>>) {
+      if (event.image !== undefined) paths.add(requireAssetPath(event.image, "plot.situationExamples[].events[].image"))
+    }
+  }
   return paths
 }
 
@@ -280,14 +364,18 @@ function optionalString(value: unknown, field: string) {
 
 function requireAssetPath(value: unknown, field: string) {
   const path = requireString(value, field)
-  if (!path.startsWith("assets/") || path.includes("..") || path.includes("\\") || !/^[a-z0-9][a-z0-9/.-]*$/.test(path)) {
+  if (!assetPathPattern.test(path)) {
     throw new ChatPackError(`${field}はassets/以下の画像を参照してください。`)
   }
   return path
 }
 
 function isUuid(value: unknown) {
-  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  return typeof value === "string" && uuidPattern.test(value)
+}
+
+function isSemver(value: string) {
+  return semverPattern.test(value)
 }
 
 function detectImageMime(data: Uint8Array) {

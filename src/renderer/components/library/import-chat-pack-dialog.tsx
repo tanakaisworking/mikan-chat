@@ -77,7 +77,8 @@ export function ImportChatPackDialog({
   }
 
   const character = loaded?.pack.plot.characters[0]
-  const cover = loaded ? loaded.assets[loaded.pack.discovery.covers[0]] : ""
+  const coverPath = loaded?.pack.discovery.covers?.[0]
+  const cover = loaded && coverPath ? loaded.assets[coverPath] : ""
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,11 +102,13 @@ export function ImportChatPackDialog({
           </div>
         ) : loaded && character ? (
           <div className="grid grid-cols-[38%_minmax(0,1fr)] gap-8 max-md:grid-cols-1 max-md:gap-5">
-            <img
-              src={cover}
-              alt={`${loaded.pack.title}のカバー`}
-              className="aspect-[9/16] max-h-[520px] size-full rounded-lg border border-border object-cover object-top shadow-soft max-md:aspect-[16/10] max-md:max-h-64"
-            />
+            {cover ? (
+              <img src={cover} alt={`${loaded.pack.title}のカバー`} className="aspect-[9/16] max-h-[520px] size-full rounded-lg border border-border object-cover object-top shadow-soft max-md:aspect-[16/10] max-md:max-h-64" />
+            ) : (
+              <div className="grid aspect-[9/16] max-h-[520px] size-full place-items-center overflow-hidden rounded-lg border border-border bg-[radial-gradient(circle_at_65%_20%,#ffe6cf_0%,#e7a06e_48%,#8d4a2a_100%)] shadow-soft max-md:aspect-[16/10] max-md:max-h-64" role="img" aria-label="カバー画像はありません">
+                <span className="line-clamp-3 px-6 text-center text-3xl leading-snug font-semibold break-words text-white max-md:text-2xl">{loaded.pack.title}</span>
+              </div>
+            )}
             <div className="flex min-w-0 flex-col justify-center">
               <p className="text-sm font-semibold text-primary">Chat Pack v{loaded.pack.specVersion}</p>
               <h3 className="mt-2 text-3xl leading-snug font-semibold max-md:text-2xl">{loaded.pack.title}</h3>

@@ -8,17 +8,17 @@
 
 WindowsとmacOSで動き、シチュエーション中心のチャットパックを選ぶか外部からインポートするだけで、1対1・多人数の物語をテキストや音声で始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
 
-> 現在はUIプロトタイプの実装段階です。配布用ビルドと実際のAI・音声接続はまだありません。
+> 現在はアーリーアクセス版です。AI接続と音声入力の実装を進めていますが、配布用ビルドと音声読み上げはまだありません。
 
 ## Web Early Access
 
 [ブラウザでmikan chatを試す](https://mikanchat.mikan-chat.workers.dev/)
 
-現在はUIプレビューです。AI接続、音声会話、キャラクター追加などの処理はダミーで、実際のAPIキーや個人情報は入力しないでください。
+Web版では、自分のAPIキーを使ってOpenAI互換APIへ接続できます。APIキーはブラウザタブ内だけに保持され、mikan chatのサーバーには保存されません。マイク入力にはブラウザ標準の音声認識を使います。
 
 ## 開発用プレビュー
 
-Node.js 20以降を用意し、次のコマンドで起動します。
+Node.js 22.13以降を用意し、次のコマンドで起動します。
 
 ```bash
 npm install
@@ -27,19 +27,21 @@ npm run dev
 
 Electron上で確認する場合は `npm run dev:electron`、品質チェックは `npm run lint && npm run typecheck && npm run test && npm run build` を使います。
 
-Web版はCloudflare Workers Static Assetsで配信します。ローカル確認は `npm run dev:worker`、本番反映は `npm run deploy:worker` を使います。運営が所有するAPIキーはソースコードへ書かず、実装時にWorker Secretsへ登録します。
+Electron版のHayamimi連携は、Hayamimi側に接続認証が実装されるまで既定で無効です。開発時に信頼できるローカルサーバーへ接続する場合だけ、`MIKAN_HAYAMIMI_WS_URL=ws://127.0.0.1:8766/ingest npm run dev:electron`のように接続先を明示します。
+
+Web版はCloudflare Workers Static Assetsで配信します。ローカル確認は `npm run dev:worker`、本番反映は `npm run deploy:worker` を使います。AIへのリクエストは、ユーザーが設定したOpenAI互換エンドポイントへブラウザから直接送信します。
 
 ## 目指すもの
 
 - ローカルLLMでキャラクターとの会話を動かす
-- Whisper互換の音声認識で話しかけられるようにする
+- Web版はブラウザ標準の音声認識、Electron版はHayamimiで話しかけられるようにする
 - Irodori TTSでキャラクターの返答を読み上げる
 - コミュニティが作ったチャットパックを無料で作成・共有・インポートできるようにする
 - 会話履歴と推論データを原則としてPC内に保存する
 - ローカルAIの専門知識がなくてもWindowsとmacOSで使えるようにする
 - 他のツールでも実装できる、公開されたパック仕様を作る
 
-チャットパックの初期仕様は、[Web技術ドキュメント](https://mikanchat.mikan-chat.workers.dev/docs/)と[mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md)で公開しています。
+チャットパックの初期仕様は、[Web技術ドキュメント](https://mikanchat.mikan-chat.workers.dev/docs/)、[mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md)、[JSON Schema](schema/chat-pack-0.1.json)で公開しています。画像は任意で、文章だけの最小パックも作成できます。
 
 ## 最初に作る範囲
 
@@ -98,14 +100,14 @@ The web preview runs on Cloudflare Workers Static Assets. Use `npm run dev:worke
 ### Goals
 
 - Run character conversations with a local LLM.
-- Accept voice input through Whisper-compatible speech recognition.
+- Accept voice input through the browser speech recognition API on the web and Hayamimi in Electron.
 - Return spoken responses through Irodori TTS.
 - Create, share, and import community-created Chat Packs for free.
 - Keep chat history and inference data local by default.
 - Make local character chat approachable on Windows and macOS.
 - Publish an open, documented pack format.
 
-The initial format is available in the [web documentation](https://mikanchat.mikan-chat.workers.dev/docs/) and [mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md).
+The initial format is available in the [web documentation](https://mikanchat.mikan-chat.workers.dev/docs/), [mikan Chat Pack Specification v0.1](docs/chat-pack-v0.1.md), and [JSON Schema](schema/chat-pack-0.1.json). Images are optional, so a minimal pack can contain text only.
 
 Accounts, payments, DRM, paid packs, and an official marketplace are outside the initial scope. We will first validate that people can create, share, import, and enjoy packs with the free application.
 

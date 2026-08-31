@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mikanchat.mikan-chat.workers.dev/schema/chat-pack-0.1.json",
+  "title": "mikan Chat Pack 0.1",
+  "type": "object",
+  "required": ["spec", "specVersion", "id", "version", "language", "title", "summary", "author", "license", "rating", "discovery", "plot"],
+  "properties": {
+    "spec": { "const": "mikan.chat-pack" },
+    "specVersion": { "const": "0.1" },
+    "id": { "type": "string", "format": "uuid", "pattern": "^[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}$" },
+    "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" },
+    "language": { "type": "string", "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$" },
+    "title": { "$ref": "#/$defs/nonEmptyString" },
+    "summary": { "$ref": "#/$defs/nonEmptyString" },
+    "author": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": true
+    },
+    "license": { "$ref": "#/$defs/nonEmptyString" },
+    "licenseNotice": { "$ref": "#/$defs/nonEmptyString" },
+    "rating": { "enum": ["all", "r15", "r18"] },
+    "discovery": { "$ref": "#/$defs/discovery" },
+    "plot": { "$ref": "#/$defs/plot" },
+    "extensions": { "$ref": "#/$defs/extensions" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "localId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+    "assetPath": { "type": "string", "pattern": "^assets/[a-z0-9][a-z0-9.-]*(?:/[a-z0-9][a-z0-9.-]*)*$" },
+    "extensions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9]+(?:[.-][a-z0-9-]+)+$" },
+      "additionalProperties": true
+    },
+    "discovery": {
+      "type": "object",
+      "properties": {
+        "covers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/assetPath" }
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "authorComment": { "$ref": "#/$defs/nonEmptyString" },
+        "credits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["asset", "creator"],
+            "properties": {
+              "asset": { "$ref": "#/$defs/assetPath" },
+              "creator": { "$ref": "#/$defs/nonEmptyString" },
+              "source": { "type": "string", "format": "uri" },
+              "license": { "$ref": "#/$defs/nonEmptyString" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "plot": {
+      "type": "object",
+      "required": ["premise", "characters", "opening"],
+      "properties": {
+        "premise": { "$ref": "#/$defs/nonEmptyString" },
+        "instructions": { "$ref": "#/$defs/nonEmptyString" },
+        "characters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/character" }
+        },
+        "playerProfiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/playerProfile" }
+        },
+        "defaultPlayerProfile": { "$ref": "#/$defs/localId" },
+        "narrator": {
+          "type": "object",
+          "properties": {
+            "voice": { "$ref": "#/$defs/voice" },
+            "extensions": { "$ref": "#/$defs/extensions" }
+          },
+          "additionalProperties": true
+        },
+        "opening": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/event" }
+        },
+        "situationExamples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["situation", "events"],
+            "properties": {
+              "situation": { "$ref": "#/$defs/nonEmptyString" },
+              "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/event" } },
+              "extensions": { "$ref": "#/$defs/extensions" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "style": { "$ref": "#/$defs/style" },
+        "settingBooks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/settingBook" }
+        },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": true
+    },
+    "character": {
+      "type": "object",
+      "required": ["id", "name", "profile"],
+      "properties": {
+        "id": { "$ref": "#/$defs/localId" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "profile": { "$ref": "#/$defs/nonEmptyString" },
+        "image": { "$ref": "#/$defs/assetPath" },
+        "voice": { "$ref": "#/$defs/voice" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": true
+    },
+    "playerProfile": {
+      "type": "object",
+      "required": ["id", "name", "description"],
+      "properties": {
+        "id": { "$ref": "#/$defs/localId" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "image": { "$ref": "#/$defs/assetPath" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": true
+    },
+    "event": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "narration" },
+            "text": { "$ref": "#/$defs/nonEmptyString" },
+            "image": { "$ref": "#/$defs/assetPath" },
+            "delivery": { "$ref": "#/$defs/delivery" },
+            "extensions": { "$ref": "#/$defs/extensions" }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": ["type", "speaker", "text"],
+          "properties": {
+            "type": { "const": "dialogue" },
+            "speaker": { "$ref": "#/$defs/localId" },
+            "text": { "$ref": "#/$defs/nonEmptyString" },
+            "image": { "$ref": "#/$defs/assetPath" },
+            "delivery": { "$ref": "#/$defs/delivery" },
+            "extensions": { "$ref": "#/$defs/extensions" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "emotion": { "type": "string" },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "pov": { "$ref": "#/$defs/nonEmptyString" },
+        "tense": { "$ref": "#/$defs/nonEmptyString" },
+        "responseLength": { "$ref": "#/$defs/nonEmptyString" },
+        "narration": { "$ref": "#/$defs/nonEmptyString" },
+        "userAgency": { "$ref": "#/$defs/nonEmptyString" },
+        "mood": { "type": "array", "items": { "type": "string" } },
+        "writingStyle": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": true
+    },
+    "voice": {
+      "type": "object",
+      "properties": {
+        "profile": { "type": "object", "additionalProperties": true },
+        "preferred": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["provider", "voiceId"],
+            "properties": {
+              "provider": { "$ref": "#/$defs/nonEmptyString" },
+              "voiceId": { "$ref": "#/$defs/nonEmptyString" },
+              "parameters": { "type": "object", "additionalProperties": true }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "settingBook": {
+      "type": "object",
+      "required": ["id", "title", "entries"],
+      "properties": {
+        "id": { "$ref": "#/$defs/localId" },
+        "title": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "type": "string" },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "activation", "content"],
+            "properties": {
+              "id": { "$ref": "#/$defs/localId" },
+              "title": { "$ref": "#/$defs/nonEmptyString" },
+              "activation": { "$ref": "#/$defs/nonEmptyString" },
+              "keywords": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+              "content": { "$ref": "#/$defs/nonEmptyString" },
+              "extensions": { "$ref": "#/$defs/extensions" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "source": { "type": "object", "additionalProperties": true },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

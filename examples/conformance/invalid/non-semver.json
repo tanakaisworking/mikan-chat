@@ -1,0 +1,18 @@
+{
+  "spec": "mikan.chat-pack",
+  "specVersion": "0.1",
+  "id": "0fd84bee-74f8-4074-b44c-e55ba9e1d410",
+  "version": "first",
+  "language": "ja",
+  "title": "不正な版",
+  "summary": "versionがsemverではない。",
+  "author": { "name": "test" },
+  "license": "CC0-1.0",
+  "rating": "all",
+  "discovery": {},
+  "plot": {
+    "premise": "テスト。",
+    "characters": [{ "id": "guide", "name": "案内人", "profile": "案内する。" }],
+    "opening": [{ "type": "dialogue", "speaker": "guide", "text": "開始。" }]
+  }
+}

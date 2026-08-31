@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
 import { ImportChatPackDialog } from "@/components/library/import-chat-pack-dialog"
@@ -6,7 +6,9 @@ import { AIConnectionDialog, type ConnectionSettings, type ConnectionType } from
 import { VoiceSettingsSheet } from "@/components/settings/voice-settings-sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { characters, type Character } from "@/data/characters"
+import { loadScenarios } from "@/data/scenario-source"
 import type { LoadedChatPack } from "@/lib/chat-pack"
+import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
 import { SetupScreen } from "@/screens/SetupScreen"
 import { TalkScreen } from "@/screens/TalkScreen"
@@ -20,7 +22,11 @@ function readInitialState() {
   const requestedScreen = params.get("screen")
   const requestedOverlay = params.get("overlay")
   const docsPath = window.location.pathname === "/docs" || window.location.pathname === "/docs/"
-  const screen: Screen = docsPath ? "docs" : requestedScreen === "setup" || requestedScreen === "talk" || requestedScreen === "docs" ? requestedScreen : "home"
+  const screen: Screen = docsPath
+    ? "docs"
+    : requestedScreen === "setup" || requestedScreen === "docs" || (requestedScreen === "talk" && window.mikan)
+      ? requestedScreen
+      : "home"
   const overlay: Overlay =
     requestedOverlay === "connection" ||
     requestedOverlay === "import" ||
@@ -35,17 +41,43 @@ function readInitialState() {
 export function App() {
   const initialState = useMemo(readInitialState, [])
   const [screen, setScreen] = useState<Screen>(initialState.screen)
+  const hasUserSelectedCharacter = useRef(false)
   const [homeTab, setHomeTab] = useState<HomeTab>("home")
   const [selectedCharacter, setSelectedCharacter] = useState<Character>(characters[0])
-  const [library, setLibrary] = useState<Character[]>(characters)
+  const [library, setLibrary] = useState<Character[]>(window.mikan ? characters : [])
+  const [scenariosLoading, setScenariosLoading] = useState(!window.mikan)
+  const [scenariosError, setScenariosError] = useState<string | null>(null)
   const [overlay, setOverlay] = useState<Overlay>(initialState.overlay)
   const [activeConversationId, setActiveConversationId] = useState("today")
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>({
-    type: "local",
+    type: window.mikan ? "local" : "online",
     apiKey: "",
-    endpoint: "http://127.0.0.1:11434",
+    endpoint: window.mikan ? "http://127.0.0.1:11434/v1" : "https://api.openai.com/v1",
+    model: window.mikan ? "" : "gpt-4.1-mini",
   })
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
+
+  const refreshScenarios = useCallback(async () => {
+    setScenariosLoading(true)
+    setScenariosError(null)
+    try {
+      const loaded = await loadScenarios()
+      setLibrary((current) => {
+        const serverIds = new Set(loaded.map((character) => character.id))
+        return [...loaded, ...current.filter((character) => !serverIds.has(character.id))]
+      })
+      if (loaded[0] && !hasUserSelectedCharacter.current) setSelectedCharacter(loaded[0])
+    } catch (error) {
+      console.error("Failed to load scenarios", error)
+      setScenariosError("シナリオを読み込めませんでした。通信状況を確認して、もう一度お試しください。")
+    } finally {
+      setScenariosLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!window.mikan) void refreshScenarios()
+  }, [refreshScenarios])
 
   const openOverlay = (nextOverlay: Exclude<Overlay, null>) => setOverlay(nextOverlay)
   const showScreen = (nextScreen: Screen) => {
@@ -63,6 +95,7 @@ export function App() {
   }
 
   const talkWith = (character: Character, source: HomeTab = "home") => {
+    hasUserSelectedCharacter.current = true
     setSelectedCharacter(character)
     setActiveConversationId("today")
     setHomeTab(source)
@@ -71,13 +104,13 @@ export function App() {
 
   const toCharacter = (loaded: LoadedChatPack): Character => {
     const primary = loaded.pack.plot.characters[0]
+    const coverPath = loaded.pack.discovery.covers?.[0]
     const names = new Map(loaded.pack.plot.characters.map((character) => [character.id, character.name]))
-    const resolveText = (text: string) => text.replaceAll("{{user}}さん", "あなた").replaceAll("{{user}}", "あなた")
     const opening = loaded.pack.plot.opening.map((event) => {
       const image = event.image ? loaded.assets[event.image] : undefined
-      if (event.type === "narration") return { role: "narration" as const, text: resolveText(event.text), image }
-      if (event.speaker === "user") return { role: "user" as const, text: resolveText(event.text), image }
-      const dialogue = resolveText(event.text)
+      if (event.type === "narration") return { role: "narration" as const, text: resolveChatPackText(event.text), image }
+      if (event.speaker === "user") return { role: "user" as const, text: resolveChatPackText(event.text), image }
+      const dialogue = resolveChatPackText(event.text)
       return { role: "character" as const, text: dialogue, speakerName: names.get(event.speaker) ?? event.speaker, image }
     })
     const lastMessage = [...opening].reverse().find((event) => event.role === "character")?.text ?? loaded.pack.summary
@@ -91,9 +124,10 @@ export function App() {
       description: loaded.pack.discovery.description ?? loaded.pack.summary,
       lastMessage,
       lastActive: "たった今",
-      image: loaded.assets[loaded.pack.discovery.covers[0]],
-      stageImage: loaded.assets[primary.image],
+      image: coverPath ? loaded.assets[coverPath] : undefined,
+      stageImage: primary.image ? loaded.assets[primary.image] : undefined,
       opening,
+      pack: loaded.raw,
     }
   }
 
@@ -113,6 +147,7 @@ export function App() {
   const importAndTalk = (loaded: LoadedChatPack) => {
     const imported = addImportedPack(loaded)
     if (!imported) return "同じIDのチャットパックは追加済みです。既存のパックをホームから開いてください。"
+    hasUserSelectedCharacter.current = true
     setSelectedCharacter(imported)
     setActiveConversationId("today")
     setHomeTab("home")
@@ -124,6 +159,7 @@ export function App() {
     <TooltipProvider>
       {screen === "setup" ? (
         <SetupScreen
+          isDesktop={Boolean(window.mikan)}
           onContinue={() => setScreen("home")}
           onOpenConnection={openConnection}
         />
@@ -138,6 +174,9 @@ export function App() {
           onAddPack={() => openOverlay("import")}
           onOpenDocs={() => showScreen("docs")}
           onOpenSettings={() => openConnection()}
+          loading={scenariosLoading}
+          error={scenariosError}
+          onRetry={refreshScenarios}
         />
       ) : null}
 
@@ -145,6 +184,7 @@ export function App() {
         <TalkScreen
           character={selectedCharacter}
           conversationId={activeConversationId}
+          connection={connectionSettings}
           onBack={() => showScreen("home")}
           onOpenConnection={() => openConnection()}
           onOpenVoice={() => openOverlay("voice")}
@@ -164,6 +204,8 @@ export function App() {
         initialConnection={connectionType}
         initialApiKey={connectionSettings.apiKey}
         initialEndpoint={connectionSettings.endpoint}
+        initialModel={connectionSettings.model}
+        isDesktop={Boolean(window.mikan)}
         onOpenChange={(open) => {
           if (!open) setConnectionType(connectionSettings.type)
           setOverlayOpen("connection", open)
