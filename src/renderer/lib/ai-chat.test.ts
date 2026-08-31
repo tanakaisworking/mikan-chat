@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { getEndpointError, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
+import {
+  GOOGLE_AI_STUDIO_ENDPOINT,
+  GOOGLE_AI_STUDIO_MODEL,
+  getEndpointError,
+  parseAssistantResponse,
+  streamCharacterReply,
+  testAIConnection,
+} from "@/lib/ai-chat"
 
 describe("AI chat transport", () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -33,6 +40,25 @@ describe("AI chat transport", () => {
   it("オンラインAIのAPIキーをHTTP接続先へ送らない", () => {
     expect(getEndpointError({ type: "online", endpoint: "http://example.com/v1" }))
       .toBe("オンラインAIの接続先にはhttpsを指定してください。")
+  })
+
+  it("Google AI Studioのモデル一覧をBearer認証で確認する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+      data: [{ id: GOOGLE_AI_STUDIO_MODEL }],
+    }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await testAIConnection({
+      type: "online",
+      endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+      apiKey: "gemini-test-key",
+      model: GOOGLE_AI_STUDIO_MODEL,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${GOOGLE_AI_STUDIO_ENDPOINT}/models`,
+      expect.objectContaining({ headers: { Authorization: "Bearer gemini-test-key" } }),
+    )
   })
 
   it("複数話者と情景描写をイベントへ分解する", () => {

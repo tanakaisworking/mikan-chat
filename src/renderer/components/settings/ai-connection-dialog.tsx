@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CheckCircle2, Cloud, MonitorCog } from "lucide-react"
+import { CheckCircle2, Cloud, MonitorCog, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ChoiceCard } from "@/components/ui/choice-card"
@@ -12,7 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { TextField } from "@/components/ui/text-field"
-import { getConnectionError, getEndpointError, testAIConnection } from "@/lib/ai-chat"
+import {
+  GOOGLE_AI_STUDIO_ENDPOINT,
+  GOOGLE_AI_STUDIO_MODEL,
+  getConnectionError,
+  getEndpointError,
+  isGoogleAIStudioEndpoint,
+  testAIConnection,
+} from "@/lib/ai-chat"
 
 export type ConnectionType = "local" | "online"
 export type ConnectionSettings = {
@@ -50,6 +57,7 @@ export function AIConnectionDialog({
   const testController = useRef<AbortController | null>(null)
   const testRequestId = useRef(0)
   const settings = { type: connection, apiKey, endpoint, model }
+  const isGoogleAIStudio = connection === "online" && isGoogleAIStudioEndpoint(endpoint)
   const connectionError = getConnectionError(settings)
   const endpointError = endpoint.trim() ? getEndpointError(settings) : undefined
 
@@ -58,10 +66,12 @@ export function AIConnectionDialog({
     testController.current = null
     testRequestId.current += 1
     if (open) {
-      setConnection(isDesktop ? initialConnection : "online")
+      const nextConnection = isDesktop ? initialConnection : "online"
+      const useGoogleDefaults = nextConnection === "online" && initialEndpoint.startsWith("http://127.0.0.1")
+      setConnection(nextConnection)
       setApiKey(initialApiKey)
-      setEndpoint(initialEndpoint)
-      setModel(initialModel)
+      setEndpoint(useGoogleDefaults ? GOOGLE_AI_STUDIO_ENDPOINT : initialEndpoint)
+      setModel(useGoogleDefaults ? GOOGLE_AI_STUDIO_MODEL : initialModel)
       setTestStatus("idle")
       setTestError(null)
     }
@@ -112,23 +122,42 @@ export function AIConnectionDialog({
               description="OllamaやLM Studioへ接続"
               trailing={connection === "local" ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
               onClick={() => {
-                resetTest()
-                setConnection("local")
-                if (endpoint.startsWith("https://")) setEndpoint("http://127.0.0.1:11434/v1")
+              resetTest()
+              setConnection("local")
+              if (endpoint.startsWith("https://")) {
+                setEndpoint("http://127.0.0.1:11434/v1")
+                setModel("")
+              }
               }}
             /> : null}
           <ChoiceCard
             size="dialog"
-            selected={connection === "online"}
-            icon={<Cloud />}
-            title="オンラインAI"
-            description="APIキーを使って接続"
-            trailing={connection === "online" ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
+            selected={isGoogleAIStudio}
+            icon={<Sparkles />}
+            title="Google AI Studio"
+            description="Gemini APIキーを使って接続"
+            trailing={isGoogleAIStudio ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
             onClick={() => {
               resetTest()
               setConnection("online")
-              if (endpoint.startsWith("http://127.0.0.1")) setEndpoint("https://api.openai.com/v1")
-              if (!model.trim()) setModel("gpt-4.1-mini")
+              setEndpoint(GOOGLE_AI_STUDIO_ENDPOINT)
+              setModel(GOOGLE_AI_STUDIO_MODEL)
+            }}
+          />
+          <ChoiceCard
+            size="dialog"
+            selected={connection === "online" && !isGoogleAIStudio}
+            icon={<Cloud />}
+            title="その他のオンラインAI"
+            description="OpenAI互換APIへ接続"
+            trailing={connection === "online" && !isGoogleAIStudio ? <CheckCircle2 className="size-6 text-success" aria-hidden="true" /> : null}
+            onClick={() => {
+              resetTest()
+              setConnection("online")
+              if (isGoogleAIStudio || endpoint.startsWith("http://127.0.0.1")) {
+                setEndpoint("https://api.openai.com/v1")
+                setModel("gpt-4.1-mini")
+              }
             }}
           />
         </div>
@@ -139,18 +168,18 @@ export function AIConnectionDialog({
             label="接続先URL"
             value={endpoint}
             error={endpointError ?? undefined}
-            placeholder={connection === "local" ? "http://127.0.0.1:11434/v1" : "https://api.openai.com/v1"}
+            placeholder={connection === "local" ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT}
             onChange={(event) => {
               resetTest()
               setEndpoint(event.target.value)
             }}
-            description="OpenAI互換APIのベースURLを入力します。"
+            description={isGoogleAIStudio ? "Google AI StudioのOpenAI互換エンドポイントです。" : "OpenAI互換APIのベースURLを入力します。"}
           />
           <TextField
             name="model"
             label="モデル名"
             value={model}
-            placeholder={connection === "local" ? "例: qwen3:8b" : "例: gpt-4.1-mini"}
+            placeholder={connection === "local" ? "例: qwen3:8b" : isGoogleAIStudio ? `例: ${GOOGLE_AI_STUDIO_MODEL}` : "例: gpt-4.1-mini"}
             onChange={(event) => {
               resetTest()
               setModel(event.target.value)
@@ -162,7 +191,7 @@ export function AIConnectionDialog({
           <TextField
             name="api-key"
             type="password"
-            label="APIキー"
+            label={isGoogleAIStudio ? "Gemini APIキー" : "APIキー"}
             value={apiKey}
             placeholder="APIキーを入力"
             autoComplete="off"
@@ -170,7 +199,7 @@ export function AIConnectionDialog({
               resetTest()
               setApiKey(event.target.value)
             }}
-            description={isDesktop ? "キーはこのアプリを閉じるまで保持します。" : "キーはこのブラウザタブ内だけで使用し、サーバーには保存しません。"}
+            description={isDesktop ? "キーはこのアプリを閉じるまで保持します。" : "キーはこのブラウザタブ内だけで使用し、mikan chatのサーバーには保存しません。"}
           />
         ) : null}
 

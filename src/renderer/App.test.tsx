@@ -234,14 +234,14 @@ describe("mikan chat UI flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /AIサービスに接続する/ }))
 
-    expect(screen.getByRole("button", { name: /オンラインAI/ })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: /Google AI Studio/ })).toHaveAttribute("aria-pressed", "true")
   })
 
   it("オンライン接続はAPIキー入力後に確定でき、再表示でも保持する", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: /オンラインAI/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
     const confirm = screen.getByRole("button", { name: "この接続を使う" })
     expect(confirm).toBeDisabled()
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
@@ -260,7 +260,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
     fireEvent.click(screen.getByRole("button", { name: "接続をテスト" }))
     expect(await screen.findByText("接続できました")).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: /オンラインAI/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
 
     expect(screen.queryByText("接続できました")).not.toBeInTheDocument()
   })
@@ -285,7 +285,7 @@ describe("mikan chat UI flow", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: /オンラインAI/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
     fireEvent.change(screen.getByRole("textbox", { name: /接続先URL/ }), { target: { value: "http://example.com/v1" } })
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
 

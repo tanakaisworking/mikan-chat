@@ -14,7 +14,7 @@ WindowsとmacOSで動き、シチュエーション中心のチャットパッ�
 
 [ブラウザでmikan chatを試す](https://mikanchat.mikan-chat.workers.dev/)
 
-Web版では、自分のAPIキーを使ってOpenAI互換APIへ接続できます。APIキーはブラウザタブ内だけに保持され、mikan chatのサーバーには保存されません。マイク入力にはブラウザ標準の音声認識を使います。
+Web版では、Google AI Studioで発行したGemini APIキーを使って会話できます。その他のOpenAI互換APIも設定可能です。APIキーはブラウザタブ内だけに保持され、mikan chatのサーバーには保存されません。マイク入力にはブラウザ標準の音声認識を使います。
 
 ## 開発用プレビュー
 

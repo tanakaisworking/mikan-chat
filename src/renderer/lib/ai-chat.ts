@@ -14,6 +14,17 @@ type StreamReplyOptions = {
   onText: (text: string) => void
 }
 
+export const GOOGLE_AI_STUDIO_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai"
+export const GOOGLE_AI_STUDIO_MODEL = "gemini-2.5-flash"
+
+export function isGoogleAIStudioEndpoint(endpoint: string) {
+  try {
+    return new URL(endpoint).hostname === "generativelanguage.googleapis.com"
+  } catch {
+    return false
+  }
+}
+
 export async function streamCharacterReply({
   connection,
   character,

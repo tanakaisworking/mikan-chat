@@ -7,6 +7,7 @@ import { VoiceSettingsSheet } from "@/components/settings/voice-settings-sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { characters, type Character } from "@/data/characters"
 import { loadScenarios } from "@/data/scenario-source"
+import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL } from "@/lib/ai-chat"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
@@ -52,8 +53,8 @@ export function App() {
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>({
     type: window.mikan ? "local" : "online",
     apiKey: "",
-    endpoint: window.mikan ? "http://127.0.0.1:11434/v1" : "https://api.openai.com/v1",
-    model: window.mikan ? "" : "gpt-4.1-mini",
+    endpoint: window.mikan ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT,
+    model: window.mikan ? "" : GOOGLE_AI_STUDIO_MODEL,
   })
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
 

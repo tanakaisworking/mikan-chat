@@ -71,7 +71,7 @@ export function SetupScreen({ isDesktop, onContinue, onOpenConnection }: SetupSc
               size="setup"
               icon={<Cloud />}
               title="AIサービスに接続する"
-              description={isDesktop ? "APIキーを使ってオンラインAIにつなぎます" : "自分のAPIキーでオンラインAIにつなぎます"}
+              description="Google AI StudioのGemini APIキーで接続します"
               trailing={<ChevronRight className="size-8 text-primary-bright transition-transform group-hover:translate-x-0.5" aria-hidden="true" />}
               onClick={() => onOpenConnection("online")}
             />
