@@ -37,7 +37,7 @@ export async function streamCharacterReply({
   const provider = createOpenAICompatible({
     name: "mikan-chat",
     baseURL: normalizeBaseUrl(connection.endpoint),
-    apiKey: connection.apiKey.trim() || undefined,
+    apiKey: normalizeApiKey(connection.apiKey) || undefined,
   })
   const modelCandidates = getModelCandidates(connection)
   let lastError: unknown
@@ -55,9 +55,10 @@ export async function streamCharacterReply({
 
 export async function testAIConnection(connection: ConnectionSettings, signal?: AbortSignal) {
   assertConnection(connection)
+  const apiKey = normalizeApiKey(connection.apiKey)
   const response = await fetch(`${normalizeBaseUrl(connection.endpoint)}/models`, {
-    headers: connection.apiKey.trim()
-      ? { Authorization: `Bearer ${connection.apiKey.trim()}` }
+    headers: apiKey
+      ? { Authorization: `Bearer ${apiKey}` }
       : undefined,
     signal,
   })
@@ -152,7 +153,11 @@ export function getConnectionError(connection: ConnectionSettings) {
   const endpointError = getEndpointError(connection)
   if (endpointError) return endpointError
   if (!connection.model.trim()) return "モデル名を入力してください。"
-  if (connection.type === "online" && !connection.apiKey.trim()) return "APIキーを入力してください。"
+  const apiKey = normalizeApiKey(connection.apiKey)
+  if (connection.type === "online" && !apiKey) return "APIキーを入力してください。"
+  if (connection.type === "online" && !/^[\x21-\x7e]+$/.test(apiKey)) {
+    return "APIキーに使用できない文字が含まれています。Google AI Studioからキーだけをコピーしてください。"
+  }
   return null
 }
 
@@ -186,6 +191,11 @@ function assertConnection(connection: ConnectionSettings) {
 
 function normalizeBaseUrl(endpoint: string) {
   return endpoint.trim().replace(/\/+$/, "")
+}
+
+function normalizeApiKey(apiKey: string) {
+  const compact = apiKey.replace(/[\s\u200b-\u200d\ufeff]+/gu, "")
+  return /^(['"]).*\1$/.test(compact) ? compact.slice(1, -1) : compact
 }
 
 function buildSystemPrompt(character: Character) {

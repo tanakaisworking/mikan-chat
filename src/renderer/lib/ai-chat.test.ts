@@ -4,6 +4,7 @@ import {
   GOOGLE_AI_STUDIO_ENDPOINT,
   GOOGLE_AI_STUDIO_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
+  getConnectionError,
   getEndpointError,
   parseAssistantResponse,
   streamCharacterReply,
@@ -52,7 +53,7 @@ describe("AI chat transport", () => {
     await testAIConnection({
       type: "online",
       endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
-      apiKey: "gemini-test-key",
+      apiKey: "\u200bgemini-test-key\n",
       model: GOOGLE_AI_STUDIO_MODEL,
     })
 
@@ -60,6 +61,21 @@ describe("AI chat transport", () => {
       `${GOOGLE_AI_STUDIO_ENDPOINT}/models`,
       expect.objectContaining({ headers: { Authorization: "Bearer gemini-test-key" } }),
     )
+  })
+
+  it("APIキーの不可視空白を除去し、その他の非ASCII文字は送信前に拒否する", () => {
+    expect(getConnectionError({
+      type: "online",
+      endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+      apiKey: "\u200bgemini-test-key\n",
+      model: GOOGLE_AI_STUDIO_MODEL,
+    })).toBeNull()
+    expect(getConnectionError({
+      type: "online",
+      endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+      apiKey: "gemini-日本語-key",
+      model: GOOGLE_AI_STUDIO_MODEL,
+    })).toBe("APIキーに使用できない文字が含まれています。Google AI Studioからキーだけをコピーしてください。")
   })
 
   it("Google AI StudioのFlash失敗時にFlash-Liteへ切り替える", async () => {
