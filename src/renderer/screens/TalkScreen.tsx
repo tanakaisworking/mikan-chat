@@ -180,7 +180,7 @@ export function TalkScreen({
 
   return (
     <main
-      className="grid h-screen grid-cols-[clamp(360px,40vw,560px)_minmax(0,1fr)] grid-rows-[96px_minmax(0,1fr)_136px] overflow-hidden bg-background max-[1100px]:grid-rows-[80px_minmax(0,1fr)_112px] max-md:h-dvh max-md:grid-cols-1 max-md:grid-rows-[64px_minmax(0,1fr)_80px]"
+      className="grid h-screen grid-cols-[clamp(360px,40vw,560px)_minmax(0,1fr)] grid-rows-[96px_minmax(0,1fr)_auto] overflow-hidden bg-background max-[1100px]:grid-rows-[80px_minmax(0,1fr)_auto] max-md:h-dvh max-md:grid-cols-1 max-md:grid-rows-[64px_minmax(0,1fr)_auto]"
       data-testid="talk-screen"
     >
       <AppHeader
