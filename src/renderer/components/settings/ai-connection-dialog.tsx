@@ -202,7 +202,7 @@ export function AIConnectionDialog({
               resetTest()
               setApiKey(event.target.value)
             }}
-            description={isDesktop ? "キーはこのアプリを閉じるまで保持します。" : "同じタブでは再読み込み後も保持し、タブを閉じると破棄します。mikan chatのサーバーには保存しません。"}
+            description={isDesktop ? "キーはこのアプリを閉じるまで保持します。" : "このブラウザに保存し、次回も利用します。mikan chatのサーバーには保存しません。"}
           />
         ) : null}
 

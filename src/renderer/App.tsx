@@ -17,7 +17,7 @@ import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
 type Screen = "setup" | "home" | "talk" | "docs"
 type Overlay = "connection" | "import" | "voice" | "history" | null
-const CONNECTION_SESSION_KEY = "mikan-chat.connection.v1"
+const CONNECTION_STORAGE_KEY = "mikan-chat.connection.v1"
 
 function createDefaultConnection(): ConnectionSettings {
   return {
@@ -32,12 +32,19 @@ function readInitialConnection() {
   const fallback = createDefaultConnection()
   if (window.mikan) return fallback
   try {
-    const stored = JSON.parse(window.sessionStorage.getItem(CONNECTION_SESSION_KEY) ?? "null") as unknown
+    const saved = window.localStorage.getItem(CONNECTION_STORAGE_KEY)
+    const legacy = saved === null ? window.sessionStorage.getItem(CONNECTION_STORAGE_KEY) : null
+    const stored = JSON.parse(saved ?? legacy ?? "null") as unknown
     if (!stored || typeof stored !== "object") return fallback
     const candidate = stored as Partial<ConnectionSettings>
     if (candidate.type !== "online" || typeof candidate.apiKey !== "string" || typeof candidate.endpoint !== "string" || typeof candidate.model !== "string") return fallback
     const connection: ConnectionSettings = { type: candidate.type, apiKey: candidate.apiKey, endpoint: candidate.endpoint, model: candidate.model }
-    return getConnectionError(connection) ? fallback : connection
+    if (getConnectionError(connection)) return fallback
+    if (legacy !== null) {
+      window.localStorage.setItem(CONNECTION_STORAGE_KEY, legacy)
+      window.sessionStorage.removeItem(CONNECTION_STORAGE_KEY)
+    }
+    return connection
   } catch {
     return fallback
   }
@@ -46,7 +53,7 @@ function readInitialConnection() {
 function persistConnection(connection: ConnectionSettings) {
   if (window.mikan) return
   try {
-    window.sessionStorage.setItem(CONNECTION_SESSION_KEY, JSON.stringify(connection))
+    window.localStorage.setItem(CONNECTION_STORAGE_KEY, JSON.stringify(connection))
   } catch {
     // Storage may be unavailable in privacy-restricted browser contexts.
   }

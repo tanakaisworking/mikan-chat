@@ -13,6 +13,7 @@ vi.mock("@/lib/ai-chat", async (importOriginal) => ({
 describe("mikan chat UI flow", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/?screen=home")
+    window.localStorage.clear()
     window.sessionStorage.clear()
     window.mikan = {
       platform: "darwin",
@@ -253,7 +254,7 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
   })
 
-  it("Web版は再読み込み後も同じタブの接続設定を復元する", () => {
+  it("Web版は保存した接続設定を次回起動時に復元する", () => {
     delete window.mikan
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json({ items: [] }))))
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
@@ -268,6 +269,24 @@ describe("mikan chat UI flow", () => {
 
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
     expect(screen.getByRole("textbox", { name: /モデル名/ })).toHaveValue("gemini-flash-latest")
+  })
+
+  it("以前のタブ保存設定をブラウザ保存へ移行する", () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json({ items: [] }))))
+    window.sessionStorage.setItem("mikan-chat.connection.v1", JSON.stringify({
+      type: "online",
+      apiKey: "legacy-test-key",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai",
+      model: "gemini-flash-latest",
+    }))
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+
+    render(<App />)
+
+    expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("legacy-test-key")
+    expect(window.localStorage.getItem("mikan-chat.connection.v1")).toContain("legacy-test-key")
+    expect(window.sessionStorage.getItem("mikan-chat.connection.v1")).toBeNull()
   })
 
   it("接続対象を変えると以前のテスト結果を消す", async () => {
