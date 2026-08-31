@@ -14,6 +14,7 @@ import {
 import { TextField } from "@/components/ui/text-field"
 import {
   GOOGLE_AI_STUDIO_ENDPOINT,
+  GOOGLE_AI_STUDIO_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
   getConnectionError,
   getEndpointError,
@@ -184,6 +185,7 @@ export function AIConnectionDialog({
               resetTest()
               setModel(event.target.value)
             }}
+            description={isGoogleAIStudio && model.trim() === GOOGLE_AI_STUDIO_MODEL ? `失敗時は${GOOGLE_AI_STUDIO_FALLBACK_MODEL}へ自動で切り替えます。` : undefined}
           />
         </div>
 

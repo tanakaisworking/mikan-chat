@@ -1,4 +1,4 @@
-import { streamText } from "ai"
+import { APICallError, streamText } from "ai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { z } from "zod"
 
@@ -15,7 +15,8 @@ type StreamReplyOptions = {
 }
 
 export const GOOGLE_AI_STUDIO_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai"
-export const GOOGLE_AI_STUDIO_MODEL = "gemini-2.5-flash"
+export const GOOGLE_AI_STUDIO_MODEL = "gemini-flash-latest"
+export const GOOGLE_AI_STUDIO_FALLBACK_MODEL = "gemini-flash-lite-latest"
 
 export function isGoogleAIStudioEndpoint(endpoint: string) {
   try {
@@ -38,29 +39,18 @@ export async function streamCharacterReply({
     baseURL: normalizeBaseUrl(connection.endpoint),
     apiKey: connection.apiKey.trim() || undefined,
   })
-  const result = streamText({
-    model: provider(connection.model.trim()),
-    system: buildSystemPrompt(character),
-    messages: messages.slice(-30)
-      .map((message) => ({
-        role: message.role === "user" ? "user" as const : "assistant" as const,
-        content: message.role === "narration"
-          ? `[narration] ${message.text}`
-          : message.role === "character"
-            ? `[dialogue] ${message.speakerName ?? character.name}: ${message.text}`
-            : message.text,
-      })),
-    maxOutputTokens: 600,
-    abortSignal: signal,
-  })
-
-  let text = ""
-  for await (const chunk of result.textStream) {
-    text += chunk
-    onText(text)
+  const modelCandidates = getModelCandidates(connection)
+  let lastError: unknown
+  for (const [index, model] of modelCandidates.entries()) {
+    try {
+      return await streamModelReply({ provider, model, character, messages, signal, onText })
+    } catch (error) {
+      lastError = error
+      if (signal.aborted || index === modelCandidates.length - 1 || !shouldFallback(error)) throw error
+      onText("")
+    }
   }
-  if (!text.trim()) throw new Error("AIから返答がありませんでした。")
-  return text
+  throw lastError
 }
 
 export async function testAIConnection(connection: ConnectionSettings, signal?: AbortSignal) {
@@ -74,9 +64,61 @@ export async function testAIConnection(connection: ConnectionSettings, signal?: 
   if (!response.ok) throw new Error(`接続先からエラーが返りました（${response.status}）`)
   const result = modelListSchema.safeParse(await response.json())
   if (!result.success) throw new Error("接続先のモデル一覧を確認できませんでした。")
-  if (!result.data.data.some((model) => model.id === connection.model.trim())) {
-    throw new Error(`モデル「${connection.model.trim()}」が接続先に見つかりません。`)
+  const modelCandidates = getModelCandidates(connection)
+  if (!modelCandidates.some((candidate) => result.data.data.some((model) => model.id === candidate))) {
+    throw new Error(`モデル「${modelCandidates.join("」または「")}」が接続先に見つかりません。`)
   }
+}
+
+async function streamModelReply({
+  provider,
+  model,
+  character,
+  messages,
+  signal,
+  onText,
+}: Omit<StreamReplyOptions, "connection"> & {
+  provider: ReturnType<typeof createOpenAICompatible>
+  model: string
+}) {
+  const result = streamText({
+    model: provider(model),
+    system: buildSystemPrompt(character),
+    messages: messages.slice(-30)
+      .map((message) => ({
+        role: message.role === "user" ? "user" as const : "assistant" as const,
+        content: message.role === "narration"
+          ? `[narration] ${message.text}`
+          : message.role === "character"
+            ? `[dialogue] ${message.speakerName ?? character.name}: ${message.text}`
+            : message.text,
+      })),
+    maxOutputTokens: 600,
+    abortSignal: signal,
+    onError: () => undefined,
+  })
+
+  let text = ""
+  for await (const part of result.fullStream) {
+    if (part.type === "error") throw part.error
+    if (part.type === "text-delta") {
+      text += part.text
+      onText(text)
+    }
+  }
+  if (!text.trim()) throw new Error("AIから返答がありませんでした。")
+  return text
+}
+
+function getModelCandidates(connection: ConnectionSettings) {
+  const model = connection.model.trim()
+  return isGoogleAIStudioEndpoint(connection.endpoint) && model === GOOGLE_AI_STUDIO_MODEL
+    ? [model, GOOGLE_AI_STUDIO_FALLBACK_MODEL]
+    : [model]
+}
+
+function shouldFallback(error: unknown) {
+  return !APICallError.isInstance(error) || (error.statusCode !== 401 && error.statusCode !== 403)
 }
 
 export function isConnectionReady(connection: ConnectionSettings) {

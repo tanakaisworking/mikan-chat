@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
   GOOGLE_AI_STUDIO_ENDPOINT,
+  GOOGLE_AI_STUDIO_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
   getEndpointError,
   parseAssistantResponse,
@@ -59,6 +60,60 @@ describe("AI chat transport", () => {
       `${GOOGLE_AI_STUDIO_ENDPOINT}/models`,
       expect.objectContaining({ headers: { Authorization: "Bearer gemini-test-key" } }),
     )
+  })
+
+  it("Google AI StudioのFlash失敗時にFlash-Liteへ切り替える", async () => {
+    const successStream = new Response([
+      `data: {"id":"chatcmpl-fallback","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_FALLBACK_MODEL}","choices":[{"index":0,"delta":{"content":"フォールバック成功"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-fallback","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_FALLBACK_MODEL}","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+      "data: [DONE]\n\n",
+    ].join(""), { headers: { "Content-Type": "text/event-stream" } })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ error: { message: "model unavailable" } }, { status: 404 }))
+      .mockResolvedValueOnce(successStream)
+    vi.stubGlobal("fetch", fetchMock)
+    const updates: string[] = []
+
+    const reply = await streamCharacterReply({
+      connection: {
+        type: "online",
+        endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+        apiKey: "gemini-test-key",
+        model: GOOGLE_AI_STUDIO_MODEL,
+      },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: (text) => updates.push(text),
+    })
+
+    expect(reply).toBe("フォールバック成功")
+    expect(updates).toEqual(["", "フォールバック成功"])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).model))
+      .toEqual([GOOGLE_AI_STUDIO_MODEL, GOOGLE_AI_STUDIO_FALLBACK_MODEL])
+  })
+
+  it("Google AI Studioの認証エラーでは別モデルを試さない", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ error: { message: "invalid API key" } }, { status: 401 }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(streamCharacterReply({
+      connection: {
+        type: "online",
+        endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+        apiKey: "invalid-key",
+        model: GOOGLE_AI_STUDIO_MODEL,
+      },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: vi.fn(),
+    })).rejects.toThrow()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it("複数話者と情景描写をイベントへ分解する", () => {
