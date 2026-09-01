@@ -1,10 +1,13 @@
 import type { RefObject } from "react"
 
 import { ChatMessage, type ChatMessageData } from "@/components/chat/chat-message"
+import { SceneIntroCard } from "@/components/chat/scene-intro-card"
+import type { ScenarioContext } from "@/lib/scenario-context"
 import { cn } from "@/lib/utils"
 
 export function ChatTimeline({
   characterName,
+  intro,
   messages,
   isGenerating,
   error,
@@ -15,6 +18,7 @@ export function ChatTimeline({
   className,
 }: {
   characterName: string
+  intro?: ScenarioContext | null
   messages: ChatMessageData[]
   isGenerating: boolean
   error?: string | null
@@ -33,10 +37,11 @@ export function ChatTimeline({
       aria-label={`${characterName}との会話`}
       aria-live="polite"
     >
-      <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center gap-5 max-md:justify-end max-md:gap-3">
+      <div className={cn("mx-auto flex min-h-full max-w-3xl flex-col gap-5 max-md:gap-3", intro ? "justify-start" : "justify-center max-md:justify-end")}>
+        {intro ? <SceneIntroCard context={intro} /> : null}
         <div className="my-1 flex items-center justify-center gap-5 text-sm text-muted-foreground max-md:text-xs max-md:text-white/90 max-md:drop-shadow-md">
           <span className="h-px w-14 bg-border" aria-hidden="true" />
-          今日 20:42
+          {intro ? "ここから、物語がはじまる" : "今日 20:42"}
           <span className="h-px w-14 bg-border" aria-hidden="true" />
         </div>
         {messages.map((message) => (

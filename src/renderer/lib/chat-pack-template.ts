@@ -1,3 +1,4 @@
-export function resolveChatPackText(text: string) {
-  return text.replaceAll("{{user}}さん", "あなた").replaceAll("{{user}}", "あなた")
+export function resolveChatPackText(text: string, userName = "あなた") {
+  const honorificName = userName === "あなた" ? userName : `${userName}さん`
+  return text.replaceAll("{{user}}さん", honorificName).replaceAll("{{user}}", userName)
 }

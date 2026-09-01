@@ -94,6 +94,7 @@ export function App() {
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>(readInitialConnection)
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
   const [readAloud, setReadAloud] = useState(false)
+  const [showStoryIntro, setShowStoryIntro] = useState(false)
 
   const refreshScenarios = useCallback(async () => {
     setScenariosLoading(true)
@@ -137,6 +138,7 @@ export function App() {
     setSelectedCharacter(character)
     setActiveConversationId("today")
     setHomeTab(source)
+    setShowStoryIntro(source === "home")
     setScreen("talk")
   }
 
@@ -189,6 +191,7 @@ export function App() {
     setSelectedCharacter(imported)
     setActiveConversationId("today")
     setHomeTab("home")
+    setShowStoryIntro(true)
     setOverlay(null)
     setScreen("talk")
   }
@@ -224,6 +227,7 @@ export function App() {
           conversationId={activeConversationId}
           connection={connectionSettings}
           readAloud={readAloud}
+          isNewStory={showStoryIntro}
           onBack={() => showScreen("home")}
           onOpenConnection={() => openConnection()}
           onOpenVoice={() => openOverlay("voice")}
@@ -278,6 +282,7 @@ export function App() {
         onOpenChange={(open) => setOverlayOpen("history", open)}
         onSelectConversation={(conversationId) => {
           setActiveConversationId(conversationId)
+          setShowStoryIntro(false)
           setOverlay(null)
         }}
       />

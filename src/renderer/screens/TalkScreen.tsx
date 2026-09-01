@@ -11,12 +11,14 @@ import type { ConnectionSettings } from "@/components/settings/ai-connection-dia
 import type { Character } from "@/data/characters"
 import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
 import { createTtsDriver } from "@/lib/tts"
+import { readScenarioContext } from "@/lib/scenario-context"
 
 type TalkScreenProps = {
   character: Character
   conversationId: string
   connection: ConnectionSettings
   readAloud: boolean
+  isNewStory?: boolean
   onBack: () => void
   onOpenConnection: () => void
   onOpenVoice: () => void
@@ -97,6 +99,7 @@ export function TalkScreen({
   conversationId,
   connection,
   readAloud,
+  isNewStory = false,
   onBack,
   onOpenConnection,
   onOpenVoice,
@@ -109,10 +112,14 @@ export function TalkScreen({
   const generationController = useRef<AbortController | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
   const tts = useMemo(createTtsDriver, [])
+  const intro = useMemo(() => isNewStory && character.opening?.length ? readScenarioContext(character) : null, [character, isNewStory])
   const messages = messageStore[conversationId] ?? emptyMessages
+  const initialMessageCount = useRef(messages.length)
 
   useEffect(() => {
-    timelineEnd.current?.scrollIntoView({ behavior: "smooth" })
+    if (messages.length > initialMessageCount.current || isGenerating) {
+      timelineEnd.current?.scrollIntoView({ behavior: "smooth" })
+    }
   }, [messages, isGenerating])
 
   useEffect(() => () => {
@@ -236,6 +243,7 @@ export function TalkScreen({
 
       <ChatTimeline
         characterName={character.name}
+        intro={intro}
         messages={messages}
         isGenerating={isGenerating}
         error={generationError}

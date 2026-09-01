@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { Character } from "@/data/characters"
+import { readScenarioContext } from "@/lib/scenario-context"
 
 export function ScenarioPreviewDialog({
   character,
@@ -19,7 +20,7 @@ export function ScenarioPreviewDialog({
   onOpenChange: (open: boolean) => void
   onStart: () => void
 }) {
-  const preview = character ? readPreview(character) : null
+  const preview = character ? readScenarioContext(character) : null
 
   return (
     <Dialog open={Boolean(character)} onOpenChange={onOpenChange}>
@@ -108,37 +109,4 @@ function PreviewSection({ icon, title, children }: { icon: React.ReactNode; titl
       </div>
     </section>
   )
-}
-
-function readPreview(character: Character) {
-  const pack = isRecord(character.pack) ? character.pack : null
-  const plot = pack && isRecord(pack.plot) ? pack.plot : null
-  const characters = Array.isArray(plot?.characters)
-    ? plot.characters.flatMap((item) => isRecord(item) && typeof item.name === "string"
-      ? [{ name: item.name, profile: typeof item.profile === "string" ? item.profile : "この物語の登場人物です。" }]
-      : [])
-    : []
-  const playerProfiles = Array.isArray(plot?.playerProfiles)
-    ? plot.playerProfiles.filter((item) => isRecord(item) && typeof item.name === "string" && typeof item.description === "string")
-    : []
-  const defaultPlayerId = typeof plot?.defaultPlayerProfile === "string" ? plot.defaultPlayerProfile : null
-  const player = playerProfiles.find((item) => item.id === defaultPlayerId) ?? playerProfiles[0]
-  const author = pack && isRecord(pack.author) && typeof pack.author.name === "string" ? pack.author.name : null
-  const rating = pack?.rating === "r15" ? "R15" : pack?.rating === "r18" ? "R18" : pack?.rating === "all" ? "全年齢" : null
-
-  return {
-    title: character.packTitle ?? character.name,
-    premise: typeof plot?.premise === "string" ? plot.premise : character.description,
-    tags: character.tags ?? [],
-    characters: characters.length > 0 ? characters : [{ name: character.name, profile: character.description }],
-    player: player
-      ? { name: String(player.name), description: String(player.description) }
-      : { name: "物語の中のあなた", description: "あなた自身の言葉と選択で、登場人物との関係を作っていきます。" },
-    author,
-    rating,
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
