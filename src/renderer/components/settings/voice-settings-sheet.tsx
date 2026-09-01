@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { CheckCircle2, Lightbulb, Mic, Volume2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type SpeechInputStatus } from "@/lib/speech-input"
+import { createTtsDriver } from "@/lib/tts"
 
 export function VoiceSettingsSheet({
   open,
@@ -27,9 +28,9 @@ export function VoiceSettingsSheet({
   const [transcript, setTranscript] = useState("")
   const [micError, setMicError] = useState<string | null>(null)
   const speechInput = useRef<SpeechInput | null>(null)
+  const tts = useMemo(createTtsDriver, [])
   const isListening = micStatus === "starting" || micStatus === "listening"
   const speechSupported = isSpeechInputSupported()
-  const browserTtsSupported = !window.mikan && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window
   const speechStatusLabel = !speechSupported
     ? "この環境では利用できません"
     : isListening
@@ -51,10 +52,11 @@ export function VoiceSettingsSheet({
   useEffect(() => {
     if (!open) {
       speechInput.current?.stop()
+      tts.stop()
       setTranscript("")
       setMicError(null)
     }
-  }, [open])
+  }, [open, tts])
 
   const toggleMic = () => {
     setMicError(null)
@@ -63,13 +65,7 @@ export function VoiceSettingsSheet({
     else void speechInput.current?.start()
   }
 
-  const testBrowserVoice = () => {
-    if (!browserTtsSupported) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance("ブラウザ標準の音声で読み上げています。")
-    utterance.lang = "ja-JP"
-    window.speechSynthesis.speak(utterance)
-  }
+  const testVoice = () => tts.speak("ブラウザ標準の音声で読み上げています。")
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -106,20 +102,20 @@ export function VoiceSettingsSheet({
                 <Volume2 className="size-8" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold">{window.mikan ? "Irodori TTS" : "ブラウザ標準TTS"}</span>
+                <span className="block text-lg font-semibold">{tts.label}</span>
                 <span className="mt-1 block text-base text-muted-foreground">
-                  {window.mikan ? "まだ接続されていません" : browserTtsSupported ? "簡易音声を使用できます" : "この環境では利用できません"}
+                  {tts.supported ? "簡易音声を使用できます" : tts.unavailableReason}
                 </span>
               </span>
               <Switch
-                checked={window.mikan ? false : readAloud}
-                disabled={Boolean(window.mikan) || !browserTtsSupported}
+                checked={tts.supported && readAloud}
+                disabled={!tts.supported}
                 onCheckedChange={onReadAloudChange}
                 aria-label="返答を読み上げる"
               />
             </div>
-            <Button variant="outline" size="lg" disabled={Boolean(window.mikan) || !browserTtsSupported} onClick={testBrowserVoice}>
-              {window.mikan ? "Irodori TTS接続後に利用できます" : "ブラウザ音声を試す"}
+            <Button variant="outline" size="lg" disabled={!tts.supported} onClick={testVoice}>
+              {tts.supported ? `${tts.label}を試す` : tts.unavailableReason}
             </Button>
 
             <div className="flex gap-3 rounded-md border border-border/70 bg-surface-soft p-4 text-sm leading-relaxed text-muted-foreground">

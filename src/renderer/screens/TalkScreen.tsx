@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { History, Mic2, Settings2 } from "lucide-react"
 
 import { ChatComposer } from "@/components/chat/chat-composer"
@@ -10,6 +10,7 @@ import { IconButton } from "@/components/ui/icon-button"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
 import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
+import { createTtsDriver } from "@/lib/tts"
 
 type TalkScreenProps = {
   character: Character
@@ -107,8 +108,8 @@ export function TalkScreen({
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
   const generationController = useRef<AbortController | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
+  const tts = useMemo(createTtsDriver, [])
   const messages = messageStore[conversationId] ?? emptyMessages
-  const browserTtsSupported = !window.mikan && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window
 
   useEffect(() => {
     timelineEnd.current?.scrollIntoView({ behavior: "smooth" })
@@ -116,22 +117,18 @@ export function TalkScreen({
 
   useEffect(() => () => {
     generationController.current?.abort()
-    window.speechSynthesis?.cancel()
-  }, [browserTtsSupported])
+    tts.stop()
+  }, [tts])
 
   const speak = (text: string, messageId?: string) => {
-    if (!browserTtsSupported) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = "ja-JP"
-    utterance.onend = utterance.onerror = () => setPlayingMessageId(null)
+    if (!tts.supported) return
     setPlayingMessageId(messageId ?? null)
-    window.speechSynthesis.speak(utterance)
+    tts.speak(text, { onEnd: () => setPlayingMessageId(null) })
   }
 
   const toggleMessageAudio = (messageId: string) => {
     if (playingMessageId === messageId) {
-      window.speechSynthesis.cancel()
+      tts.stop()
       setPlayingMessageId(null)
       return
     }
@@ -186,7 +183,7 @@ export function TalkScreen({
         onText: updateReply,
       })
       updateReply(replyText)
-      if (readAloud && browserTtsSupported) {
+      if (readAloud && tts.supported) {
         const speech = parseAssistantResponse(replyText, character)
           .filter((event) => event.role === "character")
           .map((event) => event.text)
@@ -242,7 +239,7 @@ export function TalkScreen({
         messages={messages}
         isGenerating={isGenerating}
         error={generationError}
-        canPlayAudio={browserTtsSupported}
+        canPlayAudio={tts.supported}
         playingMessageId={playingMessageId}
         onToggleAudio={toggleMessageAudio}
         endRef={timelineEnd}

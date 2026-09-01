@@ -560,7 +560,7 @@ describe("mikan chat UI flow", () => {
     const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
     expect(readAloud).toBeEnabled()
     fireEvent.click(readAloud)
-    fireEvent.click(screen.getByRole("button", { name: "ブラウザ音声を試す" }))
+    fireEvent.click(screen.getByRole("button", { name: "ブラウザ標準TTSを試す" }))
     expect(speak).toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "完了" }))
     expect(screen.getAllByRole("button", { name: "音声を再生" }).length).toBeGreaterThan(0)
