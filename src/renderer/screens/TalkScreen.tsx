@@ -59,6 +59,22 @@ const seededConversations: Record<string, ChatMessageData[]> = {
 }
 const emptyMessages: ChatMessageData[] = []
 
+function replaceStreamedReply(messages: ChatMessageData[], replyId: string, reply: string, character: Character, time: string) {
+  const prefix = `${replyId}-`
+  const firstIndex = messages.findIndex((message) => message.id.startsWith(prefix))
+  const remaining = messages.filter((message) => !message.id.startsWith(prefix))
+  const events = reply.trim() ? parseAssistantResponse(reply, character) : []
+  const next = events.map((event, index) => ({
+    id: `${prefix}${index}`,
+    role: event.role,
+    text: event.text,
+    speakerName: event.speakerName,
+    time,
+  }))
+  const insertAt = firstIndex < 0 ? remaining.length : firstIndex
+  return [...remaining.slice(0, insertAt), ...next, ...remaining.slice(insertAt)]
+}
+
 function getSeededConversations(character: Character) {
   if (!character.opening?.length) return seededConversations
 
@@ -112,6 +128,7 @@ export function TalkScreen({
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
     const userMessage: ChatMessageData = { id: crypto.randomUUID(), role: "user", text, time: now }
     const replyId = crypto.randomUUID()
+    const replyTime = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
     const promptMessages = [...messages, userMessage]
     setMessageStore((current) => ({
       ...current,
@@ -124,42 +141,25 @@ export function TalkScreen({
     setIsGenerating(true)
     const controller = new AbortController()
     generationController.current = controller
+    const updateReply = (reply: string) => setMessageStore((current) => ({
+      ...current,
+      [targetConversationId]: replaceStreamedReply(
+        current[targetConversationId] ?? [],
+        replyId,
+        reply,
+        character,
+        replyTime,
+      ),
+    }))
     try {
       const replyText = await streamCharacterReply({
         connection,
         character,
         messages: promptMessages,
         signal: controller.signal,
-        onText: (reply) => setMessageStore((current) => {
-          const currentMessages = current[targetConversationId] ?? []
-          const existing = currentMessages.some((message) => message.id === replyId)
-          const nextReply: ChatMessageData = {
-            id: replyId,
-            role: "character",
-            text: reply,
-            time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
-          }
-          return {
-            ...current,
-            [targetConversationId]: existing
-              ? currentMessages.map((message) => message.id === replyId ? nextReply : message)
-              : [...currentMessages, nextReply],
-          }
-        }),
+        onText: updateReply,
       })
-      const events = parseAssistantResponse(replyText, character)
-      setMessageStore((current) => ({
-        ...current,
-        [targetConversationId]: (current[targetConversationId] ?? []).flatMap((message) => message.id === replyId
-          ? events.map((event, index) => ({
-            id: `${replyId}-${index}`,
-            role: event.role,
-            text: event.text,
-            speakerName: event.speakerName,
-            time: message.time,
-          }))
-          : [message]),
-      }))
+      updateReply(replyText)
     } catch (error) {
       if (!controller.signal.aborted) {
         setGenerationError(error instanceof Error ? error.message : "AIから返答を受け取れませんでした。")

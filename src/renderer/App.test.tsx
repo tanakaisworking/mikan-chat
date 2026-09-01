@@ -223,6 +223,29 @@ describe("mikan chat UI flow", () => {
     }, { timeout: 5_000 })
   }, 10_000)
 
+  it("受信途中の情景描写と台詞を順次表示する", async () => {
+    let finishReply!: () => void
+    vi.mocked(streamCharacterReply).mockImplementation(async ({ onText }) => {
+      onText(">: 窓の外で雨音が強くなる。")
+      await new Promise<void>((resolve) => { finishReply = resolve })
+      const reply = ">: 窓の外で雨音が強くなる。\n葵: もう少し、ここにいてもいい？"
+      onText(reply)
+      return reply
+    })
+    window.history.replaceState({}, "", "/?screen=talk")
+    render(<App />)
+    configureLocalAI()
+
+    const composer = screen.getByPlaceholderText("メッセージを入力")
+    fireEvent.change(composer, { target: { value: "雨が強くなったね" } })
+    fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
+
+    expect(await screen.findByText("窓の外で雨音が強くなる。")).toBeInTheDocument()
+    expect(screen.getByText("葵が考えています…")).toBeInTheDocument()
+    await act(async () => finishReply())
+    expect(await screen.findByText("もう少し、ここにいてもいい？")).toBeInTheDocument()
+  })
+
   it("URLからAI接続Dialogを確認できる", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
