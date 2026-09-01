@@ -12,13 +12,24 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type SpeechInputStatus } from "@/lib/speech-input"
 
-export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function VoiceSettingsSheet({
+  open,
+  readAloud,
+  onReadAloudChange,
+  onOpenChange,
+}: {
+  open: boolean
+  readAloud: boolean
+  onReadAloudChange: (checked: boolean) => void
+  onOpenChange: (open: boolean) => void
+}) {
   const [micStatus, setMicStatus] = useState<SpeechInputStatus>("idle")
   const [transcript, setTranscript] = useState("")
   const [micError, setMicError] = useState<string | null>(null)
   const speechInput = useRef<SpeechInput | null>(null)
   const isListening = micStatus === "starting" || micStatus === "listening"
   const speechSupported = isSpeechInputSupported()
+  const browserTtsSupported = !window.mikan && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window
   const speechStatusLabel = !speechSupported
     ? "この環境では利用できません"
     : isListening
@@ -50,6 +61,14 @@ export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOp
     setTranscript("")
     if (isListening) speechInput.current?.stop()
     else void speechInput.current?.start()
+  }
+
+  const testBrowserVoice = () => {
+    if (!browserTtsSupported) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance("ブラウザ標準の音声で読み上げています。")
+    utterance.lang = "ja-JP"
+    window.speechSynthesis.speak(utterance)
   }
 
   return (
@@ -87,13 +106,20 @@ export function VoiceSettingsSheet({ open, onOpenChange }: { open: boolean; onOp
                 <Volume2 className="size-8" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold">Irodori TTS</span>
-                <span className="mt-1 block text-base text-muted-foreground">まだ接続されていません</span>
+                <span className="block text-lg font-semibold">{window.mikan ? "Irodori TTS" : "ブラウザ標準TTS"}</span>
+                <span className="mt-1 block text-base text-muted-foreground">
+                  {window.mikan ? "まだ接続されていません" : browserTtsSupported ? "簡易音声を使用できます" : "この環境では利用できません"}
+                </span>
               </span>
-              <Switch checked={false} disabled aria-label="返答を読み上げる" />
+              <Switch
+                checked={window.mikan ? false : readAloud}
+                disabled={Boolean(window.mikan) || !browserTtsSupported}
+                onCheckedChange={onReadAloudChange}
+                aria-label="返答を読み上げる"
+              />
             </div>
-            <Button variant="outline" size="lg" disabled>
-              Irodori TTS接続後に利用できます
+            <Button variant="outline" size="lg" disabled={Boolean(window.mikan) || !browserTtsSupported} onClick={testBrowserVoice}>
+              {window.mikan ? "Irodori TTS接続後に利用できます" : "ブラウザ音声を試す"}
             </Button>
 
             <div className="flex gap-3 rounded-md border border-border/70 bg-surface-soft p-4 text-sm leading-relaxed text-muted-foreground">

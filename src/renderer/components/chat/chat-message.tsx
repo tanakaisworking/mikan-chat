@@ -16,10 +16,12 @@ export type ChatMessageData = {
 export function ChatMessage({
   message,
   isPlaying,
+  canPlayAudio,
   onToggleAudio,
 }: {
   message: ChatMessageData
   isPlaying: boolean
+  canPlayAudio: boolean
   onToggleAudio: () => void
 }) {
   if (message.role === "narration") {
@@ -51,7 +53,7 @@ export function ChatMessage({
           )}
         >
           <p>{message.text}</p>
-          {message.audio ? (
+          {message.audio || (!isUser && canPlayAudio) ? (
             <IconButton
               label={isPlaying ? "音声を停止" : "音声を再生"}
               className="-mr-2 bg-surface-soft text-primary-bright hover:bg-surface-accent max-md:size-11"

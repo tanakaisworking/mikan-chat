@@ -514,6 +514,65 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByRole("button", { name: "Irodori TTS接続後に利用できます" })).toBeDisabled()
   })
 
+  it("Web版はブラウザ標準TTSで返答を読み上げる", async () => {
+    class MockUtterance {
+      text: string
+      lang = ""
+      onend: (() => void) | null = null
+      onerror: (() => void) | null = null
+
+      constructor(text: string) {
+        this.text = text
+      }
+    }
+    const speak = vi.fn()
+    delete window.mikan
+    vi.stubGlobal("SpeechSynthesisUtterance", MockUtterance)
+    vi.stubGlobal("speechSynthesis", { cancel: vi.fn(), speak })
+    window.localStorage.setItem("mikan-chat.connection.v1", JSON.stringify({
+      type: "online",
+      apiKey: "runtime-test-key",
+      endpoint: "https://example.com/v1",
+      model: "test-model",
+    }))
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      items: [{
+        id: "browser-tts",
+        slug: "browser-tts",
+        title: "ブラウザ音声テスト",
+        characterName: "葵",
+        summary: "音声確認用シナリオ",
+        coverPath: null,
+        rating: "all",
+        tags: ["テスト"],
+        conversationLabel: "1人と会話",
+        lastMessage: "話してみて。",
+        lastActive: "",
+        opening: [{ role: "character", speakerName: "葵", text: "話してみて。" }],
+        pack: { plot: { characters: [{ id: "aoi", name: "葵", profile: "幼なじみ" }] } },
+      }],
+    })))
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "ブラウザ音声テスト" }))
+    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
+    expect(screen.getByText("ブラウザ標準TTS")).toBeInTheDocument()
+    const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
+    expect(readAloud).toBeEnabled()
+    fireEvent.click(readAloud)
+    fireEvent.click(screen.getByRole("button", { name: "ブラウザ音声を試す" }))
+    expect(speak).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "完了" }))
+    expect(screen.getAllByRole("button", { name: "音声を再生" }).length).toBeGreaterThan(0)
+
+    speak.mockClear()
+    const composer = screen.getByPlaceholderText("メッセージを入力")
+    fireEvent.change(composer, { target: { value: "今日はどうだった？" } })
+    fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
+    await waitFor(() => expect(speak).toHaveBeenCalled())
+    expect((speak.mock.calls[0][0] as MockUtterance).text).toContain("急がなくて大丈夫")
+  })
+
   it("履歴を選ぶと会話内容を切り替える", () => {
     window.history.replaceState({}, "", "/?screen=talk&overlay=history")
     render(<App />)

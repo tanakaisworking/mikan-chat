@@ -15,6 +15,7 @@ type TalkScreenProps = {
   character: Character
   conversationId: string
   connection: ConnectionSettings
+  readAloud: boolean
   onBack: () => void
   onOpenConnection: () => void
   onOpenVoice: () => void
@@ -94,6 +95,7 @@ export function TalkScreen({
   character,
   conversationId,
   connection,
+  readAloud,
   onBack,
   onOpenConnection,
   onOpenVoice,
@@ -106,12 +108,36 @@ export function TalkScreen({
   const generationController = useRef<AbortController | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
   const messages = messageStore[conversationId] ?? emptyMessages
+  const browserTtsSupported = !window.mikan && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window
 
   useEffect(() => {
     timelineEnd.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isGenerating])
 
-  useEffect(() => () => generationController.current?.abort(), [])
+  useEffect(() => () => {
+    generationController.current?.abort()
+    window.speechSynthesis?.cancel()
+  }, [browserTtsSupported])
+
+  const speak = (text: string, messageId?: string) => {
+    if (!browserTtsSupported) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = "ja-JP"
+    utterance.onend = utterance.onerror = () => setPlayingMessageId(null)
+    setPlayingMessageId(messageId ?? null)
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const toggleMessageAudio = (messageId: string) => {
+    if (playingMessageId === messageId) {
+      window.speechSynthesis.cancel()
+      setPlayingMessageId(null)
+      return
+    }
+    const message = messages.find((item) => item.id === messageId)
+    if (message?.role === "character") speak(message.text, messageId)
+  }
 
   const sendMessage = (text: string) => {
     if (!isConnectionReady(connection)) {
@@ -160,6 +186,13 @@ export function TalkScreen({
         onText: updateReply,
       })
       updateReply(replyText)
+      if (readAloud && browserTtsSupported) {
+        const speech = parseAssistantResponse(replyText, character)
+          .filter((event) => event.role === "character")
+          .map((event) => event.text)
+          .join("\n")
+        if (speech) speak(speech)
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         setGenerationError(error instanceof Error ? error.message : "AIから返答を受け取れませんでした。")
@@ -209,8 +242,9 @@ export function TalkScreen({
         messages={messages}
         isGenerating={isGenerating}
         error={generationError}
+        canPlayAudio={browserTtsSupported}
         playingMessageId={playingMessageId}
-        onToggleAudio={(messageId) => setPlayingMessageId((current) => (current === messageId ? null : messageId))}
+        onToggleAudio={toggleMessageAudio}
         endRef={timelineEnd}
         className="max-md:z-10 max-md:col-start-1 max-md:row-start-2"
       />

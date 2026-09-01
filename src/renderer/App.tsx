@@ -93,6 +93,7 @@ export function App() {
   const [activeConversationId, setActiveConversationId] = useState("today")
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>(readInitialConnection)
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
+  const [readAloud, setReadAloud] = useState(false)
 
   const refreshScenarios = useCallback(async () => {
     setScenariosLoading(true)
@@ -222,6 +223,7 @@ export function App() {
           character={selectedCharacter}
           conversationId={activeConversationId}
           connection={connectionSettings}
+          readAloud={readAloud}
           onBack={() => showScreen("home")}
           onOpenConnection={() => openConnection()}
           onOpenVoice={() => openOverlay("voice")}
@@ -263,6 +265,8 @@ export function App() {
       />
       <VoiceSettingsSheet
         open={overlay === "voice"}
+        readAloud={readAloud}
+        onReadAloudChange={setReadAloud}
         onOpenChange={(open) => setOverlayOpen("voice", open)}
       />
       <ConversationHistorySheet
