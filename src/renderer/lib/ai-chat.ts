@@ -213,6 +213,11 @@ function buildSystemPrompt(character: Character) {
     })
     : [`- ${character.name}: ${character.description}`]
   const exampleSpeaker = readCharacterNames(character).values().next().value ?? character.name
+  const playerProfiles = Array.isArray(plot?.playerProfiles)
+    ? plot.playerProfiles.filter((item) => isRecord(item) && typeof item.name === "string" && typeof item.description === "string")
+    : []
+  const defaultPlayerId = typeof plot?.defaultPlayerProfile === "string" ? plot.defaultPlayerProfile : null
+  const player = playerProfiles.find((item) => item.id === defaultPlayerId) ?? playerProfiles[0]
   const premise = typeof plot?.premise === "string" ? plot.premise : character.description
   const instructions = typeof plot?.instructions === "string" ? plot.instructions : ""
   const style = isRecord(plot?.style) ? JSON.stringify(plot.style) : ""
@@ -225,6 +230,7 @@ function buildSystemPrompt(character: Character) {
     "返答は各イベントを別の行にしてください。台詞は「キャラクター名: 発話内容」、情景描写や仕草など台詞以外は「>: 内容」の形式で出力してください。記号は半角のコロンを使い、これ以外の形式やラベルは使わないでください。",
     `出力例:\n>: 窓の外で雨音が強くなる。\n${exampleSpeaker}: もう少し、ここにいてもいい？`,
     `シナリオ: ${premise}`,
+    player ? `ユーザーの役: ${player.name}\n${player.description}` : "",
     `登場人物:\n${characters.join("\n")}`,
     instructions ? `追加指示: ${instructions}` : "",
     style ? `文体設定: ${style}` : "",

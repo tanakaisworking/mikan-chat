@@ -27,7 +27,20 @@ describe("AI chat transport", () => {
 
     await streamCharacterReply({
       connection: { type: "online", endpoint: "https://example.com/v1", apiKey: "test-key", model: "test-model" },
-      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      character: {
+        id: "aoi",
+        name: "葵",
+        description: "幼なじみ",
+        lastMessage: "",
+        lastActive: "",
+        pack: {
+          plot: {
+            characters: [{ id: "aoi", name: "葵", profile: "幼なじみ" }],
+            playerProfiles: [{ id: "returnee", name: "五年ぶりの帰省者", description: "町を離れて働いていた。" }],
+            defaultPlayerProfile: "returnee",
+          },
+        },
+      },
       messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
       signal: new AbortController().signal,
       onText: (text) => updates.push(text),
@@ -38,6 +51,7 @@ describe("AI chat transport", () => {
       "https://example.com/v1/chat/completions",
       expect.objectContaining({ method: "POST" }),
     )
+    expect(String(fetchMock.mock.calls[0][1]?.body)).toContain("ユーザーの役: 五年ぶりの帰省者")
   })
 
   it("オンラインAIのAPIキーをHTTP接続先へ送らない", () => {

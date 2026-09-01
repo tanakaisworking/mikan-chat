@@ -1,6 +1,7 @@
-import { useId } from "react"
+import { useId, useState } from "react"
 import { MessageCircleMore } from "lucide-react"
 
+import { ScenarioPreviewDialog } from "@/components/library/scenario-preview-dialog"
 import { DesktopSidebar, MobileHeader, MobileNavigation } from "@/components/navigation/app-navigation"
 import { SectionHeading } from "@/components/ui/section-heading"
 import type { Character } from "@/data/characters"
@@ -32,6 +33,8 @@ export function HomeScreen({
   error = null,
   onRetry,
 }: HomeScreenProps) {
+  const [previewCharacter, setPreviewCharacter] = useState<Character | null>(null)
+
   return (
     <main className="grid h-screen grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background max-md:block max-md:h-dvh max-md:overflow-y-auto max-md:pb-[calc(148px+env(safe-area-inset-bottom))]" data-testid="home-screen">
       <DesktopSidebar activePage={activeTab} onPageChange={onTabChange} onAddPack={onAddPack} onOpenDocs={onOpenDocs} onOpenSettings={onOpenSettings} />
@@ -87,7 +90,7 @@ export function HomeScreen({
                 <ScenarioCard
                   key={character.id}
                   character={character}
-                  onClick={() => onSelectCharacter(character, "home")}
+                  onClick={() => setPreviewCharacter(character)}
                 />
               ))}
             </div>
@@ -97,6 +100,15 @@ export function HomeScreen({
       </section>
 
       <MobileNavigation activePage={activeTab} onPageChange={onTabChange} onAddPack={onAddPack} />
+      <ScenarioPreviewDialog
+        character={previewCharacter}
+        onOpenChange={(open) => { if (!open) setPreviewCharacter(null) }}
+        onStart={() => {
+          if (!previewCharacter) return
+          onSelectCharacter(previewCharacter, "home")
+          setPreviewCharacter(null)
+        }}
+      />
     </main>
   )
 }

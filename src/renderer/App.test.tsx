@@ -38,11 +38,15 @@ describe("mikan chat UI flow", () => {
     vi.useRealTimers()
   })
 
-  it("ホームから葵のトーク画面を開ける", () => {
+  it("ホームで物語の詳細を確認してからトーク画面を開ける", () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole("button", { name: "雨の夜、幼なじみの部屋で" }))
 
+    expect(screen.getByRole("dialog", { name: "雨の夜、幼なじみの部屋で" })).toBeInTheDocument()
+    expect(screen.getByText("物語の中のあなた")).toBeInTheDocument()
+    expect(screen.queryByTestId("talk-screen")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "この物語をはじめる" }))
     expect(screen.getByTestId("talk-screen")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("メッセージを入力")).toBeInTheDocument()
   })
@@ -62,7 +66,19 @@ describe("mikan chat UI flow", () => {
         conversationLabel: "2人と会話",
         lastMessage: "{{user}}さん、話を聞いて。",
         lastActive: "",
-        pack: {},
+        pack: {
+          author: { name: "テスト作者" },
+          rating: "all",
+          plot: {
+            premise: "閉店後の酒場で、秘密の荷物を運ぶ相談を持ちかけられる。",
+            characters: [
+              { id: "mia", name: "ミア", profile: "依頼を持ちかけるエルフの店主。" },
+              { id: "noah", name: "ノア", profile: "店の護衛を務める寡黙な剣士。" },
+            ],
+            playerProfiles: [{ id: "last-guest", name: "酒場の最後の客", description: "閉店間際まで店に残っていた旅人。" }],
+            defaultPlayerProfile: "last-guest",
+          },
+        },
         opening: [
           { role: "narration", text: "酒場の扉が静かに閉まる。", image: "/scenario-covers/mia.webp" },
           { role: "character", speakerName: "ミア", text: "{{user}}さん、頼みがあるの。", image: null },
@@ -77,6 +93,12 @@ describe("mikan chat UI flow", () => {
     expect(await screen.findByRole("button", { name: "DBから届いたシナリオ" })).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith("/api/scenarios")
     fireEvent.click(screen.getByRole("button", { name: "DBから届いたシナリオ" }))
+    expect(screen.getByRole("dialog", { name: "DBから届いたシナリオ" })).toBeInTheDocument()
+    expect(screen.getByText("閉店後の酒場で、秘密の荷物を運ぶ相談を持ちかけられる。")).toBeInTheDocument()
+    expect(screen.getByText("酒場の最後の客")).toBeInTheDocument()
+    expect(screen.getByText("依頼を持ちかけるエルフの店主。")).toBeInTheDocument()
+    expect(screen.getByText("店の護衛を務める寡黙な剣士。")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "この物語をはじめる" }))
     expect(screen.getByRole("heading", { name: "ミア・ノア" })).toBeInTheDocument()
     expect(screen.getByText("酒場の扉が静かに閉まる。")).toBeInTheDocument()
     expect(screen.getByText("あなた、頼みがあるの。")).toBeInTheDocument()
@@ -555,6 +577,7 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     fireEvent.click(await screen.findByRole("button", { name: "ブラウザ音声テスト" }))
+    fireEvent.click(screen.getByRole("button", { name: "この物語をはじめる" }))
     fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
     expect(screen.getByText("ブラウザ標準TTS")).toBeInTheDocument()
     const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
