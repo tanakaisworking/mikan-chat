@@ -2,13 +2,71 @@
 
 [日本語](#mikan-chatについて) / [English](#english)
 
+<p align="center">
+  <img src="docs/images/readme/mikan-chat-story-conversation-light.webp" width="1920" alt="mikan chatで、雪村しずくとの物語導入から会話へ進むチャット画面">
+</p>
+
+<p align="center">
+  <strong>未完成の物語を、AIチャットで楽しもう。</strong><br>
+  シナリオを選び、その世界の一人としてキャラクターと会話するオープンソースのAIチャットアプリです。<br><br>
+  <a href="https://mikanchat.mikan-chat.workers.dev/"><strong>ブラウザで試す</strong></a> ・
+  <a href="docs/chat-pack-v0.1.md">Chat Pack仕様を読む</a>
+</p>
+
 ## mikan chatについて
 
 **mikan chat**は、ライトユーザーが手軽に楽しめる、ちょうどいいAIキャラクターチャットシミュレーターを目指す無料・オープンソースのアプリです。
 
 WindowsとmacOSで動き、シチュエーション中心のチャットパックを選ぶか外部からインポートするだけで、1対1・多人数の物語をテキストや音声で始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
 
-> 現在はアーリーアクセス版です。AI接続と音声入力の実装を進めていますが、配布用ビルドと音声読み上げはまだありません。
+> 現在はアーリーアクセス版です。Web版を公開していますが、Electronの配布用ビルドと音声読み上げはまだありません。
+
+## 画面から見るmikan chat
+
+### 好みに合わせて物語を探す
+
+性別、生年、好きなジャンルをもとにシナリオを並べます。対象層や年齢だけで作品を決めつけず、BL、百合、男女恋愛、友情、舞台、キャラクター属性など、選んだタグとの一致を優先します。ライトモードとダークモードを切り替えられます。
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-recommended-scenarios-light.webp" alt="女性キャラクターのおすすめシナリオを並べたライトモードのホーム画面"></td>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-scenarios-men-dark.webp" alt="男性キャラクターのシナリオを並べたダークモードのホーム画面"></td>
+  </tr>
+  <tr>
+    <td align="center">プロフィールに合わせたおすすめ</td>
+    <td align="center">ダークモードと多様なシナリオ</td>
+  </tr>
+</table>
+
+### あらすじを読んで、物語へ入る
+
+シナリオ紹介で状況、自分の役、登場人物を確認してから会話を始めます。チャットでは導入が上から順に現れ、その続きからAIとのやり取りへつながります。
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-scenario-detail-dark.webp" alt="ダークモードで表示した、狐の常連・琥珀のシナリオ紹介画面"></td>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-story-conversation-dark.webp" alt="ダークモードで琥珀と会話するチャット画面"></td>
+  </tr>
+  <tr>
+    <td align="center">物語の状況と役を確認</td>
+    <td align="center">導入から会話へ</td>
+  </tr>
+</table>
+
+### 自分に合わせる。Chat Packを持ち運ぶ
+
+文字サイズ、テーマ、プロフィール、AI接続を設定できます。物語は`.mikanchat`形式のChat Packとして読み込み、検証してからライブラリへ追加できます。
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-profile-settings-light.webp" alt="文字サイズ、テーマ、性別、生年、好きなジャンルを変更できる設定画面"></td>
+    <td width="50%"><img src="docs/images/readme/mikan-chat-pack-import.webp" alt=".mikanchatファイルを追加するチャットパック読み込み画面"></td>
+  </tr>
+  <tr>
+    <td align="center">表示とプロフィールの設定</td>
+    <td align="center">Chat Packのインポート</td>
+  </tr>
+</table>
 
 ## Web Early Access
 
@@ -76,17 +134,17 @@ Web版はCloudflare Workers Static Assetsで配信します。ローカル確認
 
 Choose or import a community-created Chat Pack, then enter a one-on-one or multi-character scenario by text or voice while keeping conversations and AI inference on your own computer by default.
 
-> The UI prototype is now implemented. Distribution builds and real AI/voice integrations are not available yet.
+> mikan chat is in early access. The web version is available now; Electron distribution builds and read-aloud are not available yet.
 
 ### Web Early Access
 
 [Try mikan chat in your browser](https://mikanchat.mikan-chat.workers.dev/).
 
-This is currently a UI preview. AI connections, voice chat, and character imports are simulated. Do not enter real API keys or personal information.
+The web version connects directly from your browser to Gemini through a Google AI Studio API key, or to another OpenAI-compatible endpoint. API keys stay in browser storage and are not stored on the mikan chat server. Voice input uses the browser's speech recognition API.
 
 ### Development preview
 
-With Node.js 20 or later installed:
+With Node.js 22.13 or later installed:
 
 ```bash
 npm install
