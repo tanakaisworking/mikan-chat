@@ -1,4 +1,4 @@
-# mikan chat
+# mikan chat - オープンソースAIチャット
 
 [日本語](#mikan-chatについて) / [English](#english)
 
