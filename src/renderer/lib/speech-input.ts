@@ -14,12 +14,12 @@ export type SpeechInput = {
 }
 
 export function createSpeechInput(callbacks: SpeechInputCallbacks): SpeechInput {
-  return window.mikan ? createHayamimiInput(callbacks) : createBrowserSpeechInput(callbacks)
+  return isDesktopApp() ? createHayamimiInput(callbacks) : createBrowserSpeechInput(callbacks)
 }
 
 export function isSpeechInputSupported() {
-  return window.mikan
-    ? Boolean(window.mikan.speech)
+  return isDesktopApp()
+    ? Boolean(getDesktopBridge()?.speech)
     : Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition)
 }
 
@@ -94,7 +94,7 @@ function createBrowserSpeechInput(callbacks: SpeechInputCallbacks): SpeechInput 
 }
 
 function createHayamimiInput(callbacks: SpeechInputCallbacks): SpeechInput {
-  const bridge = window.mikan?.speech
+  const bridge = getDesktopBridge()?.speech
   if (!bridge) {
     return {
       start: async () => {
@@ -224,3 +224,4 @@ function isSpeechEvent(value: unknown): value is { type: "partial" | "final" | "
   if (value.type === "error" || value.type === "closed") return !("message" in value) || typeof value.message === "string"
   return (value.type === "partial" || value.type === "final") && "text" in value && typeof value.text === "string"
 }
+import { getDesktopBridge, isDesktopApp } from "@/lib/platform"

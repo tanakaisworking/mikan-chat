@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "deep-sea-radio.png",
+      "original_bytes": 2710542,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "sunken-observatory-lost-voice-radio",
+      "alt": "海底観測ドームを前に、十年前の相棒の無線を受信する女性海洋考古学者",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/sunken-observatory-lost-voice-radio-480w.webp",
+          "bytes": 89628,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/sunken-observatory-lost-voice-radio-480w.jpg",
+          "bytes": 101254,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/sunken-observatory-lost-voice-radio-941w.webp",
+          "bytes": 268450,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/sunken-observatory-lost-voice-radio-941w.jpg",
+          "bytes": 339306,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "former-husband-key.png",
+      "original_bytes": 2541547,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "divorced-couple-last-apartment-key",
+      "alt": "引っ越し箱が並ぶ部屋で、元配偶者へ最後の鍵を差し出す男性",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/divorced-couple-last-apartment-key-480w.webp",
+          "bytes": 62256,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/divorced-couple-last-apartment-key-480w.jpg",
+          "bytes": 79026,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/divorced-couple-last-apartment-key-941w.webp",
+          "bytes": 201248,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/divorced-couple-last-apartment-key-941w.jpg",
+          "bytes": 282436,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "offline-streamer.png",
+      "original_bytes": 2669678,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "stream-off-creator-real-name",
+      "alt": "消灯した配信スタジオで、本名で話したいとカードを伏せる女性配信者",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/stream-off-creator-real-name-480w.webp",
+          "bytes": 70942,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/stream-off-creator-real-name-480w.jpg",
+          "bytes": 86910,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/stream-off-creator-real-name-941w.webp",
+          "bytes": 222860,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/stream-off-creator-real-name-941w.jpg",
+          "bytes": 282105,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "rival-lawyer.png",
+      "original_bytes": 3214158,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "opposing-lawyer-witness-alliance",
+      "alt": "法廷資料室で、昨日までの相手方弁護士が封印資料を差し出す場面",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/opposing-lawyer-witness-alliance-480w.webp",
+          "bytes": 139968,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/opposing-lawyer-witness-alliance-480w.jpg",
+          "bytes": 147302,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/opposing-lawyer-witness-alliance-941w.webp",
+          "bytes": 438744,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/opposing-lawyer-witness-alliance-941w.jpg",
+          "bytes": 494938,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

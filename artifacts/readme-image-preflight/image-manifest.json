@@ -1,0 +1,522 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "chat-pack-import.png",
+      "original_bytes": 439609,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-pack-import",
+      "alt": ".mikanchatファイルを追加するチャットパック読み込み画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-pack-import-960w.webp",
+          "bytes": 18218,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-pack-import-960w.png",
+          "bytes": 107589,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-pack-import-1600w.webp",
+          "bytes": 38458,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-pack-import-1600w.png",
+          "bytes": 216009,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-pack-import-1920w.webp",
+          "bytes": 48592,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-pack-import-1920w.png",
+          "bytes": 278125,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEでChat Packの持ち運びやすさを説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "home-men-dark.png",
+      "original_bytes": 6320959,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-scenarios-men-dark",
+      "alt": "男性キャラクターのシナリオを並べたダークモードのホーム画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-scenarios-men-dark-960w.webp",
+          "bytes": 95348,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-scenarios-men-dark-960w.png",
+          "bytes": 800873,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-scenarios-men-dark-1600w.webp",
+          "bytes": 203322,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-scenarios-men-dark-1600w.png",
+          "bytes": 1987985,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-scenarios-men-dark-1920w.webp",
+          "bytes": 269732,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-scenarios-men-dark-1920w.png",
+          "bytes": 2762297,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEで幅広いシナリオとダークモードを説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "home-women-light.png",
+      "original_bytes": 5479521,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-recommended-scenarios-light",
+      "alt": "女性キャラクターのおすすめシナリオを並べたライトモードのホーム画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-recommended-scenarios-light-960w.webp",
+          "bytes": 93244,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-recommended-scenarios-light-960w.png",
+          "bytes": 760591,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-recommended-scenarios-light-1600w.webp",
+          "bytes": 193424,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-recommended-scenarios-light-1600w.png",
+          "bytes": 1824993,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-recommended-scenarios-light-1920w.webp",
+          "bytes": 248328,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-recommended-scenarios-light-1920w.png",
+          "bytes": 2499440,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEでプロフィールに合わせたおすすめを説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "scenario-detail-dark.png",
+      "original_bytes": 2139108,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-scenario-detail-dark",
+      "alt": "ダークモードで表示した、狐の常連・琥珀のシナリオ紹介画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-scenario-detail-dark-960w.webp",
+          "bytes": 66880,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-scenario-detail-dark-960w.png",
+          "bytes": 409891,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-scenario-detail-dark-1600w.webp",
+          "bytes": 150488,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-scenario-detail-dark-1600w.png",
+          "bytes": 956228,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-scenario-detail-dark-1920w.webp",
+          "bytes": 195776,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-scenario-detail-dark-1920w.png",
+          "bytes": 1285491,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEでシナリオ詳細とダークモードを説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "settings-light.png",
+      "original_bytes": 355782,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-profile-settings-light",
+      "alt": "文字サイズ、テーマ、性別、生年、好きなジャンルを変更できる設定画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-profile-settings-light-960w.webp",
+          "bytes": 20066,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-profile-settings-light-960w.png",
+          "bytes": 102291,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-profile-settings-light-1600w.webp",
+          "bytes": 42226,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-profile-settings-light-1600w.png",
+          "bytes": 205345,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-profile-settings-light-1920w.webp",
+          "bytes": 53008,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-profile-settings-light-1920w.png",
+          "bytes": 258618,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEで表示とおすすめ設定を説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "story-chat-dark.png",
+      "original_bytes": 2134504,
+      "mode": "seo",
+      "role": "screenshot",
+      "slug": "mikan-chat-story-conversation-dark",
+      "alt": "ダークモードで琥珀と会話するチャット画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-story-conversation-dark-960w.webp",
+          "bytes": 68720,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-story-conversation-dark-960w.png",
+          "bytes": 420892,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-story-conversation-dark-1600w.webp",
+          "bytes": 152714,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-story-conversation-dark-1600w.png",
+          "bytes": 975746,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-story-conversation-dark-1920w.webp",
+          "bytes": 201078,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-story-conversation-dark-1920w.png",
+          "bytes": 1307910,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "READMEで物語導入からチャットへ進む流れを説明する画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "Check small responsive variants for text/readability before publishing."
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    },
+    {
+      "original_file": "story-chat-light.png",
+      "original_bytes": 2195908,
+      "mode": "seo",
+      "role": "hero",
+      "slug": "mikan-chat-story-conversation-light",
+      "alt": "mikan chatで、雪村しずくとの物語導入から会話へ進むチャット画面",
+      "original_width": 2940,
+      "original_height": 1984,
+      "has_alpha": true,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-story-conversation-light-960w.webp",
+          "bytes": 51018,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 960,
+          "height": 648,
+          "file": "images/mikan-chat-story-conversation-light-960w.png",
+          "bytes": 398214,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-story-conversation-light-1600w.webp",
+          "bytes": 105760,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1600,
+          "height": 1080,
+          "file": "images/mikan-chat-story-conversation-light-1600w.png",
+          "bytes": 877905,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-story-conversation-light-1920w.webp",
+          "bytes": 135852,
+          "purpose": "responsive"
+        },
+        {
+          "format": "png",
+          "width": 1920,
+          "height": 1296,
+          "file": "images/mikan-chat-story-conversation-light-1920w.png",
+          "bytes": 1156188,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "GitHub READMEの最初に表示するヒーロー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Treated as a likely first-view/LCP image; lazy loading is not recommended.",
+        "Detected transparency; used PNG fallback instead of JPEG fallback."
+      ]
+    }
+  ]
+}

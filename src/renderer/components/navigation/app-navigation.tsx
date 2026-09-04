@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { IconButton } from "@/components/ui/icon-button"
 import { cn } from "@/lib/utils"
 
 type Page = "home" | "chat"
@@ -24,46 +23,40 @@ type NavigationProps = {
 
 export function DesktopSidebar({ activePage, onPageChange, onAddPack, onOpenDocs, onOpenSettings }: NavigationProps) {
   return (
-    <aside className="flex h-full flex-col border-r border-border/70 bg-surface-soft/65 p-6 max-md:hidden">
-      <Brand className="mt-4" />
+    <aside className="flex h-full flex-col border-r border-border/70 bg-surface-soft/40 p-4 max-md:hidden">
+      <Brand tagline="未完成の物語を楽しもう" className="px-2 py-3" />
 
-      <nav aria-label="PCメインナビゲーション" className="mt-10 grid gap-2">
+      <nav aria-label="PCメインナビゲーション" className="mt-6 grid gap-1">
         <SidebarLink active={activePage === "home"} label="ホーム" icon={<House />} onClick={() => onPageChange("home")} />
         <SidebarLink active={activePage === "chat"} label="チャット" icon={<MessagesSquare />} onClick={() => onPageChange("chat")} />
       </nav>
 
-      <Button className="mt-7 h-13 w-full justify-start gap-2 px-6" onClick={onAddPack}>
+      <Button variant="outline" className="mt-4 w-full justify-start px-3 font-medium shadow-none" onClick={onAddPack}>
         <Plus />
         シナリオを追加
       </Button>
 
-      <div className="mt-auto grid gap-1 border-t border-border/70 pt-5">
-        <IconButton label="技術ドキュメント" className="h-13 w-full justify-start gap-2 rounded-md px-7" onClick={onOpenDocs}>
-          <BookOpenText />
-          <span>技術ドキュメント</span>
-        </IconButton>
-        <IconButton label="設定" className="h-13 w-full justify-start gap-2 rounded-md px-7" onClick={onOpenSettings}>
-          <Settings />
-          <span>設定</span>
-        </IconButton>
+      <div className="mt-auto grid gap-1 border-t border-border/70 pt-4">
+        <SidebarLink label="技術ドキュメント" icon={<BookOpenText />} onClick={onOpenDocs} />
+        <SidebarLink label="設定" icon={<Settings />} onClick={onOpenSettings} />
       </div>
     </aside>
   )
 }
 
-function SidebarLink({ active, label, icon, onClick }: { active: boolean; label: string; icon: React.ReactNode; onClick: () => void }) {
+function SidebarLink({ active = false, label, icon, onClick }: { active?: boolean; label: string; icon: React.ReactNode; onClick: () => void }) {
   return (
     <Button
       variant="ghost"
       aria-current={active ? "page" : undefined}
       className={cn(
-        "h-13 justify-start gap-3 px-6 text-base text-muted-foreground",
-        active && "bg-surface text-primary shadow-soft hover:bg-surface",
+        "w-full justify-start px-3 font-medium text-muted-foreground shadow-none",
+        active && "text-primary hover:bg-surface",
       )}
       onClick={onClick}
     >
       {icon}
-      {label}
+      <span className={cn(active && "font-semibold")}>{label}</span>
     </Button>
   )
 }
@@ -83,7 +76,7 @@ export function MobileHeader({ onOpenDocs, onOpenSettings }: Pick<NavigationProp
 
   return (
     <header className="sticky top-0 z-30 hidden h-16 items-center border-b border-border/80 bg-background/94 px-3 backdrop-blur-xl max-md:flex">
-      <Brand className="gap-2 [&_img]:size-10 [&_span]:text-xl" />
+      <Brand tagline="未完成の物語を楽しもう" className="gap-2 [&_img]:size-10 [&_[data-brand-title]]:text-xl" />
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
           render={<Button variant="ghost" size="icon" className="ml-auto size-11 rounded-full" aria-label="メニューを開く" />}

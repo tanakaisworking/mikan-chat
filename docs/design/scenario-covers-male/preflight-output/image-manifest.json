@@ -1,0 +1,228 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "estate-organizer-ritsu.png",
+      "original_bytes": 2072010,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mikan-chat-estate-organizer-ritsu",
+      "alt": "祖母の家で古い茶碗を丁寧に持つ遺品整理士の遠野律",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-estate-organizer-ritsu-480w.webp",
+          "bytes": 49324,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-estate-organizer-ritsu-480w.jpg",
+          "bytes": 73641,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-estate-organizer-ritsu-941w.webp",
+          "bytes": 117406,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-estate-organizer-ritsu-941w.jpg",
+          "bytes": 209461,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "flower-shop-yu.png",
+      "original_bytes": 2107593,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mikan-chat-flower-shop-yu",
+      "alt": "閉店前の花屋で花束を抱える伊織悠",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-flower-shop-yu-480w.webp",
+          "bytes": 70432,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-flower-shop-yu-480w.jpg",
+          "bytes": 88474,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-flower-shop-yu-941w.webp",
+          "bytes": 174784,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-flower-shop-yu-941w.jpg",
+          "bytes": 251774,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "late-night-radio-minato.png",
+      "original_bytes": 2164687,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mikan-chat-late-night-radio-minato",
+      "alt": "深夜のラジオスタジオで放送卓から振り返る鵜飼湊",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-late-night-radio-minato-480w.webp",
+          "bytes": 49506,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-late-night-radio-minato-480w.jpg",
+          "bytes": 67753,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-late-night-radio-minato-941w.webp",
+          "bytes": 132262,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-late-night-radio-minato-941w.jpg",
+          "bytes": 208935,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "storm-observatory-satoru-ren.png",
+      "original_bytes": 1976692,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mikan-chat-storm-observatory-satoru-ren",
+      "alt": "嵐の山頂観測所にいる榛名悟と千秋廉",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-storm-observatory-satoru-ren-480w.webp",
+          "bytes": 45984,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-storm-observatory-satoru-ren-480w.jpg",
+          "bytes": 66748,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-storm-observatory-satoru-ren-941w.webp",
+          "bytes": 124764,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-storm-observatory-satoru-ren-941w.jpg",
+          "bytes": 205157,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "スマートフォン表示でも二人の表情が判別できるか確認する"
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

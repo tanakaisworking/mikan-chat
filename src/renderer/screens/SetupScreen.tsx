@@ -1,87 +1,186 @@
-import { ChevronRight, Cloud, MonitorCog } from "lucide-react"
+import { Bot, Check, Monitor, Moon, Sun, Type, UserRound, Volume2 } from "lucide-react"
 
-import { assets } from "@/data/characters"
-import { Brand } from "@/components/ui/brand"
+import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
+import { AppHeader } from "@/components/ui/app-header"
 import { Button } from "@/components/ui/button"
-import { ChoiceCard } from "@/components/ui/choice-card"
-import type { ConnectionType } from "@/components/settings/ai-connection-dialog"
+import { GenrePicker } from "@/components/ui/genre-picker"
+import { cn } from "@/lib/utils"
+import type { TtsSettings } from "@/lib/tts"
+import { isDesktopApp } from "@/lib/platform"
+import type { OnboardingGender, OnboardingProfile } from "@/screens/OnboardingScreen"
 
-type SetupScreenProps = {
-  isDesktop: boolean
-  onContinue: () => void
-  onOpenConnection: (connection: ConnectionType) => void
+export type AppearanceSettings = {
+  textSize: "small" | "medium" | "large"
+  theme: "light" | "dark"
 }
 
-export function SetupScreen({ isDesktop, onContinue, onOpenConnection }: SetupScreenProps) {
+type SetupScreenProps = {
+  connection: ConnectionSettings
+  ttsSettings: TtsSettings
+  profile: OnboardingProfile
+  genres: string[]
+  appearance: AppearanceSettings
+  onBack: () => void
+  onOpenConnection: () => void
+  onOpenVoice: () => void
+  onProfileChange: (profile: OnboardingProfile) => void
+  onAppearanceChange: (appearance: AppearanceSettings) => void
+}
+
+const CURRENT_YEAR = new Date().getFullYear()
+const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1899 }, (_, index) => CURRENT_YEAR - index)
+const GENDERS: Array<{ value: OnboardingGender; label: string }> = [
+  { value: "woman", label: "女性" },
+  { value: "man", label: "男性" },
+  { value: "nonbinary", label: "その他" },
+  { value: "prefer-not-to-say", label: "回答しない" },
+]
+
+export function SetupScreen({ connection, ttsSettings, profile, genres, appearance, onBack, onOpenConnection, onOpenVoice, onProfileChange, onAppearanceChange }: SetupScreenProps) {
+  const availableGenres = [...new Set([...genres, ...profile.favoriteGenres])]
+
   return (
-    <main className="grid h-screen grid-cols-[46.5%_53.5%] overflow-hidden bg-background max-md:block max-md:h-dvh max-md:overflow-y-auto" data-testid="setup-screen">
-      <section className="relative overflow-hidden border-r border-border/70 bg-surface-soft max-md:h-[42dvh] max-md:min-h-[300px] max-md:border-r-0 max-md:border-b">
-        <img
-          src={assets.aoiWelcome}
-          alt="初期設定を案内する葵"
-          className="absolute inset-0 size-full object-cover object-[50%_36%]"
-        />
-        <div className="absolute inset-x-0 top-0 h-36 bg-linear-to-b from-background/90 to-transparent" />
-        <Brand className="absolute top-8 left-9 max-md:top-4 max-md:left-4 max-md:gap-2 max-md:[&_img]:size-10 max-md:[&_span]:text-xl" />
-        <div className="absolute right-9 bottom-9 left-9 min-h-56 rounded-lg border border-white/80 bg-background/92 px-10 py-9 shadow-overlay max-[1100px]:min-h-0 max-[1100px]:px-7 max-[1100px]:py-6 max-md:right-4 max-md:bottom-4 max-md:left-4 max-md:px-5 max-md:py-4">
-          <p className="text-3xl leading-relaxed font-semibold text-primary-bright max-[1100px]:text-2xl max-md:text-xl">
-            AIとつないで、
-            <br />
-            会話をはじめよう
-          </p>
-          <p className="mt-2 text-base text-foreground max-md:text-sm">難しい設定は必要ありません。</p>
+    <main className="grid h-screen grid-rows-[88px_minmax(0,1fr)] overflow-hidden bg-background supports-[height:100dvh]:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="settings-screen">
+      <AppHeader title="設定" onBack={onBack} />
+
+      <div className="overflow-y-auto px-6 py-10 max-md:px-4 max-md:py-6">
+        <div className="mx-auto grid w-full max-w-3xl gap-8 pb-10 max-md:gap-5">
+          <header>
+            <h2 className="text-3xl font-semibold tracking-[0.01em] max-md:text-2xl">アプリの設定</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">表示やプロフィール、会話AI、読み上げ音声を変更できます。</p>
+          </header>
+
+          <section className="rounded-lg border border-border bg-surface p-7 shadow-soft max-md:p-5" aria-labelledby="appearance-settings">
+            <div className="flex items-start gap-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-accent text-primary" aria-hidden="true"><Type /></span>
+              <div>
+                <h2 id="appearance-settings" className="text-xl font-semibold">表示</h2>
+                <p className="mt-1 text-sm text-muted-foreground">読みやすい文字サイズと画面の明るさを選べます。</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6">
+              <fieldset>
+                <legend className="text-sm font-semibold">文字サイズ</legend>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {([ ["small", "小さめ"], ["medium", "標準"], ["large", "大きめ"] ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={appearance.textSize === value}
+                      className={cn("flex min-h-12 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm transition-colors hover:border-primary/50", appearance.textSize === value && "border-primary font-semibold text-primary")}
+                      onClick={() => onAppearanceChange({ ...appearance, textSize: value })}
+                    >
+                      {appearance.textSize === value ? <Check className="size-4" aria-hidden="true" /> : null}
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="text-sm font-semibold">テーマ</legend>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {([ ["light", "ライト", <Sun key="sun" />], ["dark", "ダーク", <Moon key="moon" />] ] as const).map(([value, label, icon]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={appearance.theme === value}
+                      className={cn("flex min-h-12 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm transition-colors hover:border-primary/50 [&_svg]:size-5", appearance.theme === value && "border-primary font-semibold text-primary")}
+                      onClick={() => onAppearanceChange({ ...appearance, theme: value })}
+                    >
+                      {icon}{label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-surface p-7 shadow-soft max-md:p-5" aria-labelledby="profile-settings">
+            <div className="flex items-start gap-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-accent text-primary" aria-hidden="true"><UserRound /></span>
+              <div>
+                <h2 id="profile-settings" className="text-xl font-semibold">ユーザー情報</h2>
+                <p className="mt-1 text-sm text-muted-foreground">おすすめする物語の参考にします。</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+              <label className="grid gap-2 text-sm font-semibold">
+                性別
+                <select className="h-12 rounded-md border border-input bg-surface px-4 font-normal outline-none focus:border-primary focus:ring-2 focus:ring-ring/20" value={profile.gender} onChange={(event) => onProfileChange({ ...profile, gender: event.target.value as OnboardingGender })}>
+                  {GENDERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm font-semibold">
+                生年
+                <select className="h-12 rounded-md border border-input bg-surface px-4 font-normal outline-none focus:border-primary focus:ring-2 focus:ring-ring/20" value={profile.birthYear} onChange={(event) => onProfileChange({ ...profile, birthYear: Number(event.target.value) })}>
+                  {BIRTH_YEARS.map((year) => <option key={year} value={year}>{year}年</option>)}
+                </select>
+              </label>
+              <fieldset className="sm:col-span-2">
+                <legend className="text-sm font-semibold">好きなジャンル</legend>
+                <p className="mt-1 text-xs font-normal text-muted-foreground">複数選べます。1つ以上選んでください。</p>
+                <div className="mt-3">
+                  <GenrePicker
+                    genres={availableGenres}
+                    value={profile.favoriteGenres}
+                    onChange={(favoriteGenres) => {
+                      if (favoriteGenres.length > 0) onProfileChange({ ...profile, favoriteGenres })
+                    }}
+                  />
+                </div>
+              </fieldset>
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">この端末にのみ保存されます。</p>
+          </section>
+
+          <section className="rounded-lg border border-border bg-surface p-7 shadow-soft max-md:p-5" aria-labelledby="ai-settings">
+            <div className="flex items-start gap-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-accent text-primary" aria-hidden="true"><Bot /></span>
+              <div>
+                <h2 id="ai-settings" className="text-xl font-semibold">AIの接続</h2>
+                <p className="mt-1 text-sm text-muted-foreground">キャラクターとの会話に使うAIを設定します。</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-4 rounded-md border border-border bg-background p-4 max-sm:flex-col max-sm:items-start">
+              <div className="flex items-center gap-3">
+                <span className="text-primary" aria-hidden="true">{connection.type === "local" ? <Monitor /> : <Bot />}</span>
+                <div>
+                  <p className="font-semibold">{connection.type === "local" ? "このPCのAI" : "オンラインAI"}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{connection.type === "online" && !connection.apiKey ? "APIキーは未設定です" : connection.model || "モデルを接続時に確認します"}</p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={onOpenConnection}>接続設定</Button>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-surface p-7 shadow-soft max-md:p-5" aria-labelledby="tts-settings">
+            <div className="flex items-start gap-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-accent text-primary" aria-hidden="true"><Volume2 /></span>
+              <div>
+                <h2 id="tts-settings" className="text-xl font-semibold">読み上げの音声</h2>
+                <p className="mt-1 text-sm text-muted-foreground">キャラクターの返答を読む音声を設定します。</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-4 rounded-md border border-border bg-background p-4 max-sm:flex-col max-sm:items-start">
+              <div className="flex items-center gap-3">
+                <span className="text-primary" aria-hidden="true"><Volume2 /></span>
+                <div>
+                  <p className="font-semibold">{isDesktopApp() ? "Irodori TTS" : ttsSettings.provider === "browser" ? "ブラウザ標準TTS" : ttsSettings.provider === "kokoro" ? "Kokoro" : ttsSettings.provider === "elevenlabs" ? "ElevenLabs" : "外部TTS"}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {isDesktopApp() ? "接続機能は準備中です" : ttsSettings.provider === "browser" ? "APIキー不要" : ttsSettings.provider === "kokoro" ? "無料・端末内で生成" : ttsSettings.voice ? `${ttsSettings.model} / ${ttsSettings.voice}` : ttsSettings.provider === "elevenlabs" ? "Voice IDは未設定です" : "音声は未設定です"}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={onOpenVoice}>音声設定</Button>
+            </div>
+          </section>
         </div>
-      </section>
-
-      <section className="flex min-w-0 flex-col px-[9%] py-10 max-md:px-5 max-md:py-6">
-        <ol className="ml-auto flex items-center gap-5 text-sm text-muted-foreground max-md:gap-2" aria-label="初期設定の進み具合">
-          {[1, 2, 3].map((step) => (
-            <li key={step} className="flex items-center gap-5">
-              <span
-                className={
-                  step === 1
-                    ? "grid size-10 place-items-center rounded-full border-2 border-primary-bright bg-surface text-base font-semibold text-primary-bright"
-                    : "grid size-10 place-items-center rounded-full border border-border bg-surface text-base"
-                }
-                aria-current={step === 1 ? "step" : undefined}
-              >
-                {step}
-              </span>
-              {step < 3 ? <span className="h-px w-20 bg-border max-md:w-8" aria-hidden="true" /> : null}
-            </li>
-          ))}
-        </ol>
-
-        <div className="mx-auto flex w-full max-w-[720px] flex-1 flex-col justify-center">
-          <div className="mb-12 flex items-center gap-4 max-[1100px]:mb-8 max-md:mt-7 max-md:mb-6">
-            <Brand compact />
-            <h1 className="text-[40px] leading-tight font-semibold tracking-[0.015em] max-[1100px]:text-3xl max-md:text-3xl">はじめかた</h1>
-          </div>
-
-          <div className="grid gap-5">
-            {isDesktop ? <ChoiceCard
-              size="setup"
-              icon={<MonitorCog />}
-              title="このPCのAIを使う"
-              description="インストール済みのAIを自動で探します"
-              trailing={<ChevronRight className="size-8 text-primary-bright transition-transform group-hover:translate-x-0.5" aria-hidden="true" />}
-              onClick={() => onOpenConnection("local")}
-            /> : null}
-            <ChoiceCard
-              size="setup"
-              icon={<Cloud />}
-              title="AIサービスに接続する"
-              description="Google AI StudioのGemini APIキーで接続します"
-              trailing={<ChevronRight className="size-8 text-primary-bright transition-transform group-hover:translate-x-0.5" aria-hidden="true" />}
-              onClick={() => onOpenConnection("online")}
-            />
-          </div>
-
-          <Button variant="link" className="mx-auto mt-8 text-muted-foreground" onClick={onContinue}>
-            あとで設定する
-          </Button>
-        </div>
-      </section>
+      </div>
     </main>
   )
 }

@@ -56,6 +56,19 @@ export async function streamCharacterReply({
 
 export async function testAIConnection(connection: ConnectionSettings, signal?: AbortSignal) {
   assertConnection(connection)
+  const availableModelIds = await listAIModels(connection, signal)
+  const modelCandidates = getModelCandidates(connection)
+  const availableModels = new Set(availableModelIds)
+  const googleAliases = isGoogleAIStudioEndpoint(connection.endpoint)
+    && modelCandidates.slice(0, 2).every((candidate) => candidate === GOOGLE_AI_STUDIO_MODEL || candidate === GOOGLE_AI_STUDIO_FALLBACK_MODEL)
+  if (!googleAliases && !modelCandidates.some((candidate) => availableModels.has(candidate))) {
+    throw new Error(`モデル「${modelCandidates.join("」または「")}」が接続先に見つかりません。`)
+  }
+}
+
+export async function listAIModels(connection: Pick<ConnectionSettings, "type" | "endpoint" | "apiKey">, signal?: AbortSignal) {
+  const endpointError = getEndpointError(connection)
+  if (endpointError) throw new Error(endpointError)
   const apiKey = normalizeApiKey(connection.apiKey)
   const response = await fetch(`${normalizeBaseUrl(connection.endpoint)}/models`, {
     headers: apiKey
@@ -66,13 +79,7 @@ export async function testAIConnection(connection: ConnectionSettings, signal?: 
   if (!response.ok) throw new Error(`接続先からエラーが返りました（${response.status}）`)
   const result = modelListSchema.safeParse(await response.json())
   if (!result.success) throw new Error("接続先のモデル一覧を確認できませんでした。")
-  const modelCandidates = getModelCandidates(connection)
-  const availableModels = new Set(result.data.data.map((model) => model.id.replace(/^models\//, "")))
-  const googleAliases = isGoogleAIStudioEndpoint(connection.endpoint)
-    && modelCandidates.slice(0, 2).every((candidate) => candidate === GOOGLE_AI_STUDIO_MODEL || candidate === GOOGLE_AI_STUDIO_FALLBACK_MODEL)
-  if (!googleAliases && !modelCandidates.some((candidate) => availableModels.has(candidate))) {
-    throw new Error(`モデル「${modelCandidates.join("」または「")}」が接続先に見つかりません。`)
-  }
+  return result.data.data.map((model) => model.id.replace(/^models\//, ""))
 }
 
 async function streamModelReply({
@@ -198,7 +205,7 @@ function normalizeBaseUrl(endpoint: string) {
   return endpoint.trim().replace(/\/+$/, "")
 }
 
-function normalizeApiKey(apiKey: string) {
+export function normalizeApiKey(apiKey: string) {
   const compact = apiKey.replace(/[\s\u200b-\u200d\ufeff]+/gu, "")
   return /^(['"]).*\1$/.test(compact) ? compact.slice(1, -1) : compact
 }

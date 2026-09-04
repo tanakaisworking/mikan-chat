@@ -1,0 +1,30 @@
+{
+  "future-post-office.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "future-post-office-do-not-open-letter",
+    "alt": "雨の未来郵便局で、十年後から届いた封書を差し出す男性局員",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "ghost-appraiser.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "ghost-apartment-full-occupancy-appraisal",
+    "alt": "空き家の各室にいる幽霊を確認する女性不動産鑑定士",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "ai-last-word.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "last-ai-untranslatable-final-word",
+    "alt": "旧型端末の幾何学記号を前に最後の訳語を考える老翻訳者",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "moon-convenience.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "moon-convenience-seven-minute-delay",
+    "alt": "月面コンビニで地球を背に温かい商品を取り置く女性店員",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  }
+}

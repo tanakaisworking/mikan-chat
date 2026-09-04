@@ -4,18 +4,23 @@ import koharuStage from "@/assets/characters/optimized-output/images/koharu-stag
 import miaStage from "@/assets/characters/optimized-output/images/mia-stage-optimized.webp"
 import rinStage from "@/assets/characters/optimized-output/images/rin-stage-optimized.webp"
 import shizukuStage from "@/assets/characters/optimized-output/images/shizuku-stage-optimized.webp"
+import type { ScenarioRecommendation } from "@/lib/scenario-recommendation"
 
 export type Character = {
   id: string
+  publicId?: string
+  slug?: string
   name: string
   packTitle?: string
   tags?: string[]
+  recommendation?: ScenarioRecommendation
   conversationLabel?: string
   description: string
   lastMessage: string
   lastActive: string
   image?: string
   stageImage?: string
+  imported?: boolean
   pack?: Record<string, unknown>
   opening?: Array<{
     role: "narration" | "character" | "user"
@@ -28,10 +33,13 @@ export type Character = {
 export const characters: Character[] = [
   {
     id: "aoi",
+    publicId: "5e17395e-79b0-4b46-8e55-4ddac9a8e787",
+    slug: "aoi",
     name: "葵",
     packTitle: "雨の夜、幼なじみの部屋で",
     description: "終電を逃した夜。久しぶりに会った幼なじみと、雨音を聞きながら二人きりになる。",
     tags: ["日常", "幼なじみ", "雨の夜"],
+    recommendation: { targetAudiences: ["all"], recommendedAge: { min: 20, max: 38 } },
     conversationLabel: "1人と会話",
     lastMessage: "おかえり。今日は少し遅かったね。",
     lastActive: "12分前",
@@ -39,10 +47,13 @@ export const characters: Character[] = [
   },
   {
     id: "mia",
+    publicId: "b1aa0948-3062-4f41-90c5-7fa451dec95f",
+    slug: "mia",
     name: "ミア",
     packTitle: "閉店後の酒場で、秘密の依頼を",
     description: "異世界の酒場で最後の客になったあなたへ、エルフの店主が人には言えない依頼を持ちかける。",
     tags: ["異世界", "ファンタジー", "冒険"],
+    recommendation: { targetAudiences: ["all"], recommendedAge: { min: 24, max: 42 } },
     conversationLabel: "1人と会話",
     lastMessage: "また酒場に来てくれたのね。",
     lastActive: "昨日",
@@ -50,10 +61,13 @@ export const characters: Character[] = [
   },
   {
     id: "rin",
+    publicId: "69ad7d2d-c129-4cfe-a4b2-692a17fdc9bf",
+    slug: "rin",
     name: "凛",
     packTitle: "放課後の図書室に閉じ込められて",
     description: "突然の停電で扉が開かない。静かな先輩と二人、迎えを待つあいだに距離が近づいていく。",
     tags: ["学園", "先輩", "青春"],
+    recommendation: { targetAudiences: ["all"], recommendedAge: { min: 24, max: 42 } },
     conversationLabel: "1人と会話",
     lastMessage: "今日はどんな一日だった？",
     lastActive: "3日前",
@@ -61,10 +75,13 @@ export const characters: Character[] = [
   },
   {
     id: "koharu",
+    publicId: "cc1374b1-3147-4790-9e51-a0a3b4d01019",
+    slug: "koharu",
     name: "こはる",
     packTitle: "絵のモデルを頼まれた午後",
     description: "友人のアトリエを訪ねると、次の作品のモデルになってほしいと突然お願いされる。",
     tags: ["日常", "友人", "創作"],
+    recommendation: { targetAudiences: ["all"], recommendedAge: { min: 20, max: 38 } },
     conversationLabel: "1人と会話",
     lastMessage: "新しい絵、見ていかない？",
     lastActive: "8月24日",

@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils"
 
 export function CharacterStage({ image, name, className }: { image?: string; name: string; className?: string }) {
   return (
-    <figure className={cn("min-h-0 overflow-hidden bg-surface-soft/60", className)}>
-      <div className="size-full overflow-hidden border-r border-border/70 bg-surface shadow-soft max-md:border-r-0">
+    <figure className={cn("min-h-0 overflow-hidden bg-surface-soft/60 p-5 max-[1100px]:p-4 max-md:p-0", className)}>
+      <div className="size-full overflow-hidden rounded-lg bg-surface border-8 border-surface shadow-soft ring-1 ring-border/70 max-md:rounded-none max-md:border-0 max-md:shadow-none max-md:ring-0">
         {image ? (
           <img
             src={image}

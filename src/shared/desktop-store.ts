@@ -1,0 +1,83 @@
+import { z } from "zod"
+
+const connectionSchema = z.object({
+  type: z.enum(["local", "online"]),
+  endpoint: z.string(),
+  model: z.string(),
+})
+
+const ttsSchema = z.object({
+  provider: z.enum(["browser", "kokoro", "openai-compatible", "elevenlabs"]),
+  endpoint: z.string(),
+  model: z.string(),
+  voice: z.string(),
+})
+
+const profileSchema = z.object({
+  gender: z.enum(["woman", "man", "nonbinary", "prefer-not-to-say"]),
+  birthYear: z.number().int().min(1900).max(2200),
+  favoriteGenres: z.array(z.string().min(1)),
+})
+
+const appearanceSchema = z.object({
+  textSize: z.enum(["small", "medium", "large"]),
+  theme: z.enum(["light", "dark"]),
+})
+
+export const desktopSettingsInputSchema = z.object({
+  connection: connectionSchema.extend({ apiKey: z.string() }),
+  tts: ttsSchema.extend({ apiKey: z.string() }),
+  profile: profileSchema.nullable(),
+  appearance: appearanceSchema,
+  readAloud: z.boolean(),
+})
+
+export const desktopSettingsFileSchema = z.object({
+  version: z.literal(1),
+  connection: connectionSchema,
+  connectionSecret: z.string().nullable(),
+  tts: ttsSchema,
+  ttsSecret: z.string().nullable(),
+  profile: profileSchema.nullable(),
+  appearance: appearanceSchema,
+  readAloud: z.boolean(),
+})
+
+export const desktopMessageSchema = z.object({
+  id: z.string().min(1),
+  role: z.enum(["narration", "character", "user"]),
+  text: z.string(),
+  time: z.string(),
+  audio: z.boolean().optional(),
+  speakerName: z.string().optional(),
+  image: z.string().optional(),
+})
+
+export const desktopConversationSchema = z.object({
+  id: z.string().min(1),
+  scenarioId: z.string().min(1),
+  title: z.string().min(1),
+  updatedAt: z.string().datetime(),
+  messages: z.array(desktopMessageSchema).max(200),
+})
+
+export const desktopConversationInputSchema = desktopConversationSchema.extend({
+  title: z.string().min(1).optional(),
+})
+
+export const desktopConversationsFileSchema = z.object({
+  version: z.literal(1),
+  items: z.array(desktopConversationSchema).max(50),
+})
+
+export type DesktopSettingsInput = z.infer<typeof desktopSettingsInputSchema>
+export type DesktopSettingsFile = z.infer<typeof desktopSettingsFileSchema>
+export type DesktopConversation = z.infer<typeof desktopConversationSchema>
+export type DesktopConversationInput = z.infer<typeof desktopConversationInputSchema>
+
+export type DesktopStoreLoadResult = {
+  settings: DesktopSettingsInput
+  recoveredCorruptData: boolean
+  secretsAvailable: boolean
+}
+

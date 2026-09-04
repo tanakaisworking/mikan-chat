@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "contract-duke.png",
+      "original_bytes": 2168278,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "contract-marriage-honest-duke",
+      "alt": "月夜の書斎で、呪いの指輪を押さえながらこちらを見つめる黒髪の公爵",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/contract-marriage-honest-duke-480w.webp",
+          "bytes": 53562,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/contract-marriage-honest-duke-480w.jpg",
+          "bytes": 73529,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/contract-marriage-honest-duke-941w.webp",
+          "bytes": 143432,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/contract-marriage-honest-duke-941w.jpg",
+          "bytes": 225322,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "fake-date-wedding.png",
+      "original_bytes": 1942546,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "wedding-fake-date-coworker",
+      "alt": "夕暮れの結婚式会場で、恋人役として腕を差し出すスーツ姿の男性",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/wedding-fake-date-coworker-480w.webp",
+          "bytes": 28346,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/wedding-fake-date-coworker-480w.jpg",
+          "bytes": 49389,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/wedding-fake-date-coworker-941w.webp",
+          "bytes": 68564,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/wedding-fake-date-coworker-941w.jpg",
+          "bytes": 149406,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "fox-convenience.png",
+      "original_bytes": 2986385,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "midnight-convenience-fox-spirit",
+      "alt": "深夜のコンビニで、油揚げと古銭を差し出す狐耳の女性",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/midnight-convenience-fox-spirit-480w.webp",
+          "bytes": 88166,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/midnight-convenience-fox-spirit-480w.jpg",
+          "bytes": 107081,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/midnight-convenience-fox-spirit-941w.webp",
+          "bytes": 314536,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/midnight-convenience-fox-spirit-941w.jpg",
+          "bytes": 376670,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "voice-memory-android.png",
+      "original_bytes": 2524971,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "cargo-ship-voice-memory-android",
+      "alt": "宇宙貨物船の冷凍睡眠装置へ手を伸ばす、記憶表示灯を持つ男性型アンドロイド",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/cargo-ship-voice-memory-android-480w.webp",
+          "bytes": 68486,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/cargo-ship-voice-memory-android-480w.jpg",
+          "bytes": 86255,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/cargo-ship-voice-memory-android-941w.webp",
+          "bytes": 197520,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/cargo-ship-voice-memory-android-941w.jpg",
+          "bytes": 284423,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

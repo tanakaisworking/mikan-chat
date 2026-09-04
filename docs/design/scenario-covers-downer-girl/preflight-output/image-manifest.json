@@ -1,0 +1,63 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "downer-girl-shizuku.png",
+      "original_bytes": 1871677,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mikan-chat-downer-girl-shizuku",
+      "alt": "放課後の大学教室で隣の机から見つめる銀髪の雪村しずく",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-downer-girl-shizuku-480w.webp",
+          "bytes": 42602,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mikan-chat-downer-girl-shizuku-480w.jpg",
+          "bytes": 67497,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-downer-girl-shizuku-941w.webp",
+          "bytes": 102648,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mikan-chat-downer-girl-shizuku-941w.jpg",
+          "bytes": 188373,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [
+        "スマートフォン表示で手前のユーザーの手が主役より目立たないか確認する"
+      ],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

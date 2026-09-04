@@ -1,6 +1,9 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, ipcMain, safeStorage, shell } from "electron"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+
+import { DesktopStore } from "./desktop-store"
+import { desktopConversationInputSchema, desktopSettingsInputSchema } from "../shared/desktop-store"
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 
@@ -14,7 +17,7 @@ function createWindow() {
     show: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
-      preload: path.join(currentDirectory, "../preload/index.js"),
+      preload: path.join(currentDirectory, "../preload/index.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -25,6 +28,7 @@ function createWindow() {
   window.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
     callback(webContents === window.webContents && permission === "media")
   })
+  registerStoreHandlers(window)
   const hayamimiUrl = getHayamimiUrl()
   if (hayamimiUrl) registerSpeechHandlers(window, hayamimiUrl)
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -37,6 +41,44 @@ function createWindow() {
   } else {
     void window.loadFile(path.join(currentDirectory, "../renderer/index.html"))
   }
+}
+
+function registerStoreHandlers(window: BrowserWindow) {
+  const store = new DesktopStore(app.getPath("userData"), {
+    available: () => safeStorage.isEncryptionAvailable(),
+    encrypt: (value) => safeStorage.encryptString(value).toString("base64"),
+    decrypt: (value) => safeStorage.decryptString(Buffer.from(value, "base64")),
+  })
+  const assertSender = (sender: Electron.WebContents) => {
+    if (sender !== window.webContents) throw new Error("保存データへアクセスできません。")
+  }
+
+  ipcMain.removeHandler("store:load")
+  ipcMain.removeHandler("store:saveSettings")
+  ipcMain.removeHandler("conv:list")
+  ipcMain.removeHandler("conv:save")
+  ipcMain.removeHandler("conv:delete")
+  ipcMain.handle("store:load", (event) => {
+    assertSender(event.sender)
+    return store.loadSettings()
+  })
+  ipcMain.handle("store:saveSettings", (event, input) => {
+    assertSender(event.sender)
+    return store.saveSettings(desktopSettingsInputSchema.parse(input))
+  })
+  ipcMain.handle("conv:list", (event) => {
+    assertSender(event.sender)
+    return store.listConversations()
+  })
+  ipcMain.handle("conv:save", (event, input) => {
+    assertSender(event.sender)
+    return store.saveConversation(desktopConversationInputSchema.parse(input))
+  })
+  ipcMain.handle("conv:delete", (event, id) => {
+    assertSender(event.sender)
+    if (typeof id !== "string") throw new Error("会話IDが不正です。")
+    return store.deleteConversation(id)
+  })
 }
 
 function registerSpeechHandlers(window: BrowserWindow, hayamimiUrl: string) {

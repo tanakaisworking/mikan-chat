@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "dragon-bath.png",
+      "original_bytes": 2673779,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "dragon-bathhouse-afraid-of-water",
+      "alt": "竜専用の湯船で怖がる幼竜へ湯かきを差し出す男性番頭",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/dragon-bathhouse-afraid-of-water-480w.webp",
+          "bytes": 82394,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/dragon-bathhouse-afraid-of-water-480w.jpg",
+          "bytes": 101981,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dragon-bathhouse-afraid-of-water-941w.webp",
+          "bytes": 260596,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dragon-bathhouse-afraid-of-water-941w.jpg",
+          "bytes": 329652,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "last-shogi.png",
+      "original_bytes": 2547330,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "retirement-shogi-missing-sealed-move",
+      "alt": "引退対局後の盤と封筒を前に消えた封じ手を考える女性棋士",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/retirement-shogi-missing-sealed-move-480w.webp",
+          "bytes": 66608,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/retirement-shogi-missing-sealed-move-480w.jpg",
+          "bytes": 84511,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retirement-shogi-missing-sealed-move-941w.webp",
+          "bytes": 207770,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retirement-shogi-missing-sealed-move-941w.jpg",
+          "bytes": 285552,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "smokeless-house-firefighter.png",
+      "original_bytes": 2254669,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "edo-firefighter-smoke-from-cold-well",
+      "alt": "燃えていない町家の井戸から立つ白煙を調べる火消し",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/edo-firefighter-smoke-from-cold-well-480w.webp",
+          "bytes": 56012,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/edo-firefighter-smoke-from-cold-well-480w.jpg",
+          "bytes": 81091,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/edo-firefighter-smoke-from-cold-well-941w.webp",
+          "bytes": 154336,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/edo-firefighter-smoke-from-cold-well-941w.jpg",
+          "bytes": 249820,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "unordered-last-dish.png",
+      "original_bytes": 2072299,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "palace-unordered-final-dish",
+      "alt": "宴の後の空席へ誰も注文していない銀皿を運ぶ女性給仕長",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/palace-unordered-final-dish-480w.webp",
+          "bytes": 61558,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/palace-unordered-final-dish-480w.jpg",
+          "bytes": 77236,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/palace-unordered-final-dish-941w.webp",
+          "bytes": 161352,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/palace-unordered-final-dish-941w.jpg",
+          "bytes": 227582,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

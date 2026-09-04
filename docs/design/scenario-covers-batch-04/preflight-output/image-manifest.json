@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "final-bandmate.png",
+      "original_bytes": 2539290,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "final-live-bandmate-new-song",
+      "alt": "解散ライブ直前の舞台裏で、カセットと譜面を差し出す女性ギタリスト",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/final-live-bandmate-new-song-480w.webp",
+          "bytes": 59126,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/final-live-bandmate-new-song-480w.jpg",
+          "bytes": 78144,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/final-live-bandmate-new-song-941w.webp",
+          "bytes": 188212,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/final-live-bandmate-new-song-941w.jpg",
+          "bytes": 269553,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "phantom-thief.png",
+      "original_bytes": 2543176,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "museum-phantom-thief-blue-bird",
+      "alt": "閉館後の美術館で、青い鳥の展示品越しに相談を持ちかける女性怪盗",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/museum-phantom-thief-blue-bird-480w.webp",
+          "bytes": 69014,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/museum-phantom-thief-blue-bird-480w.jpg",
+          "bytes": 97905,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/museum-phantom-thief-blue-bird-941w.webp",
+          "bytes": 204686,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/museum-phantom-thief-blue-bird-941w.jpg",
+          "bytes": 315881,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "poison-taster.png",
+      "original_bytes": 2342193,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "palace-poison-taster-medicinal-soup",
+      "alt": "後宮の厨房で、薬膳の椀へ銀の匙をかざす男性毒見役",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/palace-poison-taster-medicinal-soup-480w.webp",
+          "bytes": 57576,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/palace-poison-taster-medicinal-soup-480w.jpg",
+          "bytes": 78967,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/palace-poison-taster-medicinal-soup-941w.webp",
+          "bytes": 162994,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/palace-poison-taster-medicinal-soup-941w.jpg",
+          "bytes": 256368,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "retiring-boxer.png",
+      "original_bytes": 3439546,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "retirement-match-former-rival-boxer",
+      "alt": "引退試合前夜のリングで、元ライバルへミットを差し出す女性ボクサー",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/retirement-match-former-rival-boxer-480w.webp",
+          "bytes": 129134,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/retirement-match-former-rival-boxer-480w.jpg",
+          "bytes": 132177,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retirement-match-former-rival-boxer-941w.webp",
+          "bytes": 506366,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retirement-match-former-rival-boxer-941w.jpg",
+          "bytes": 515347,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

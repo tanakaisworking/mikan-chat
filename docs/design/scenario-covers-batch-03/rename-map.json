@@ -1,0 +1,30 @@
+{
+  "ronin-escort.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "rainy-post-town-ronin-escort",
+    "alt": "雨の宿場町で、追っ手を見ながら傘を差し出す浪人",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "last-npc.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "game-shutdown-last-npc-archivist",
+    "alt": "サービス終了前の無人広場で、最後の手紙を差し出す銀髪のNPC",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "sock-witch.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "midnight-laundry-lost-sock-witch",
+    "alt": "深夜のコインランドリーで、光る赤い靴下を差し出す魔女",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "memory-detective.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "memory-pawnshop-detective-bottle",
+    "alt": "雨の記憶質屋で、自分の筆跡がある記憶瓶へ手を伸ばす刑事",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  }
+}

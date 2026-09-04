@@ -8,9 +8,10 @@ type ChatComposerProps = {
   onSend: (message: string) => boolean | void
   isGenerating: boolean
   onStop: () => void
+  disabled?: boolean
 }
 
-export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps) {
+export function ChatComposer({ onSend, isGenerating, onStop, disabled = false }: ChatComposerProps) {
   const [value, setValue] = useState("")
   const [speechStatus, setSpeechStatus] = useState<SpeechInputStatus>("idle")
   const [speechError, setSpeechError] = useState<string | null>(null)
@@ -35,7 +36,7 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
 
   const submit = () => {
     const message = value.trim()
-    if (!message || isGenerating) return
+    if (!message || isGenerating || disabled) return
     if (speechStatus === "listening" || speechStatus === "starting") speechInput.current?.stop()
     if (onSend(message) === false) return
     setValue("")
@@ -59,9 +60,10 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
         <textarea
           value={value}
           rows={1}
-          placeholder={speechStatus === "listening" ? "聞き取り中…" : "メッセージを入力"}
+          placeholder={disabled ? "物語を読み込み中…" : speechStatus === "listening" ? "聞き取り中…" : "メッセージを入力"}
           aria-label="メッセージ"
-          className="min-h-8 min-w-0 flex-1 resize-none appearance-none overflow-y-auto rounded-none border-0 bg-transparent p-0 text-lg leading-8 outline-none [field-sizing:content] placeholder:text-muted-foreground/70 focus-visible:outline-none max-h-40 max-[1100px]:text-base max-md:max-h-32 max-md:text-base"
+          className="min-h-8 min-w-0 flex-1 resize-none appearance-none overflow-y-auto rounded-none border-0 bg-transparent p-0 text-lg leading-8 outline-none [field-sizing:content] placeholder:text-muted-foreground/70 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 max-h-40 max-[1100px]:text-base max-md:max-h-32 max-md:text-base"
+          disabled={disabled}
           onChange={(event) => setValue(event.target.value)}
           onCompositionStart={() => {
             isComposing.current = true
@@ -79,7 +81,7 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
         <IconButton
           label={speechStatus === "listening" || speechStatus === "starting" ? "音声入力を停止" : "音声で入力"}
           className="size-14 bg-primary-bright text-white hover:bg-primary max-[1100px]:size-12 max-md:size-11"
-          disabled={!speechSupported}
+          disabled={!speechSupported || disabled}
           onClick={toggleSpeech}
         >
           {speechStatus === "listening" || speechStatus === "starting" ? <Square className="size-5 fill-current" /> : <Mic />}
@@ -89,7 +91,7 @@ export function ChatComposer({ onSend, isGenerating, onStop }: ChatComposerProps
             <Square className="size-5 fill-current" />
           </IconButton>
         ) : (
-          <IconButton label="送信" className="size-14 bg-primary-bright text-white hover:bg-primary disabled:opacity-45 max-[1100px]:size-12 max-md:size-11" disabled={!value.trim()} onClick={submit}>
+          <IconButton label="送信" className="size-14 bg-primary-bright text-white hover:bg-primary disabled:opacity-45 max-[1100px]:size-12 max-md:size-11" disabled={disabled || !value.trim()} onClick={submit}>
             <Send className="translate-x-[-1px]" />
           </IconButton>
         )}

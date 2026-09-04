@@ -1,0 +1,34 @@
+{
+  "late-night-radio-minato.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "mikan-chat-late-night-radio-minato",
+    "alt": "深夜のラジオスタジオで放送卓から振り返る鵜飼湊",
+    "assumptions": ["mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像"],
+    "warnings": []
+  },
+  "storm-observatory-satoru-ren.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "mikan-chat-storm-observatory-satoru-ren",
+    "alt": "嵐の山頂観測所にいる榛名悟と千秋廉",
+    "assumptions": ["mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像"],
+    "warnings": ["スマートフォン表示でも二人の表情が判別できるか確認する"]
+  },
+  "flower-shop-yu.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "mikan-chat-flower-shop-yu",
+    "alt": "閉店前の花屋で花束を抱える伊織悠",
+    "assumptions": ["mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像"],
+    "warnings": []
+  },
+  "estate-organizer-ritsu.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "mikan-chat-estate-organizer-ritsu",
+    "alt": "祖母の家で古い茶碗を丁寧に持つ遺品整理士の遠野律",
+    "assumptions": ["mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像"],
+    "warnings": []
+  }
+}

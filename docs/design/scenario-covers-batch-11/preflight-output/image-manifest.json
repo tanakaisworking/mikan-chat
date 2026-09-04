@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "aquarium-jellyfish.png",
+      "original_bytes": 2123078,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "after-hours-aquarium-sleepless-jellyfish",
+      "alt": "閉館後の水族館で眠らないクラゲを示す男性飼育員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/after-hours-aquarium-sleepless-jellyfish-480w.webp",
+          "bytes": 57260,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/after-hours-aquarium-sleepless-jellyfish-480w.jpg",
+          "bytes": 75486,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/after-hours-aquarium-sleepless-jellyfish-941w.webp",
+          "bytes": 154546,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/after-hours-aquarium-sleepless-jellyfish-941w.jpg",
+          "bytes": 228113,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "chef-imperfect-dish.png",
+      "original_bytes": 3178702,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "after-filming-chef-imperfect-dish",
+      "alt": "収録後の厨房で形の崩れた試作料理を差し出す男性シェフ",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/after-filming-chef-imperfect-dish-480w.webp",
+          "bytes": 122922,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/after-filming-chef-imperfect-dish-480w.jpg",
+          "bytes": 124287,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/after-filming-chef-imperfect-dish-941w.webp",
+          "bytes": 390456,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/after-filming-chef-imperfect-dish-941w.jpg",
+          "bytes": 416565,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "rain-footsteps.png",
+      "original_bytes": 2287773,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "rain-recording-missing-footsteps",
+      "alt": "雨の高架下で足音の消えた録音を聞かせる男性音響技師",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/rain-recording-missing-footsteps-480w.webp",
+          "bytes": 67888,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/rain-recording-missing-footsteps-480w.jpg",
+          "bytes": 84022,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rain-recording-missing-footsteps-941w.webp",
+          "bytes": 183436,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rain-recording-missing-footsteps-941w.jpg",
+          "bytes": 258334,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "repaired-chair.png",
+      "original_bytes": 2309629,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "former-partner-repaired-shared-chair",
+      "alt": "明るい工房で修理した椅子を持つ男性家具職人",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/former-partner-repaired-shared-chair-480w.webp",
+          "bytes": 51180,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/former-partner-repaired-shared-chair-480w.jpg",
+          "bytes": 72935,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/former-partner-repaired-shared-chair-941w.webp",
+          "bytes": 145434,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/former-partner-repaired-shared-chair-941w.jpg",
+          "bytes": 234858,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

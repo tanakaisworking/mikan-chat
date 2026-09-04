@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "ai-last-word.png",
+      "original_bytes": 2563259,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "last-ai-untranslatable-final-word",
+      "alt": "旧型端末の幾何学記号を前に最後の訳語を考える老翻訳者",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/last-ai-untranslatable-final-word-480w.webp",
+          "bytes": 75112,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/last-ai-untranslatable-final-word-480w.jpg",
+          "bytes": 94420,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/last-ai-untranslatable-final-word-941w.webp",
+          "bytes": 230524,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/last-ai-untranslatable-final-word-941w.jpg",
+          "bytes": 310056,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "future-post-office.png",
+      "original_bytes": 3040091,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "future-post-office-do-not-open-letter",
+      "alt": "雨の未来郵便局で、十年後から届いた封書を差し出す男性局員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/future-post-office-do-not-open-letter-480w.webp",
+          "bytes": 87776,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/future-post-office-do-not-open-letter-480w.jpg",
+          "bytes": 98808,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/future-post-office-do-not-open-letter-941w.webp",
+          "bytes": 348240,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/future-post-office-do-not-open-letter-941w.jpg",
+          "bytes": 381115,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "ghost-appraiser.png",
+      "original_bytes": 2637910,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "ghost-apartment-full-occupancy-appraisal",
+      "alt": "空き家の各室にいる幽霊を確認する女性不動産鑑定士",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/ghost-apartment-full-occupancy-appraisal-480w.webp",
+          "bytes": 76110,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/ghost-apartment-full-occupancy-appraisal-480w.jpg",
+          "bytes": 99117,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/ghost-apartment-full-occupancy-appraisal-941w.webp",
+          "bytes": 218040,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/ghost-apartment-full-occupancy-appraisal-941w.jpg",
+          "bytes": 317999,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "moon-convenience.png",
+      "original_bytes": 1877056,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "moon-convenience-seven-minute-delay",
+      "alt": "月面コンビニで地球を背に温かい商品を取り置く女性店員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/moon-convenience-seven-minute-delay-480w.webp",
+          "bytes": 43084,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/moon-convenience-seven-minute-delay-480w.jpg",
+          "bytes": 65929,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/moon-convenience-seven-minute-delay-941w.webp",
+          "bytes": 99822,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/moon-convenience-seven-minute-delay-941w.jpg",
+          "bytes": 184084,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

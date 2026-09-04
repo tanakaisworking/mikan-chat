@@ -90,6 +90,7 @@ export function toScenarioSummary(row: ScenarioRow) {
 
   return {
     id: row.id,
+    publicId: pack && typeof pack.id === "string" ? pack.id : null,
     slug: row.slug,
     title: pack && typeof pack.title === "string" ? pack.title : row.title,
     characterName: characterNames.length > 0 ? characterNames.join("・") : row.character_name,

@@ -58,6 +58,7 @@ describe("scenario API mapping", () => {
     })
 
     expect(result).toMatchObject({
+      publicId: "55555555-5555-4555-8555-555555555555",
       title: "二人からの依頼",
       characterName: "ミア・ノア",
       conversationLabel: "2人と会話",

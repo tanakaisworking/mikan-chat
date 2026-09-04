@@ -35,6 +35,47 @@
   --input: #eacfba;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #171310;
+  --surface: #211b17;
+  --surface-soft: #2b221c;
+  --surface-accent: #3a281d;
+  --foreground: #f7eee7;
+  --muted-foreground: #c1b2a8;
+  --primary: #ff9a57;
+  --primary-bright: #ff7a1a;
+  --primary-foreground: #21160e;
+  --border: #59473a;
+  --success: #79c98a;
+  --danger: #ff8d83;
+  --overlay: rgb(0 0 0 / 58%);
+  --ring: #ff9a57;
+  --card: #211b17;
+  --card-foreground: #f7eee7;
+  --popover: #211b17;
+  --popover-foreground: #f7eee7;
+  --secondary: #2b221c;
+  --secondary-foreground: #f7eee7;
+  --muted: #2b221c;
+  --accent: #3a281d;
+  --accent-foreground: #ffd3b5;
+  --destructive: #ff8d83;
+  --input: #59473a;
+}
+
+:root[data-text-size="small"] {
+  font-size: 15px;
+}
+
+:root[data-text-size="medium"] {
+  font-size: 16px;
+}
+
+:root[data-text-size="large"] {
+  font-size: 18px;
+}
+
 @theme inline {
   --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
   --color-background: var(--background);

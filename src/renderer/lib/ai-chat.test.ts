@@ -7,6 +7,7 @@ import {
   GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL,
   getConnectionError,
   getEndpointError,
+  listAIModels,
   parseAssistantResponse,
   streamCharacterReply,
   testAIConnection,
@@ -76,6 +77,20 @@ describe("AI chat transport", () => {
       `${GOOGLE_AI_STUDIO_ENDPOINT}/models`,
       expect.objectContaining({ headers: { Authorization: "Bearer gemini-test-key" } }),
     )
+  })
+
+  it("ローカルOpenAI互換APIからモデル一覧を取得する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+      data: [{ id: "qwen3:8b" }, { id: "gemma3:4b" }],
+    }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(listAIModels({
+      type: "local",
+      endpoint: "http://127.0.0.1:11434/v1/",
+      apiKey: "",
+    })).resolves.toEqual(["qwen3:8b", "gemma3:4b"])
+    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:11434/v1/models", expect.any(Object))
   })
 
   it("APIキーの不可視空白を除去し、その他の非ASCII文字は送信前に拒否する", () => {

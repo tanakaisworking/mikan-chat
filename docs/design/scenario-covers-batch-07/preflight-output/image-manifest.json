@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "dream-auctioneer.png",
+      "original_bytes": 2300587,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "dream-auction-nightmare-buyback",
+      "alt": "夢の競売会で、買い戻す悪夢が入った鍵付き箱を差し出す競売人",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/dream-auction-nightmare-buyback-480w.webp",
+          "bytes": 56034,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/dream-auction-nightmare-buyback-480w.jpg",
+          "bytes": 78447,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dream-auction-nightmare-buyback-941w.webp",
+          "bytes": 156432,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dream-auction-nightmare-buyback-941w.jpg",
+          "bytes": 251568,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "hero-career-office.png",
+      "original_bytes": 3214798,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "retired-hero-career-counseling",
+      "alt": "職業相談窓口で、伝説の剣を鞄に入れて履歴書を書く元勇者",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/retired-hero-career-counseling-480w.webp",
+          "bytes": 117104,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/retired-hero-career-counseling-480w.jpg",
+          "bytes": 125091,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retired-hero-career-counseling-941w.webp",
+          "bytes": 396066,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/retired-hero-career-counseling-941w.jpg",
+          "bytes": 435030,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "mars-last-flower.png",
+      "original_bytes": 3216347,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mars-greenhouse-last-earth-flower",
+      "alt": "火星植物園で、地球最後の花へ拡大鏡を差し出す女性植物学者",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mars-greenhouse-last-earth-flower-480w.webp",
+          "bytes": 117780,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mars-greenhouse-last-earth-flower-480w.jpg",
+          "bytes": 122943,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mars-greenhouse-last-earth-flower-941w.webp",
+          "bytes": 395570,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mars-greenhouse-last-earth-flower-941w.jpg",
+          "bytes": 435713,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "reaper-audit.png",
+      "original_bytes": 2885566,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "junior-reaper-extra-day-audit",
+      "alt": "寿命管理局で、一日分の光る札と算盤を差し出す新人死神",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/junior-reaper-extra-day-audit-480w.webp",
+          "bytes": 123646,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/junior-reaper-extra-day-audit-480w.jpg",
+          "bytes": 131575,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/junior-reaper-extra-day-audit-941w.webp",
+          "bytes": 347726,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/junior-reaper-extra-day-audit-941w.jpg",
+          "bytes": 420228,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

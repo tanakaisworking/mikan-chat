@@ -1,7 +1,6 @@
 import { useId, useState } from "react"
 import { MessageCircleMore } from "lucide-react"
 
-import { ScenarioPreviewDialog } from "@/components/library/scenario-preview-dialog"
 import { DesktopSidebar, MobileHeader, MobileNavigation } from "@/components/navigation/app-navigation"
 import { SectionHeading } from "@/components/ui/section-heading"
 import type { Character } from "@/data/characters"
@@ -9,6 +8,7 @@ import type { Character } from "@/data/characters"
 type HomeScreenProps = {
   onSelectCharacter: (character: Character, source: HomeTab) => void
   characters: Character[]
+  recommendedCharacters: Character[]
   activeTab: HomeTab
   onTabChange: (tab: HomeTab) => void
   onAddPack: () => void
@@ -24,6 +24,7 @@ export type HomeTab = "home" | "chat"
 export function HomeScreen({
   onSelectCharacter,
   characters,
+  recommendedCharacters,
   activeTab,
   onTabChange,
   onAddPack,
@@ -33,8 +34,6 @@ export function HomeScreen({
   error = null,
   onRetry,
 }: HomeScreenProps) {
-  const [previewCharacter, setPreviewCharacter] = useState<Character | null>(null)
-
   return (
     <main className="grid h-screen grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background max-md:block max-md:h-dvh max-md:overflow-y-auto max-md:pb-[calc(148px+env(safe-area-inset-bottom))]" data-testid="home-screen">
       <DesktopSidebar activePage={activeTab} onPageChange={onTabChange} onAddPack={onAddPack} onOpenDocs={onOpenDocs} onOpenSettings={onOpenSettings} />
@@ -82,15 +81,15 @@ export function HomeScreen({
 
           {activeTab === "home" ? <div>
             <div className="mt-9 max-md:mt-0">
-              <SectionHeading>シナリオを探す</SectionHeading>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">気になる状況から、物語の中へ入りましょう。</p>
+              <SectionHeading>あなたへのおすすめ</SectionHeading>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">好きなジャンルやプロフィールをもとに並べています。</p>
             </div>
             <div className="mt-5 grid grid-cols-3 gap-5 max-[1023px]:grid-cols-2 max-md:gap-3">
-              {characters.map((character) => (
+              {recommendedCharacters.map((character) => (
                 <ScenarioCard
                   key={character.id}
                   character={character}
-                  onClick={() => setPreviewCharacter(character)}
+                  onClick={() => onSelectCharacter(character, "home")}
                 />
               ))}
             </div>
@@ -100,15 +99,6 @@ export function HomeScreen({
       </section>
 
       <MobileNavigation activePage={activeTab} onPageChange={onTabChange} onAddPack={onAddPack} />
-      <ScenarioPreviewDialog
-        character={previewCharacter}
-        onOpenChange={(open) => { if (!open) setPreviewCharacter(null) }}
-        onStart={() => {
-          if (!previewCharacter) return
-          onSelectCharacter(previewCharacter, "home")
-          setPreviewCharacter(null)
-        }}
-      />
     </main>
   )
 }
@@ -117,7 +107,8 @@ function ScenarioCard({ character, onClick }: { character: Character; onClick: (
   const title = character.packTitle ?? character.name
   const titleId = useId()
   const detailsId = useId()
-  const conversationLabel = character.conversationLabel ?? "1人と会話"
+  const [loadedImage, setLoadedImage] = useState<string | null>(null)
+  const imageLoaded = Boolean(character.image && loadedImage === character.image)
   return (
     <button
       type="button"
@@ -127,17 +118,21 @@ function ScenarioCard({ character, onClick }: { character: Character; onClick: (
       aria-describedby={detailsId}
     >
       <span id={detailsId} className="sr-only">
-        {conversationLabel}。{character.description}。タグ：{(character.tags ?? []).join("、")}。登場人物：{character.name}
+        {character.description}。タグ：{(character.tags ?? []).join("、")}
       </span>
       <span className="relative block aspect-[3/4] overflow-hidden rounded-lg border border-border bg-surface shadow-soft transition-[transform,box-shadow] duration-200 ease-mikan group-hover:-translate-y-1 group-hover:shadow-overlay">
         {character.image ? (
-          <img src={character.image} alt={`${title}のカバー画像`} className="size-full object-cover object-top transition-transform duration-300 ease-mikan group-hover:scale-[1.025]" />
+          <img
+            src={character.image}
+            alt={`${title}のカバー画像`}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoadedImage(character.image ?? null)}
+            className={`size-full object-cover object-top transition-[opacity,transform] duration-300 ease-mikan group-hover:scale-[1.025] ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+          />
         ) : (
           <span className="grid size-full place-items-center bg-[radial-gradient(circle_at_68%_18%,#ffe6cf_0%,#e7a06e_48%,#8d4a2a_100%)] text-7xl font-semibold text-white/72" role="img" aria-label={`${title}のカバー画像はありません`}>{character.name.slice(0, 1)}</span>
         )}
-        <span className="absolute top-3 left-3 rounded-full bg-black/62 px-3 py-1.5 text-xs font-semibold text-white shadow-overlay backdrop-blur-sm max-md:top-2 max-md:left-2 max-md:px-2.5 max-md:py-1">
-          {conversationLabel}
-        </span>
         <span className="absolute inset-x-0 bottom-0 h-[76%] bg-linear-to-t from-[#201712]/98 via-[#2a2019]/82 to-transparent" aria-hidden="true" />
         <span className="absolute inset-x-0 bottom-0 block p-5 text-white max-md:p-3">
           <span id={titleId} className="line-clamp-2 text-xl leading-snug font-semibold break-words text-balance max-md:text-[15px]">{title}</span>
@@ -145,7 +140,6 @@ function ScenarioCard({ character, onClick }: { character: Character; onClick: (
           <span className="mt-3 flex flex-wrap gap-x-2 gap-y-1 text-xs text-white/75 max-md:mt-2 max-md:text-[11px]">
             {(character.tags ?? []).slice(0, 3).map((tag, index) => <span key={tag} className={index === 2 ? "max-md:hidden" : undefined}>#{tag}</span>)}
           </span>
-          <span className="mt-3 block border-t border-white/20 pt-3 text-xs text-white/72 max-md:hidden">登場人物：{character.name}</span>
         </span>
       </span>
     </button>

@@ -1,0 +1,30 @@
+{
+  "rewind-guard.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "rewind-noblewoman-accomplice-guard",
+    "alt": "時計が逆回転する牢獄で、鎖を外してこちらを振り返る近衛隊長",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "forgotten-rule-manager.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "apartment-forgotten-rule-manager",
+    "alt": "深夜の古いマンション廊下で、規則帳と鍵を抱えて振り返る女性管理人",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "demon-diner.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "demon-queen-diner-dishwashing",
+    "alt": "昼の定食屋で、王冠を隠しながら大量の皿を運ぶ角のある女性",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "dragon-caretaker.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "dragon-nursery-gentle-caretaker",
+    "alt": "温室の竜保育園で、子竜たちと一緒に毛布を差し出す男性保育士",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  }
+}

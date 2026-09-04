@@ -1,0 +1,10 @@
+{
+  "downer-girl-shizuku.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "mikan-chat-downer-girl-shizuku",
+    "alt": "放課後の大学教室で隣の机から見つめる銀髪の雪村しずく",
+    "assumptions": ["mikan chatのシナリオ一覧と会話画面で使用する縦長カバー画像"],
+    "warnings": ["スマートフォン表示で手前のユーザーの手が主役より目立たないか確認する"]
+  }
+}

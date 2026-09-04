@@ -1,0 +1,45 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "exec-68d1fea4-223e-4190-951e-cbf5be84a07e.png",
+      "original_bytes": 2422101,
+      "mode": "other",
+      "role": "portrait",
+      "slug": "ex-boyfriend-wedding-next-month",
+      "alt": "雨の夜のカフェで、結婚式の招待状を前に座る元恋人の男性",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/ex-boyfriend-wedding-next-month-optimized.webp",
+          "bytes": 173758,
+          "purpose": "generic-optimized"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/ex-boyfriend-wedding-next-month-optimized.jpg",
+          "bytes": 260626,
+          "purpose": "generic-optimized-fallback"
+        }
+      ],
+      "assumptions": [
+        "mikan chatの縦長シナリオカバーとして使用",
+        "アプリ内ではタイトルと本文が隣接する",
+        "Other mode assumes no platform-specific requirement was provided."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Applied safe generic optimization without inventing platform rules.",
+        "Generated a simple optimized WebP plus fallback image."
+      ]
+    }
+  ]
+}

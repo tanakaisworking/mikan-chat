@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "demon-diner.png",
+      "original_bytes": 2184661,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "demon-queen-diner-dishwashing",
+      "alt": "昼の定食屋で、王冠を隠しながら大量の皿を運ぶ角のある女性",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/demon-queen-diner-dishwashing-480w.webp",
+          "bytes": 84832,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/demon-queen-diner-dishwashing-480w.jpg",
+          "bytes": 108457,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/demon-queen-diner-dishwashing-941w.webp",
+          "bytes": 207510,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/demon-queen-diner-dishwashing-941w.jpg",
+          "bytes": 296693,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "dragon-caretaker.png",
+      "original_bytes": 2698064,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "dragon-nursery-gentle-caretaker",
+      "alt": "温室の竜保育園で、子竜たちと一緒に毛布を差し出す男性保育士",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/dragon-nursery-gentle-caretaker-480w.webp",
+          "bytes": 96814,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/dragon-nursery-gentle-caretaker-480w.jpg",
+          "bytes": 106757,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dragon-nursery-gentle-caretaker-941w.webp",
+          "bytes": 261358,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/dragon-nursery-gentle-caretaker-941w.jpg",
+          "bytes": 336690,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "forgotten-rule-manager.png",
+      "original_bytes": 2057696,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "apartment-forgotten-rule-manager",
+      "alt": "深夜の古いマンション廊下で、規則帳と鍵を抱えて振り返る女性管理人",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/apartment-forgotten-rule-manager-480w.webp",
+          "bytes": 26336,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/apartment-forgotten-rule-manager-480w.jpg",
+          "bytes": 50684,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/apartment-forgotten-rule-manager-941w.webp",
+          "bytes": 78616,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/apartment-forgotten-rule-manager-941w.jpg",
+          "bytes": 169098,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "rewind-guard.png",
+      "original_bytes": 2376433,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "rewind-noblewoman-accomplice-guard",
+      "alt": "時計が逆回転する牢獄で、鎖を外してこちらを振り返る近衛隊長",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/rewind-noblewoman-accomplice-guard-480w.webp",
+          "bytes": 69066,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/rewind-noblewoman-accomplice-guard-480w.jpg",
+          "bytes": 88358,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rewind-noblewoman-accomplice-guard-941w.webp",
+          "bytes": 199268,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rewind-noblewoman-accomplice-guard-941w.jpg",
+          "bytes": 284114,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

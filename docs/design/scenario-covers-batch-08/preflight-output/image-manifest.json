@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "castle-conservator.png",
+      "original_bytes": 2465185,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "hundred-year-castle-first-awake",
+      "alt": "百年眠る城で最初に目覚め、鍵束と羽ばたきを手に調査する保存管理員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/hundred-year-castle-first-awake-480w.webp",
+          "bytes": 80074,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/hundred-year-castle-first-awake-480w.jpg",
+          "bytes": 100525,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/hundred-year-castle-first-awake-941w.webp",
+          "bytes": 215088,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/hundred-year-castle-first-awake-941w.jpg",
+          "bytes": 311101,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "rakugo-new-story.png",
+      "original_bytes": 2509841,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "voiceless-rakugo-new-story",
+      "alt": "声を休めながら、筆とめくりで新作を組み立てる落語家",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/voiceless-rakugo-new-story-480w.webp",
+          "bytes": 67936,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/voiceless-rakugo-new-story-480w.jpg",
+          "bytes": 87711,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/voiceless-rakugo-new-story-941w.webp",
+          "bytes": 192548,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/voiceless-rakugo-new-story-941w.jpg",
+          "bytes": 280294,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "weather-name.png",
+      "original_bytes": 2550773,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "tomorrow-forecast-calls-your-name",
+      "alt": "放送後の未来予報画面に呼び止められた気象キャスター",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/tomorrow-forecast-calls-your-name-480w.webp",
+          "bytes": 62860,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/tomorrow-forecast-calls-your-name-480w.jpg",
+          "bytes": 80491,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/tomorrow-forecast-calls-your-name-941w.webp",
+          "bytes": 196952,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/tomorrow-forecast-calls-your-name-941w.jpg",
+          "bytes": 278169,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "wizard-handover.png",
+      "original_bytes": 2498355,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "resigning-wizard-familiar-handover",
+      "alt": "魔法塔の設計図を広げ、使い魔と引継書を直す退職予定の魔法使い",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/resigning-wizard-familiar-handover-480w.webp",
+          "bytes": 83574,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/resigning-wizard-familiar-handover-480w.jpg",
+          "bytes": 100223,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/resigning-wizard-familiar-handover-941w.webp",
+          "bytes": 235610,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/resigning-wizard-familiar-handover-941w.jpg",
+          "bytes": 317588,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

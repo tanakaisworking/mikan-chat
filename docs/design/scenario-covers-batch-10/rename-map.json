@@ -1,0 +1,6 @@
+{
+  "dragon-bath.png": { "mode": "seo", "role": "portrait", "slug": "dragon-bathhouse-afraid-of-water", "alt": "竜専用の湯船で怖がる幼竜へ湯かきを差し出す男性番頭", "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"] },
+  "last-shogi.png": { "mode": "seo", "role": "portrait", "slug": "retirement-shogi-missing-sealed-move", "alt": "引退対局後の盤と封筒を前に消えた封じ手を考える女性棋士", "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"] },
+  "smokeless-house-firefighter.png": { "mode": "seo", "role": "portrait", "slug": "edo-firefighter-smoke-from-cold-well", "alt": "燃えていない町家の井戸から立つ白煙を調べる火消し", "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"] },
+  "unordered-last-dish.png": { "mode": "seo", "role": "portrait", "slug": "palace-unordered-final-dish", "alt": "宴の後の空席へ誰も注文していない銀皿を運ぶ女性給仕長", "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"] }
+}

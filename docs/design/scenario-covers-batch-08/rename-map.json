@@ -1,0 +1,30 @@
+{
+  "wizard-handover.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "resigning-wizard-familiar-handover",
+    "alt": "魔法塔の設計図を広げ、使い魔と引継書を直す退職予定の魔法使い",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "rakugo-new-story.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "voiceless-rakugo-new-story",
+    "alt": "声を休めながら、筆とめくりで新作を組み立てる落語家",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "weather-name.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "tomorrow-forecast-calls-your-name",
+    "alt": "放送後の未来予報画面に呼び止められた気象キャスター",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "castle-conservator.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "hundred-year-castle-first-awake",
+    "alt": "百年眠る城で最初に目覚め、鍵束と羽ばたきを手に調査する保存管理員",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  }
+}

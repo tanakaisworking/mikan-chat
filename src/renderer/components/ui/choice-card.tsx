@@ -8,6 +8,8 @@ type ChoiceCardProps = {
   description: string
   trailing?: ReactNode
   selected?: boolean
+  expanded?: boolean
+  controls?: string
   size?: "default" | "dialog" | "setup"
   onClick: () => void
 }
@@ -18,6 +20,8 @@ export function ChoiceCard({
   description,
   trailing,
   selected,
+  expanded,
+  controls,
   size = "default",
   onClick,
 }: ChoiceCardProps) {
@@ -30,6 +34,8 @@ export function ChoiceCard({
         size === "setup" ? "min-h-40 gap-7 px-8 max-md:min-h-24 max-md:gap-4 max-md:px-4" : size === "dialog" ? "min-h-28 gap-5 px-6 max-md:min-h-24 max-md:gap-4 max-md:px-4" : "min-h-24 gap-4 px-5 max-md:px-4",
       )}
       aria-pressed={selected === undefined ? undefined : selected}
+      aria-expanded={expanded}
+      aria-controls={controls}
       onClick={onClick}
     >
       <span

@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "family-tree-embroiderer.png",
+      "original_bytes": 2992888,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "embroidered-family-tree-missing-name",
+      "alt": "家系図の刺繍からほどけた枝へ、金糸の針を差し出す女性刺繍師",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/embroidered-family-tree-missing-name-480w.webp",
+          "bytes": 107646,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/embroidered-family-tree-missing-name-480w.jpg",
+          "bytes": 117480,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/embroidered-family-tree-missing-name-941w.webp",
+          "bytes": 338338,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/embroidered-family-tree-missing-name-941w.jpg",
+          "bytes": 387070,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "last-train-stationmaster.png",
+      "original_bytes": 2378272,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "abandoned-station-last-train-manifest",
+      "alt": "廃駅のホームで、最後の列車の名簿を抱えるベテラン駅員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/abandoned-station-last-train-manifest-480w.webp",
+          "bytes": 41352,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/abandoned-station-last-train-manifest-480w.jpg",
+          "bytes": 63045,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/abandoned-station-last-train-manifest-941w.webp",
+          "bytes": 141474,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/abandoned-station-last-train-manifest-941w.jpg",
+          "bytes": 223324,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "mapless-courier.png",
+      "original_bytes": 1946807,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "mapless-town-last-delivery-courier",
+      "alt": "地図にない町の入口で、最後の荷物を差し出す女性配達員",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/mapless-town-last-delivery-courier-480w.webp",
+          "bytes": 58766,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/mapless-town-last-delivery-courier-480w.jpg",
+          "bytes": 81446,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mapless-town-last-delivery-courier-941w.webp",
+          "bytes": 135334,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/mapless-town-last-delivery-courier-941w.jpg",
+          "bytes": 227176,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "unscripted-actor.png",
+      "original_bytes": 2015743,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "reality-show-actor-unscripted-walk",
+      "alt": "夜明けの川沿いで、台本を伏せて缶コーヒーを差し出す男性俳優",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/reality-show-actor-unscripted-walk-480w.webp",
+          "bytes": 29052,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/reality-show-actor-unscripted-walk-480w.jpg",
+          "bytes": 50589,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/reality-show-actor-unscripted-walk-941w.webp",
+          "bytes": 77792,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/reality-show-actor-unscripted-walk-941w.jpg",
+          "bytes": 165060,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

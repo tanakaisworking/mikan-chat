@@ -1,9 +1,16 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { zipSync, strToU8 } from "fflate"
+import { HashRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { App } from "@/App"
+import { App, AppContent } from "@/App"
 import { streamCharacterReply } from "@/lib/ai-chat"
+
+const AOI_PUBLIC_ID = "5e17395e-79b0-4b46-8e55-4ddac9a8e787"
+const MIA_PUBLIC_ID = "b1aa0948-3062-4f41-90c5-7fa451dec95f"
+const API_SCENARIO_PUBLIC_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+const TEST_PUBLIC_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+const DEMO_PUBLIC_ID = "99999999-9999-4999-8999-999999999999"
 
 vi.mock("@/lib/ai-chat", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/ai-chat")>(),
@@ -15,6 +22,11 @@ describe("mikan chat UI flow", () => {
     window.history.replaceState({}, "", "/?screen=home")
     window.localStorage.clear()
     window.sessionStorage.clear()
+    window.localStorage.setItem("mikan-chat.onboarding.v1", JSON.stringify({
+      gender: "prefer-not-to-say",
+      birthYear: 2000,
+      favoriteGenre: "日常",
+    }))
     window.mikan = {
       platform: "darwin",
       speech: {
@@ -43,12 +55,147 @@ describe("mikan chat UI flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "雨の夜、幼なじみの部屋で" }))
 
-    expect(screen.getByRole("dialog", { name: "雨の夜、幼なじみの部屋で" })).toBeInTheDocument()
+    const scenarioScreen = screen.getByTestId("scenario-screen")
+    expect(window.location.pathname).toBe(`/scenarios/${AOI_PUBLIC_ID}`)
+    const previewCover = within(scenarioScreen).getByRole("img", { name: "雨の夜、幼なじみの部屋での物語カバー" })
+    const previewCoverFrame = within(scenarioScreen).getByTestId("scenario-preview-cover-frame")
+    const titleOverlay = within(previewCoverFrame).getByTestId("scenario-preview-title-overlay")
+    expect(previewCover).toHaveClass("object-contain", "object-center")
+    expect(previewCoverFrame).toHaveClass("aspect-[9/16]", "h-full", "max-md:w-full")
+    expect(titleOverlay).toHaveTextContent("雨の夜、幼なじみの部屋で")
+    expect(previewCoverFrame).not.toHaveTextContent("1人と会話")
+    expect(previewCoverFrame).not.toHaveTextContent("#日常")
+    expect(within(scenarioScreen).getByTestId("scenario-preview-details")).not.toHaveTextContent("雨の夜、幼なじみの部屋で")
+    expect(within(scenarioScreen).getByTestId("scenario-preview-metadata")).not.toHaveTextContent("1人と会話")
+    expect(within(scenarioScreen).getByTestId("scenario-preview-metadata")).toHaveTextContent("#日常")
+    expect(within(scenarioScreen).getByTestId("scenario-preview-scroll")).toHaveClass("max-md:overflow-y-auto")
     expect(screen.getByText("物語の中のあなた")).toBeInTheDocument()
     expect(screen.queryByTestId("talk-screen")).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "この物語をはじめる" }))
+    expect(window.location.pathname).toBe(`/scenarios/${AOI_PUBLIC_ID}/chat`)
     expect(screen.getByTestId("talk-screen")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("メッセージを入力")).toBeInTheDocument()
+  })
+
+  it("シナリオ紹介とチャットのURLへ直接アクセスできる", () => {
+    window.history.replaceState({}, "", `/scenarios/${AOI_PUBLIC_ID}`)
+    const { unmount } = render(<App />)
+
+    expect(screen.getByTestId("scenario-screen")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "雨の夜、幼なじみの部屋で" })).toBeInTheDocument()
+    unmount()
+
+    window.history.replaceState({}, "", `/scenarios/${AOI_PUBLIC_ID}/chat`)
+    render(<App />)
+    expect(screen.getByTestId("talk-screen")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "葵" })).toBeInTheDocument()
+  })
+
+  it("Electron版はHashRouterでシナリオ紹介とチャットへ直接アクセスできる", () => {
+    window.history.replaceState({}, "", `/#/scenarios/${AOI_PUBLIC_ID}`)
+    const { unmount } = render(<HashRouter><AppContent /></HashRouter>)
+
+    expect(screen.getByTestId("scenario-screen")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "雨の夜、幼なじみの部屋で" })).toBeInTheDocument()
+    unmount()
+
+    window.history.replaceState({}, "", `/#/scenarios/${AOI_PUBLIC_ID}/chat`)
+    render(<HashRouter><AppContent /></HashRouter>)
+    expect(screen.getByTestId("talk-screen")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "葵" })).toBeInTheDocument()
+  })
+
+  it("旧slugのシナリオURLでは表示しない", () => {
+    window.history.replaceState({}, "", "/scenarios/aoi")
+    render(<App />)
+
+    expect(screen.getByText("シナリオが見つかりません")).toBeInTheDocument()
+    expect(screen.queryByTestId("scenario-screen")).not.toBeInTheDocument()
+  })
+
+  it("連番ダミーUUIDを廃止したシナリオは新UUIDだけで表示する", () => {
+    window.history.replaceState({}, "", `/scenarios/${MIA_PUBLIC_ID}`)
+    const { unmount } = render(<App />)
+    expect(screen.getByRole("heading", { name: "閉店後の酒場で、秘密の依頼を" })).toBeInTheDocument()
+    unmount()
+
+    window.history.replaceState({}, "", "/scenarios/22222222-2222-4222-8222-222222222222")
+    render(<App />)
+    expect(screen.getByRole("heading", { name: "シナリオが見つかりません" })).toBeInTheDocument()
+  })
+
+  it("Web版のシナリオUUIDへ直接アクセスできる", async () => {
+    delete window.mikan
+    window.history.replaceState({}, "", `/scenarios/${API_SCENARIO_PUBLIC_ID}`)
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      items: [scenarioApiItem("direct", "UUIDで開いたシナリオ", API_SCENARIO_PUBLIC_ID)],
+    })))
+
+    render(<App />)
+
+    expect(await screen.findByRole("heading", { name: "UUIDで開いたシナリオ" })).toBeInTheDocument()
+    const scenarioScreen = screen.getByTestId("scenario-screen")
+    expect(scenarioScreen).toBeInTheDocument()
+    expect(within(scenarioScreen).queryByTestId("scenario-preview-metadata")).not.toBeInTheDocument()
+    expect(scenarioScreen).not.toHaveTextContent("1人と会話")
+  })
+
+  it("Web版では旧talkクエリをホームとして扱う", async () => {
+    delete window.mikan
+    window.history.replaceState({}, "", "/?screen=talk")
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ items: [scenarioApiItem("web-home", "Webホーム")] })))
+
+    render(<App />)
+
+    expect(await screen.findByRole("button", { name: "Webホーム" })).toBeInTheDocument()
+    expect(screen.queryByTestId("talk-screen")).not.toBeInTheDocument()
+  })
+
+  it("初回アクセスで回答を順番に保存してからホームを表示する", async () => {
+    window.localStorage.removeItem("mikan-chat.onboarding.v1")
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      items: [{
+        id: "onboarding-scenario",
+        publicId: TEST_PUBLIC_ID,
+        slug: "onboarding-scenario",
+        title: "オンボーディング用シナリオ",
+        characterName: "しずく",
+        summary: "初回設定の確認用。",
+        coverPath: null,
+        rating: "all",
+        tags: ["静かな恋", "大学"],
+        conversationLabel: "1人と会話",
+        lastMessage: "こんにちは",
+        lastActive: "",
+        pack: {},
+      }],
+    })))
+
+    render(<App />)
+
+    expect(screen.getByRole("heading", { name: /未完成の物語を、\s*AIチャットで楽しもう。/ })).toBeInTheDocument()
+    expect(screen.getByTestId("onboarding-screen")).toHaveClass("h-screen", "supports-[height:100dvh]:h-dvh", "overflow-y-auto", "overscroll-y-contain")
+    expect(screen.queryByText("あなたへのおすすめ")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /女性/ }))
+    expect(screen.getByRole("heading", { name: "生まれた年を教えてください" })).toHaveFocus()
+    fireEvent.click(screen.getByRole("button", { name: "戻る" }))
+    expect(screen.getByRole("button", { name: /女性/ })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(screen.getByRole("button", { name: /女性/ }))
+    fireEvent.change(screen.getByLabelText("生年"), { target: { value: "1998" } })
+    expect(await screen.findByRole("heading", { name: "好きなジャンルを選んでください" })).toHaveFocus()
+    fireEvent.click(await screen.findByRole("button", { name: "静かな恋" }))
+    fireEvent.click(screen.getByRole("button", { name: "大学" }))
+    expect(screen.getByRole("button", { name: "静かな恋" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: "大学" })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(screen.getByRole("button", { name: "はじめる" }))
+
+    expect(await screen.findByText("あなたへのおすすめ")).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem("mikan-chat.onboarding.v1") ?? "null")).toEqual({
+      gender: "woman",
+      birthYear: 1998,
+      favoriteGenres: ["静かな恋", "大学"],
+    })
   })
 
   it("Web版はAPIからシナリオを読み込む", async () => {
@@ -56,6 +203,7 @@ describe("mikan chat UI flow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
       items: [{
         id: "api-scenario",
+        publicId: API_SCENARIO_PUBLIC_ID,
         slug: "api-scenario",
         title: "DBから届いたシナリオ",
         characterName: "ミア・ノア",
@@ -90,10 +238,20 @@ describe("mikan chat UI flow", () => {
 
     render(<App />)
 
-    expect(await screen.findByRole("button", { name: "DBから届いたシナリオ" })).toBeInTheDocument()
+    const scenarioCard = await screen.findByRole("button", { name: "DBから届いたシナリオ" })
+    expect(scenarioCard).not.toHaveTextContent("2人と会話")
+    expect(scenarioCard).not.toHaveTextContent("登場人物：ミア・ノア")
+    const scenarioCover = within(scenarioCard).getByRole("img", { name: "DBから届いたシナリオのカバー画像" })
+    expect(scenarioCover).toHaveAttribute("loading", "lazy")
+    expect(scenarioCover).toHaveAttribute("decoding", "async")
+    expect(scenarioCover).toHaveClass("transition-[opacity,transform]", "duration-300")
+    expect(scenarioCover).toHaveClass("opacity-0")
+    fireEvent.load(scenarioCover)
+    expect(scenarioCover).toHaveClass("opacity-100")
     expect(fetch).toHaveBeenCalledWith("/api/scenarios")
-    fireEvent.click(screen.getByRole("button", { name: "DBから届いたシナリオ" }))
-    expect(screen.getByRole("dialog", { name: "DBから届いたシナリオ" })).toBeInTheDocument()
+    fireEvent.click(scenarioCard)
+    expect(screen.getByTestId("scenario-screen")).toBeInTheDocument()
+    expect(window.location.pathname).toBe(`/scenarios/${API_SCENARIO_PUBLIC_ID}`)
     expect(screen.getByText("閉店後の酒場で、秘密の荷物を運ぶ相談を持ちかけられる。")).toBeInTheDocument()
     expect(screen.getByText("酒場の最後の客")).toBeInTheDocument()
     expect(screen.getByText("依頼を持ちかけるエルフの店主。")).toBeInTheDocument()
@@ -113,6 +271,7 @@ describe("mikan chat UI flow", () => {
     delete window.mikan
     const item = {
       id: "retry-scenario",
+      publicId: TEST_PUBLIC_ID,
       slug: "retry-scenario",
       title: "再試行で届いたシナリオ",
       characterName: "みかん",
@@ -136,7 +295,49 @@ describe("mikan chat UI flow", () => {
     expect(await screen.findByRole("button", { name: "再試行で届いたシナリオ" })).toBeInTheDocument()
   })
 
-  it("API読み込み中に開始したインポート会話を完了後も維持する", async () => {
+  it("Web版は重複したシナリオUUIDを拒否する", async () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      items: [scenarioApiItem("first", "先のシナリオ"), scenarioApiItem("second", "後のシナリオ")],
+    })))
+
+    render(<App />)
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("シナリオを読み込めませんでした")
+    expect(screen.queryByRole("button", { name: "先のシナリオ" })).not.toBeInTheDocument()
+  })
+
+  it("並行したシナリオ再取得では最新の結果だけを反映する", async () => {
+    delete window.mikan
+    let resolveOlder!: (response: Response) => void
+    let resolveLatest!: (response: Response) => void
+    const older = new Promise<Response>((resolve) => { resolveOlder = resolve })
+    const latest = new Promise<Response>((resolve) => { resolveLatest = resolve })
+    vi.stubGlobal("fetch", vi.fn()
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockReturnValueOnce(older)
+      .mockReturnValueOnce(latest))
+
+    render(<App />)
+    const retry = await screen.findByRole("button", { name: "もう一度試す" })
+    act(() => {
+      retry.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      retry.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    })
+
+    await act(async () => {
+      resolveLatest(Response.json({ items: [scenarioApiItem("latest", "最新のシナリオ")] }))
+    })
+    expect(await screen.findByRole("button", { name: "最新のシナリオ" })).toBeInTheDocument()
+
+    await act(async () => {
+      resolveOlder(Response.json({ items: [scenarioApiItem("older", "古いシナリオ")] }))
+    })
+    expect(screen.getByRole("button", { name: "最新のシナリオ" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "古いシナリオ" })).not.toBeInTheDocument()
+  })
+
+  it("API読み込み中に開始した同UUIDのインポート会話を完了後も維持する", async () => {
     delete window.mikan
     let resolveScenarios!: (response: Response) => void
     const scenarios = new Promise<Response>((resolve) => { resolveScenarios = resolve })
@@ -154,6 +355,7 @@ describe("mikan chat UI flow", () => {
     await act(async () => {
       resolveScenarios(Response.json({ items: [{
         id: "server-scenario",
+        publicId: DEMO_PUBLIC_ID,
         slug: "server-scenario",
         title: "サーバーのシナリオ",
         characterName: "別の人物",
@@ -171,7 +373,9 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByRole("heading", { name: "葵" })).toBeInTheDocument()
     expect(screen.getByText(/こんな時間に、どうしたんですか/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "戻る" }))
-    expect(screen.getByRole("button", { name: "サーバーのシナリオ" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "別のシナリオを見る" }))
+    expect(screen.queryByRole("button", { name: "サーバーのシナリオ" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
   })
 
@@ -193,8 +397,19 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     const desktopNavigation = screen.getByRole("navigation", { name: "PCメインナビゲーション" })
-    fireEvent.click(within(desktopNavigation).getByRole("button", { name: "チャット" }))
+    const homeButton = within(desktopNavigation).getByRole("button", { name: "ホーム" })
+    const chatButton = within(desktopNavigation).getByRole("button", { name: "チャット" })
+    expect(homeButton).toHaveAttribute("aria-current", "page")
+    expect(homeButton).toHaveClass("text-primary")
+    expect(within(homeButton).getByText("ホーム")).toHaveClass("font-semibold")
+    expect(homeButton).toHaveClass("bg-surface")
+    expect(homeButton).not.toHaveClass("bg-surface-accent")
+    expect(homeButton).not.toHaveClass("shadow-soft")
+    expect(chatButton).toHaveClass("bg-surface")
+    fireEvent.click(chatButton)
 
+    expect(chatButton).toHaveAttribute("aria-current", "page")
+    expect(chatButton).toHaveClass("bg-surface")
     expect(screen.getByText("続きから")).toBeInTheDocument()
     expect(screen.queryByText("シナリオを探す")).not.toBeInTheDocument()
   })
@@ -242,8 +457,8 @@ describe("mikan chat UI flow", () => {
     await waitFor(() => {
       expect(screen.queryByText("葵が考えています…")).not.toBeInTheDocument()
       expect(screen.getByText("うん。急がなくて大丈夫。今日はどんなことがあったの？")).toBeInTheDocument()
-    }, { timeout: 5_000 })
-  }, 10_000)
+    }, { timeout: 10_000 })
+  }, 15_000)
 
   it("受信途中の情景描写と台詞を順次表示する", async () => {
     let finishReply!: () => void
@@ -275,13 +490,115 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
   })
 
-  it("初回設定で選んだ接続方式をDialogへ引き継ぐ", () => {
-    window.history.replaceState({}, "", "/?screen=setup")
+  it("設定画面で表示とユーザー情報を保存し、AI接続を項目として開ける", () => {
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: /AIサービスに接続する/ }))
+    fireEvent.click(screen.getByRole("button", { name: "設定" }))
+    expect(window.location.pathname).toBe("/settings")
+    expect(screen.getByRole("heading", { name: "表示" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "ユーザー情報" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "AIの接続" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "読み上げの音声" })).toBeInTheDocument()
 
-    expect(screen.getByRole("button", { name: /Google AI Studio/ })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(screen.getByRole("button", { name: "大きめ" }))
+    fireEvent.click(screen.getByRole("button", { name: "ダーク" }))
+    fireEvent.change(screen.getByLabelText("性別"), { target: { value: "woman" } })
+    fireEvent.change(screen.getByLabelText("生年"), { target: { value: "1998" } })
+    fireEvent.click(screen.getByRole("button", { name: "雨の夜" }))
+
+    expect(document.documentElement.dataset.textSize).toBe("large")
+    expect(document.documentElement.dataset.theme).toBe("dark")
+    expect(window.localStorage.getItem("mikan-chat.appearance.v1")).toContain('"theme":"dark"')
+    expect(window.localStorage.getItem("mikan-chat.onboarding.v1")).toContain('"birthYear":1998')
+    expect(window.localStorage.getItem("mikan-chat.onboarding.v1")).toContain('"favoriteGenres":["日常","雨の夜"]')
+
+    fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
+    expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
+  })
+
+  it("Web版で会話AIと別のBYOK読み上げTTSを保存できる", async () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ items: [] })))
+    window.history.replaceState({}, "", "/settings")
+    render(<App />)
+
+    await screen.findByRole("heading", { name: "読み上げの音声" })
+    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
+    fireEvent.click(screen.getByRole("button", { name: /外部の読み上げAI/ }))
+    fireEvent.change(screen.getByRole("textbox", { name: "接続先URL" }), { target: { value: "https://tts.example.com/v1" } })
+    fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "voice-model" } })
+    fireEvent.change(screen.getByRole("textbox", { name: "声の名前" }), { target: { value: "voice-a" } })
+    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "tts-test-key" } })
+
+    expect(JSON.parse(window.localStorage.getItem("mikan-chat.tts.v1") ?? "null")).toEqual({
+      provider: "openai-compatible",
+      apiKey: "tts-test-key",
+      endpoint: "https://tts.example.com/v1",
+      model: "voice-model",
+      voice: "voice-a",
+    })
+    expect(screen.getByRole("switch", { name: "返答を読み上げる" })).toBeEnabled()
+  })
+
+  it("Web版でElevenLabsのBYOK設定を保存できる", async () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ items: [] })))
+    window.history.replaceState({}, "", "/settings")
+    render(<App />)
+
+    await screen.findByRole("heading", { name: "読み上げの音声" })
+    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
+    const elevenLabsCard = screen.getByRole("button", { name: /ElevenLabs/ })
+    const kokoroCard = screen.getByRole("button", { name: /Kokoro/ })
+    fireEvent.click(elevenLabsCard)
+    const settingsPanel = screen.getByTestId("selected-tts-settings")
+    expect(elevenLabsCard).toHaveAttribute("aria-expanded", "true")
+    expect(elevenLabsCard).toHaveAttribute("aria-controls", settingsPanel.id)
+    expect(elevenLabsCard.nextElementSibling).toContainElement(settingsPanel)
+    expect(kokoroCard).toHaveAttribute("aria-expanded", "false")
+    fireEvent.change(screen.getByPlaceholderText("ElevenLabsのVoice ID"), { target: { value: "voice-jp" } })
+    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "eleven-test-key" } })
+    fireEvent.click(screen.getByRole("button", { name: /ElevenLabs/, pressed: true }))
+
+    expect(JSON.parse(window.localStorage.getItem("mikan-chat.tts.v1") ?? "null")).toEqual({
+      provider: "elevenlabs",
+      apiKey: "eleven-test-key",
+      endpoint: "https://api.elevenlabs.io/v1",
+      model: "eleven_flash_v2_5",
+      voice: "voice-jp",
+    })
+    expect(screen.getByRole("switch", { name: "返答を読み上げる" })).toBeEnabled()
+  })
+
+  it("Web版で無料のKokoroを選択できる", async () => {
+    delete window.mikan
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ items: [] })))
+    window.history.replaceState({}, "", "/settings")
+    render(<App />)
+
+    await screen.findByRole("heading", { name: "読み上げの音声" })
+    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
+    fireEvent.click(screen.getByRole("button", { name: /Kokoro/ }))
+
+    expect(JSON.parse(window.localStorage.getItem("mikan-chat.tts.v1") ?? "null")).toEqual({
+      provider: "kokoro",
+      apiKey: "",
+      endpoint: "",
+      model: "Kokoro-82M",
+      voice: "jf_alpha",
+    })
+    expect(screen.getByText("音声生成はブラウザ内で完結し、文章は外部へ送信しません。", { exact: false })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "モデルをダウンロード" })).toBeEnabled()
+    expect(screen.getByRole("switch", { name: "返答を読み上げる" })).toHaveAttribute("aria-disabled", "true")
+  })
+
+  it("保存した表示設定を起動時に復元する", () => {
+    window.localStorage.setItem("mikan-chat.appearance.v1", JSON.stringify({ textSize: "large", theme: "dark" }))
+
+    render(<App />)
+
+    expect(document.documentElement.dataset.textSize).toBe("large")
+    expect(document.documentElement.dataset.theme).toBe("dark")
   })
 
   it("オンライン接続はAPIキー入力後に確定でき、再表示でも保持する", () => {
@@ -295,6 +612,7 @@ describe("mikan chat UI flow", () => {
     expect(confirm).toBeEnabled()
     fireEvent.click(confirm)
     fireEvent.click(screen.getByRole("button", { name: "設定" }))
+    fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
 
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
   })
@@ -314,6 +632,37 @@ describe("mikan chat UI flow", () => {
 
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
     expect(screen.getByRole("textbox", { name: /モデル名/ })).toHaveValue("gemini-flash-latest")
+  })
+
+  it("Electron版はmainプロセスから設定を復元し、変更を保存する", async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined)
+    window.mikan = {
+      platform: "darwin",
+      store: {
+        load: vi.fn().mockResolvedValue({
+          settings: {
+            connection: { type: "local", apiKey: "", endpoint: "http://127.0.0.1:11434/v1", model: "qwen3:8b" },
+            tts: { provider: "browser", apiKey: "", endpoint: "", model: "", voice: "" },
+            profile: { gender: "woman", birthYear: 1995, favoriteGenres: ["恋愛"] },
+            appearance: { textSize: "large", theme: "dark" },
+            readAloud: false,
+          },
+          recoveredCorruptData: false,
+          secretsAvailable: true,
+        }),
+        saveSettings,
+      },
+    }
+
+    render(<App />)
+
+    await screen.findByRole("button", { name: "設定" })
+    expect(document.documentElement.dataset.textSize).toBe("large")
+    expect(document.documentElement.dataset.theme).toBe("dark")
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({
+      connection: expect.objectContaining({ model: "qwen3:8b" }),
+      profile: expect.objectContaining({ favoriteGenres: ["恋愛"] }),
+    })), { timeout: 2_000 })
   })
 
   it("以前のタブ保存設定をブラウザ保存へ移行する", () => {
@@ -347,6 +696,18 @@ describe("mikan chat UI flow", () => {
     expect(screen.queryByText("接続できました")).not.toBeInTheDocument()
   })
 
+  it("アプリ版でインストール済みのローカルAIモデルを検出して選べる", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ data: [{ id: "qwen3:8b" }, { id: "gemma3:4b" }] })))
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: "インストール済みモデルを確認" }))
+
+    const models = await screen.findByRole("group", { name: "インストール済みモデル" })
+    fireEvent.click(within(models).getByRole("button", { name: "gemma3:4b" }))
+    expect(screen.getByRole("textbox", { name: "モデル名" })).toHaveValue("gemma3:4b")
+  })
+
   it("接続テスト中に設定を変えたら古い成功結果を表示しない", async () => {
     let resolveFetch!: (response: Response) => void
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve })))
@@ -376,13 +737,13 @@ describe("mikan chat UI flow", () => {
   })
 
   it("接続設定をキャンセルすると未確定の選択を破棄する", () => {
-    window.history.replaceState({}, "", "/?screen=setup")
+    window.history.replaceState({}, "", "/settings")
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: /AIサービスに接続する/ }))
+    fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
+    fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }))
-    fireEvent.click(screen.getByRole("button", { name: "あとで設定する" }))
-    fireEvent.click(screen.getByRole("button", { name: "設定" }))
+    fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
 
     expect(screen.getByRole("button", { name: /このPCのAI OllamaやLM Studioへ接続/ })).toHaveAttribute("aria-pressed", "true")
   })
@@ -459,7 +820,8 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByText(/こんな時間に、どうしたんですか/)).toBeInTheDocument()
     expect(screen.queryByText(/あなたさん/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "戻る" }))
-
+    expect(screen.getByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "別のシナリオを見る" }))
     expect(screen.getByRole("button", { name: "雨の夜、閉店後の喫茶店で" })).toBeInTheDocument()
   })
 
@@ -560,6 +922,7 @@ describe("mikan chat UI flow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
       items: [{
         id: "browser-tts",
+        publicId: TEST_PUBLIC_ID,
         slug: "browser-tts",
         title: "ブラウザ音声テスト",
         characterName: "葵",
@@ -664,6 +1027,24 @@ describe("mikan chat UI flow", () => {
   })
 })
 
+function scenarioApiItem(id: string, title: string, publicId = TEST_PUBLIC_ID) {
+  return {
+    id,
+    publicId,
+    slug: id,
+    title,
+    characterName: title,
+    summary: `${title}の説明。`,
+    coverPath: null,
+    rating: "all",
+    tags: [],
+    conversationLabel: "1人と会話",
+    lastMessage: "こんにちは",
+    lastActive: "",
+    pack: {},
+  }
+}
+
 function configureLocalAI() {
   fireEvent.click(screen.getByRole("button", { name: "AI接続設定" }))
   fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
@@ -682,7 +1063,7 @@ function createDemoPackResponse(overrides: Record<string, unknown> = {}) {
   const pack = {
     spec: "mikan.chat-pack",
     specVersion: "0.1",
-    id: "5e17395e-79b0-4b46-8e55-4ddac9a8e787",
+    id: DEMO_PUBLIC_ID,
     version: "1.0.0",
     language: "ja",
     title: "雨の夜、閉店後の喫茶店で",

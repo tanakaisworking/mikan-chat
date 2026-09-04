@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { History, Mic2, Settings2 } from "lucide-react"
 
 import { ChatComposer } from "@/components/chat/chat-composer"
@@ -10,13 +10,16 @@ import { IconButton } from "@/components/ui/icon-button"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
 import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
-import { createTtsDriver } from "@/lib/tts"
+import { getDesktopBridge } from "@/lib/platform"
+import { createTtsDriver, DEFAULT_TTS_SETTINGS, getKokoroModelSnapshot, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
 import { readScenarioContext } from "@/lib/scenario-context"
 
 type TalkScreenProps = {
   character: Character
+  scenarioId?: string
   conversationId: string
   connection: ConnectionSettings
+  ttsSettings?: TtsSettings
   readAloud: boolean
   isNewStory?: boolean
   onBack: () => void
@@ -79,7 +82,7 @@ function replaceStreamedReply(messages: ChatMessageData[], replyId: string, repl
   return [...remaining.slice(0, insertAt), ...next, ...remaining.slice(insertAt)]
 }
 
-function getSeededConversations(character: Character) {
+function getSeededConversations(character: Character): Record<string, ChatMessageData[]> {
   if (!character.opening?.length) return seededConversations
 
   return {
@@ -96,8 +99,10 @@ function getSeededConversations(character: Character) {
 
 export function TalkScreen({
   character,
+  scenarioId = character.id,
   conversationId,
   connection,
+  ttsSettings = DEFAULT_TTS_SETTINGS,
   readAloud,
   isNewStory = false,
   onBack,
@@ -109,12 +114,45 @@ export function TalkScreen({
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
+  const [isIntroPlaying, setIsIntroPlaying] = useState(() => Boolean(isNewStory && character.opening?.length))
+  const [conversationLoaded, setConversationLoaded] = useState(!getDesktopBridge()?.conversations)
   const generationController = useRef<AbortController | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
-  const tts = useMemo(createTtsDriver, [])
+  useSyncExternalStore(subscribeKokoroModel, getKokoroModelSnapshot)
+  const tts = useMemo(() => createTtsDriver(ttsSettings), [ttsSettings])
   const intro = useMemo(() => isNewStory && character.opening?.length ? readScenarioContext(character) : null, [character, isNewStory])
   const messages = messageStore[conversationId] ?? emptyMessages
   const initialMessageCount = useRef(messages.length)
+
+  useEffect(() => {
+    const conversations = getDesktopBridge()?.conversations
+    if (!conversations) return
+    let active = true
+    setConversationLoaded(false)
+    void conversations.list().then((items) => {
+      if (!active) return
+      const stored = items.find((item) => item.id === `${scenarioId}:${conversationId}`)
+      const seeded = getSeededConversations(character)[conversationId] ?? []
+      setMessageStore((current) => ({ ...current, [conversationId]: stored?.messages ?? seeded }))
+    }).catch((error) => console.error("Failed to load conversation", error)).finally(() => {
+      if (active) setConversationLoaded(true)
+    })
+    return () => { active = false }
+  }, [character, conversationId, scenarioId])
+
+  useEffect(() => {
+    const conversations = getDesktopBridge()?.conversations
+    if (!conversations || !conversationLoaded) return
+    const timer = window.setTimeout(() => {
+      void conversations.save({
+        id: `${scenarioId}:${conversationId}`,
+        scenarioId,
+        updatedAt: new Date().toISOString(),
+        messages,
+      }).catch((error) => console.error("Failed to save conversation", error))
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [conversationId, conversationLoaded, messages, scenarioId])
 
   useEffect(() => {
     if (messages.length > initialMessageCount.current || isGenerating) {
@@ -242,8 +280,12 @@ export function TalkScreen({
       <CharacterStage image={character.stageImage ?? character.image} name={character.name} className="max-md:col-start-1 max-md:row-start-2" />
 
       <ChatTimeline
+        key={`${character.id}:${conversationId}:${intro ? "intro" : "resume"}`}
         characterName={character.name}
         intro={intro}
+        animateIntro={Boolean(intro)}
+        sequenceKey={`${character.id}:${conversationId}`}
+        onIntroPlaybackChange={setIsIntroPlaying}
         messages={messages}
         isGenerating={isGenerating}
         error={generationError}
@@ -259,6 +301,7 @@ export function TalkScreen({
           onSend={sendMessage}
           isGenerating={isGenerating}
           onStop={stopGeneration}
+          disabled={isIntroPlaying || !conversationLoaded}
         />
       </div>
     </main>

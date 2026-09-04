@@ -1,5 +1,7 @@
 export {}
 
+import type { DesktopConversation, DesktopConversationInput, DesktopSettingsInput, DesktopStoreLoadResult } from "../shared/desktop-store"
+
 declare global {
   interface SpeechRecognitionEventLike extends Event {
     resultIndex: number
@@ -39,6 +41,15 @@ declare global {
         send: (sessionId: string, audio: ArrayBuffer) => void
         stop: (sessionId: string) => Promise<void>
         onEvent: (callback: (sessionId: string, payload: string) => void) => () => void
+      }
+      store?: {
+        load: () => Promise<DesktopStoreLoadResult>
+        saveSettings: (settings: DesktopSettingsInput) => Promise<void>
+      }
+      conversations?: {
+        list: () => Promise<DesktopConversation[]>
+        save: (conversation: DesktopConversationInput) => Promise<void>
+        delete: (id: string) => Promise<void>
       }
     }
   }

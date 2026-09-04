@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { TextField } from "@/components/ui/text-field"
+import { getDesktopBridge } from "@/lib/platform"
+import type { DesktopConversation } from "../../../shared/desktop-store"
 
 const initialConversations = [
   { id: "today", title: "今日のこと", preview: "もちろん。ゆっくり聞かせて。", date: "12分前" },
@@ -25,9 +27,11 @@ const initialConversations = [
   { id: "weekend", title: "週末の予定", preview: "今度、一緒に見に行こうよ。", date: "3日前" },
   { id: "first", title: "はじめての会話", preview: "会えてうれしい。", date: "8月24日" },
 ]
+type ConversationItem = (typeof initialConversations)[number] & { stored?: DesktopConversation }
 
 export function ConversationHistorySheet({
   open,
+  scenarioId,
   characterName,
   importedPack = false,
   activeConversationId,
@@ -35,15 +39,34 @@ export function ConversationHistorySheet({
   onSelectConversation,
 }: {
   open: boolean
+  scenarioId: string
   characterName: string
   importedPack?: boolean
   activeConversationId: string
   onOpenChange: (open: boolean) => void
   onSelectConversation: (conversationId: string) => void
 }) {
-  const [conversations, setConversations] = useState(() => importedPack ? [initialConversations[0]] : initialConversations)
+  const [conversations, setConversations] = useState<ConversationItem[]>(() => importedPack ? [initialConversations[0]] : initialConversations)
   const [renameId, setRenameId] = useState<string | null>(null)
   const [renameTitle, setRenameTitle] = useState("")
+
+  useEffect(() => {
+    const store = getDesktopBridge()?.conversations
+    if (!open || !store) return
+    let active = true
+    void store.list().then((items) => {
+      if (!active) return
+      const prefix = `${scenarioId}:`
+      setConversations(items.filter((item) => item.scenarioId === scenarioId).map((item) => ({
+        id: item.id.startsWith(prefix) ? item.id.slice(prefix.length) : item.id,
+        title: item.title,
+        preview: item.messages.at(-1)?.text ?? "まだ会話はありません。",
+        date: new Date(item.updatedAt).toLocaleDateString("ja-JP"),
+        stored: item,
+      })))
+    }).catch((error) => console.error("Failed to list conversations", error))
+    return () => { active = false }
+  }, [open, scenarioId])
 
   const startConversation = () => {
     const id = crypto.randomUUID()
@@ -57,7 +80,20 @@ export function ConversationHistorySheet({
   const saveTitle = () => {
     const title = renameTitle.trim()
     if (!renameId || !title) return
-    setConversations((current) => current.map((item) => item.id === renameId ? { ...item, title } : item))
+    setConversations((current) => {
+      const target = current.find((item) => item.id === renameId)
+      if (target) {
+        const stored = "stored" in target ? target.stored as DesktopConversation : undefined
+        void getDesktopBridge()?.conversations?.save({
+          id: `${scenarioId}:${renameId}`,
+          scenarioId,
+          title,
+          updatedAt: new Date().toISOString(),
+          messages: stored?.messages ?? [],
+        })
+      }
+      return current.map((item) => item.id === renameId ? { ...item, title } : item)
+    })
     setRenameId(null)
   }
 
@@ -118,7 +154,10 @@ export function ConversationHistorySheet({
                   {!active ? (
                     <IconButton
                       label={`${conversation.title}を削除`}
-                      onClick={() => setConversations((current) => current.filter((item) => item.id !== conversation.id))}
+                      onClick={() => {
+                        setConversations((current) => current.filter((item) => item.id !== conversation.id))
+                        void getDesktopBridge()?.conversations?.delete(`${scenarioId}:${conversation.id}`)
+                      }}
                     >
                       <Trash2 className="text-danger" />
                     </IconButton>

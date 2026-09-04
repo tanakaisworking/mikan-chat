@@ -1,0 +1,226 @@
+{
+  "generated_by": "seo-image-preflight-mvp",
+  "schema_version": "1.0.0",
+  "items": [
+    {
+      "original_file": "last-npc.png",
+      "original_bytes": 2507172,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "game-shutdown-last-npc-archivist",
+      "alt": "サービス終了前の無人広場で、最後の手紙を差し出す銀髪のNPC",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/game-shutdown-last-npc-archivist-480w.webp",
+          "bytes": 115078,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/game-shutdown-last-npc-archivist-480w.jpg",
+          "bytes": 123191,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/game-shutdown-last-npc-archivist-941w.webp",
+          "bytes": 303466,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/game-shutdown-last-npc-archivist-941w.jpg",
+          "bytes": 369979,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "memory-detective.png",
+      "original_bytes": 2535380,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "memory-pawnshop-detective-bottle",
+      "alt": "雨の記憶質屋で、自分の筆跡がある記憶瓶へ手を伸ばす刑事",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/memory-pawnshop-detective-bottle-480w.webp",
+          "bytes": 88160,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/memory-pawnshop-detective-bottle-480w.jpg",
+          "bytes": 103758,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/memory-pawnshop-detective-bottle-941w.webp",
+          "bytes": 254048,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/memory-pawnshop-detective-bottle-941w.jpg",
+          "bytes": 336736,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "ronin-escort.png",
+      "original_bytes": 3132759,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "rainy-post-town-ronin-escort",
+      "alt": "雨の宿場町で、追っ手を見ながら傘を差し出す浪人",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/rainy-post-town-ronin-escort-480w.webp",
+          "bytes": 124038,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/rainy-post-town-ronin-escort-480w.jpg",
+          "bytes": 119545,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rainy-post-town-ronin-escort-941w.webp",
+          "bytes": 407856,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/rainy-post-town-ronin-escort-941w.jpg",
+          "bytes": 425281,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    },
+    {
+      "original_file": "sock-witch.png",
+      "original_bytes": 2204476,
+      "mode": "seo",
+      "role": "portrait",
+      "slug": "midnight-laundry-lost-sock-witch",
+      "alt": "深夜のコインランドリーで、光る赤い靴下を差し出す魔女",
+      "original_width": 941,
+      "original_height": 1672,
+      "has_alpha": false,
+      "variants": [
+        {
+          "format": "webp",
+          "width": 480,
+          "height": 853,
+          "file": "images/midnight-laundry-lost-sock-witch-480w.webp",
+          "bytes": 67658,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 480,
+          "height": 853,
+          "file": "images/midnight-laundry-lost-sock-witch-480w.jpg",
+          "bytes": 87932,
+          "purpose": "responsive-fallback"
+        },
+        {
+          "format": "webp",
+          "width": 941,
+          "height": 1672,
+          "file": "images/midnight-laundry-lost-sock-witch-941w.webp",
+          "bytes": 166480,
+          "purpose": "responsive"
+        },
+        {
+          "format": "jpg",
+          "width": 941,
+          "height": 1672,
+          "file": "images/midnight-laundry-lost-sock-witch-941w.jpg",
+          "bytes": 249703,
+          "purpose": "responsive-fallback"
+        }
+      ],
+      "assumptions": [
+        "シナリオ一覧カードとトーク画面のカバー画像として使用する",
+        "SEO mode assumes the image will be used on a website or web page."
+      ],
+      "warnings": [],
+      "decisions": [
+        "Generated responsive WebP variants plus fallback images.",
+        "Prepared HTML implementation guidance.",
+        "Non-hero SEO images can usually use lazy loading."
+      ]
+    }
+  ]
+}

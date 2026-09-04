@@ -586,6 +586,27 @@ LLMの全文生成を待たず、文が確定した単位でTTSへ渡すSHOULD�
 - 編集して再エクスポートする実装は、未知フィールドと未知拡張を保持するSHOULD
 - 読み込み時の正規化データとは別に、元の`pack.json`を保持するSHOULD
 
+### 16.1 mikan chatの推薦情報
+
+mikan chatでは、ホーム画面の並び替えに次の拡張を使います。`discovery.tags`との一致を最も強く評価し、対象層と推奨年齢は補助的に使います。一致しないシナリオも除外しません。表示制限にはトップレベルの`rating`を使います。
+
+```json
+{
+  "rating": "all",
+  "discovery": {
+    "tags": ["BL", "友情", "学園"]
+  },
+  "extensions": {
+    "mikan.recommendation": {
+      "targetAudiences": ["men", "women", "all"],
+      "recommendedAge": { "min": 20, "max": 39 }
+    }
+  }
+}
+```
+
+`targetAudiences`は`men`、`women`、`all`の配列です。登場人物の性別や恋愛対象ではなく、作者が想定するユーザー層を表します。`recommendedAge`はユーザーの想定年齢範囲であり、年齢確認や閲覧制限には使いません。
+
 ## 17. バージョン互換性
 
 `specVersion`のMAJOR変更は破壊的変更、MINOR変更は後方互換のフィールド追加です。ただしMAJORが`0`のDraft期間は、MINOR変更も破壊的変更として扱うMUST。

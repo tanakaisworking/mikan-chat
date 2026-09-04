@@ -1,0 +1,30 @@
+{
+  "contract-duke.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "contract-marriage-honest-duke",
+    "alt": "月夜の書斎で、呪いの指輪を押さえながらこちらを見つめる黒髪の公爵",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "fox-convenience.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "midnight-convenience-fox-spirit",
+    "alt": "深夜のコンビニで、油揚げと古銭を差し出す狐耳の女性",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "fake-date-wedding.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "wedding-fake-date-coworker",
+    "alt": "夕暮れの結婚式会場で、恋人役として腕を差し出すスーツ姿の男性",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  },
+  "voice-memory-android.png": {
+    "mode": "seo",
+    "role": "portrait",
+    "slug": "cargo-ship-voice-memory-android",
+    "alt": "宇宙貨物船の冷凍睡眠装置へ手を伸ばす、記憶表示灯を持つ男性型アンドロイド",
+    "assumptions": ["シナリオ一覧カードとトーク画面のカバー画像として使用する"]
+  }
+}
