@@ -10,9 +10,11 @@ import { IconButton } from "@/components/ui/icon-button"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
 import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
+import { DEFAULT_BUILTIN_MODEL, localAIModelSpec } from "../../shared/local-ai"
 import { getDesktopBridge } from "@/lib/platform"
-import { createTtsDriver, DEFAULT_TTS_SETTINGS, getKokoroModelSnapshot, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
+import { createTtsDriver, DEFAULT_TTS_SETTINGS, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
 import { readScenarioContext } from "@/lib/scenario-context"
+import { resolveScenarioVoice, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
 
 type TalkScreenProps = {
   character: Character
@@ -20,6 +22,8 @@ type TalkScreenProps = {
   conversationId: string
   connection: ConnectionSettings
   ttsSettings?: TtsSettings
+  voiceSelections?: ScenarioVoiceSelection[]
+  ttsVoiceReady?: boolean
   readAloud: boolean
   isNewStory?: boolean
   onBack: () => void
@@ -82,6 +86,26 @@ function replaceStreamedReply(messages: ChatMessageData[], replyId: string, repl
   return [...remaining.slice(0, insertAt), ...next, ...remaining.slice(insertAt)]
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
+export function getCharacterSpeechChunks(reply: string, character: Character, includeTrailing = false) {
+  const events = parseAssistantResponse(reply, character).filter((event) => event.role === "character")
+  return events.flatMap((event, eventIndex) => {
+      const chunks: Array<{ text: string; speakerName?: string }> = []
+      const sentencePattern = /[^。！？!?]+[。！？!?]+[」』”’）)]*/g
+      let consumed = 0
+      for (const match of event.text.matchAll(sentencePattern)) {
+        const text = match[0].trim()
+        if (text) chunks.push({ text, speakerName: event.speakerName })
+        consumed = (match.index ?? 0) + match[0].length
+      }
+      const trailing = event.text.slice(consumed).trim()
+      if ((includeTrailing || eventIndex < events.length - 1) && trailing) {
+        chunks.push({ text: trailing, speakerName: event.speakerName })
+      }
+      return chunks
+    })
+}
+
 function getSeededConversations(character: Character): Record<string, ChatMessageData[]> {
   if (!character.opening?.length) return seededConversations
 
@@ -103,6 +127,8 @@ export function TalkScreen({
   conversationId,
   connection,
   ttsSettings = DEFAULT_TTS_SETTINGS,
+  voiceSelections,
+  ttsVoiceReady = true,
   readAloud,
   isNewStory = false,
   onBack,
@@ -116,13 +142,43 @@ export function TalkScreen({
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
   const [isIntroPlaying, setIsIntroPlaying] = useState(() => Boolean(isNewStory && character.opening?.length))
   const [conversationLoaded, setConversationLoaded] = useState(!getDesktopBridge()?.conversations)
+  const [builtinAvailable, setBuiltinAvailable] = useState(connection.type !== "builtin")
   const generationController = useRef<AbortController | null>(null)
+  const streamingSpeechCancel = useRef<(() => void) | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
   useSyncExternalStore(subscribeKokoroModel, getKokoroModelSnapshot)
-  const tts = useMemo(() => createTtsDriver(ttsSettings), [ttsSettings])
+  const irodoriRuntime = useSyncExternalStore(subscribeIrodoriRuntime, getIrodoriRuntimeSnapshot)
+  const tts = useMemo(() => createTtsDriver(ttsSettings, irodoriRuntime), [irodoriRuntime, ttsSettings])
   const intro = useMemo(() => isNewStory && character.opening?.length ? readScenarioContext(character) : null, [character, isNewStory])
   const messages = messageStore[conversationId] ?? emptyMessages
   const initialMessageCount = useRef(messages.length)
+
+  useEffect(() => {
+    if (connection.type !== "builtin") {
+      setBuiltinAvailable(true)
+      return
+    }
+    const localAI = getDesktopBridge()?.localAI
+    if (!localAI) {
+      setBuiltinAvailable(false)
+      return
+    }
+    let active = true
+    const update = (status: { state: string }) => {
+      if (active) setBuiltinAvailable(status.state === "ready" || status.state === "loading")
+    }
+    const model = localAIModelSpec({ source: connection.model || DEFAULT_BUILTIN_MODEL.source, label: "" })
+    const unsubscribe = localAI.onStatus((status) => {
+      if (status.source === model.source) update(status)
+    })
+    void localAI.status(model).then(update).catch(() => {
+      if (active) setBuiltinAvailable(false)
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [connection.model, connection.type])
 
   useEffect(() => {
     const conversations = getDesktopBridge()?.conversations
@@ -160,29 +216,35 @@ export function TalkScreen({
     }
   }, [messages, isGenerating])
 
+  useEffect(() => () => generationController.current?.abort(), [])
   useEffect(() => () => {
-    generationController.current?.abort()
+    streamingSpeechCancel.current?.()
     tts.stop()
   }, [tts])
 
-  const speak = (text: string, messageId?: string) => {
-    if (!tts.supported) return
+  const speak = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
+    if (!tts.supported || !ttsVoiceReady) return
     setPlayingMessageId(messageId ?? null)
-    tts.speak(text, { onEnd: () => setPlayingMessageId(null) })
+    tts.speak(text, { onEnd: () => {
+      setPlayingMessageId(null)
+      onEnd?.()
+    } }, resolveScenarioVoice(character, speakerName, voiceSelections))
   }
 
   const toggleMessageAudio = (messageId: string) => {
+    streamingSpeechCancel.current?.()
+    streamingSpeechCancel.current = null
     if (playingMessageId === messageId) {
       tts.stop()
       setPlayingMessageId(null)
       return
     }
     const message = messages.find((item) => item.id === messageId)
-    if (message?.role === "character") speak(message.text, messageId)
+    if (message?.role === "character") speak(message.text, messageId, message.speakerName)
   }
 
   const sendMessage = (text: string) => {
-    if (!isConnectionReady(connection)) {
+    if (!isConnectionReady(connection) || !builtinAvailable) {
       setGenerationError("先に会話に使うAIを設定してください。")
       onOpenConnection()
       return false
@@ -192,6 +254,8 @@ export function TalkScreen({
   }
 
   const generateReply = async (text: string) => {
+    streamingSpeechCancel.current?.()
+    streamingSpeechCancel.current = null
     const targetConversationId = conversationId
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
     const userMessage: ChatMessageData = { id: crypto.randomUUID(), role: "user", text, time: now }
@@ -219,23 +283,72 @@ export function TalkScreen({
         replyTime,
       ),
     }))
+    const streamSpeech = readAloud && tts.supported && ttsVoiceReady && (ttsSettings.provider === "irodori" || ttsSettings.provider === "kokoro")
+      ? (() => {
+          const queue: Array<{ text: string; speakerName?: string }> = []
+          let speaking = false
+          let queuedCount = 0
+          let finished = false
+          let cancelled = false
+          const playNext = () => {
+            if (cancelled || speaking) return
+            const next = queue.shift()
+            if (!next) {
+              if (finished && streamingSpeechCancel.current === cancel) streamingSpeechCancel.current = null
+              return
+            }
+            speaking = true
+            speak(next.text, undefined, next.speakerName, () => {
+              speaking = false
+              playNext()
+            })
+          }
+          const push = (reply: string, includeTrailing = false) => {
+            const chunks = getCharacterSpeechChunks(reply, character, includeTrailing)
+            if (chunks.length < queuedCount) {
+              queue.length = 0
+              speaking = false
+              queuedCount = 0
+              tts.stop()
+            }
+            if (chunks.length > queuedCount) queue.push(...chunks.slice(queuedCount))
+            queuedCount = Math.max(queuedCount, chunks.length)
+            if (includeTrailing) finished = true
+            playNext()
+          }
+          const cancel = () => {
+            cancelled = true
+            queue.length = 0
+            tts.stop()
+          }
+          streamingSpeechCancel.current = cancel
+          return { push, cancel }
+        })()
+      : null
     try {
       const replyText = await streamCharacterReply({
         connection,
         character,
         messages: promptMessages,
         signal: controller.signal,
-        onText: updateReply,
+        onText: (reply) => {
+          updateReply(reply)
+          streamSpeech?.push(reply)
+        },
       })
       updateReply(replyText)
-      if (readAloud && tts.supported) {
-        const speech = parseAssistantResponse(replyText, character)
-          .filter((event) => event.role === "character")
-          .map((event) => event.text)
-          .join("\n")
-        if (speech) speak(speech)
+      if (streamSpeech) {
+        streamSpeech.push(replyText, true)
+      } else if (readAloud && tts.supported) {
+        const speech = parseAssistantResponse(replyText, character).filter((event) => event.role === "character")
+        const speakNext = (index: number) => {
+          const event = speech[index]
+          if (event) speak(event.text, undefined, event.speakerName, () => speakNext(index + 1))
+        }
+        speakNext(0)
       }
     } catch (error) {
+      streamSpeech?.cancel()
       if (!controller.signal.aborted) {
         setGenerationError(error instanceof Error ? error.message : "AIから返答を受け取れませんでした。")
       }
@@ -251,6 +364,8 @@ export function TalkScreen({
     generationController.current?.abort()
     generationController.current = null
     setIsGenerating(false)
+    streamingSpeechCancel.current?.()
+    streamingSpeechCancel.current = null
   }
 
   return (
@@ -289,7 +404,7 @@ export function TalkScreen({
         messages={messages}
         isGenerating={isGenerating}
         error={generationError}
-        canPlayAudio={tts.supported}
+        canPlayAudio={tts.supported && ttsVoiceReady}
         playingMessageId={playingMessageId}
         onToggleAudio={toggleMessageAudio}
         endRef={timelineEnd}

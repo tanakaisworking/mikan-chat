@@ -54,7 +54,7 @@ export function ChatTimeline({
       <section
         ref={timeline}
         className={cn(
-          "min-h-0 overflow-y-auto px-[7%] py-6 max-md:bg-linear-to-b max-md:from-black/5 max-md:via-transparent max-md:to-black/45 max-md:px-3 max-md:py-4",
+          "min-h-0 overflow-y-auto px-[7%] py-6 max-md:bg-black/55 max-md:px-3 max-md:py-4",
           className,
         )}
         aria-label={`${characterName}との会話`}
@@ -73,7 +73,7 @@ export function ChatTimeline({
         >
           {intro ? <SceneIntroCard context={intro} visibleSections={playback.visibleIntroSections} /> : null}
           {playback.showStoryStart ? (
-            <div className="animate-in my-1 flex items-center justify-center gap-5 text-sm text-muted-foreground fade-in duration-300 max-md:text-xs max-md:text-white/90 max-md:drop-shadow-md">
+            <div className="animate-in my-1 flex items-center justify-center gap-5 text-sm text-muted-foreground fade-in duration-300 max-md:text-xs max-md:text-white max-md:drop-shadow-md">
               <span className="h-px w-14 bg-border" aria-hidden="true" />
               {intro ? "ここから、物語がはじまる" : "今日 20:42"}
               <span className="h-px w-14 bg-border" aria-hidden="true" />

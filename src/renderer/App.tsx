@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { BrowserRouter, HashRouter, useLocation, useMatch, useNavigate } from "react-router"
 
 import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
@@ -12,8 +12,10 @@ import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL, getConnectionError }
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { rankScenarios, readScenarioRecommendation } from "@/lib/scenario-recommendation"
+import { getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, scenarioVersion, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
 import { getDesktopBridge, isDesktopApp } from "@/lib/platform"
-import { DEFAULT_TTS_SETTINGS, type TtsSettings } from "@/lib/tts"
+import { DEFAULT_TTS_SETTINGS, getIrodoriRuntimeSnapshot, isIrodoriTtsSettings, subscribeIrodoriRuntime, type TtsSettings } from "@/lib/tts"
+import { DEFAULT_BUILTIN_MODEL_SOURCE } from "../shared/local-ai"
 import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
 import { OnboardingScreen, type OnboardingGender, type OnboardingProfile } from "@/screens/OnboardingScreen"
 import { SetupScreen, type AppearanceSettings } from "@/screens/SetupScreen"
@@ -27,14 +29,16 @@ const CONNECTION_STORAGE_KEY = "mikan-chat.connection.v1"
 const ONBOARDING_STORAGE_KEY = "mikan-chat.onboarding.v1"
 const APPEARANCE_STORAGE_KEY = "mikan-chat.appearance.v1"
 const TTS_STORAGE_KEY = "mikan-chat.tts.v1"
+const SCENARIO_VOICES_STORAGE_KEY = "mikan-chat.scenario-voices.v1"
 const ONBOARDING_GENDERS: OnboardingGender[] = ["woman", "man", "nonbinary", "prefer-not-to-say"]
 
 function createDefaultConnection(): ConnectionSettings {
+  const hasBuiltinAI = Boolean(getDesktopBridge()?.localAI)
   return {
-    type: isDesktopApp() ? "local" : "online",
+    type: hasBuiltinAI ? "builtin" : isDesktopApp() ? "local" : "online",
     apiKey: "",
-    endpoint: isDesktopApp() ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT,
-    model: isDesktopApp() ? "" : GOOGLE_AI_STUDIO_MODEL,
+    endpoint: hasBuiltinAI ? "" : isDesktopApp() ? "http://127.0.0.1:11434/v1" : GOOGLE_AI_STUDIO_ENDPOINT,
+    model: hasBuiltinAI ? DEFAULT_BUILTIN_MODEL_SOURCE : isDesktopApp() ? "" : GOOGLE_AI_STUDIO_MODEL,
   }
 }
 
@@ -73,13 +77,16 @@ function readTtsSettings(): TtsSettings {
   if (isDesktopApp()) return DEFAULT_TTS_SETTINGS
   try {
     const stored = JSON.parse(window.localStorage.getItem(TTS_STORAGE_KEY) ?? "null") as Partial<TtsSettings> | null
-    if (!stored || (stored.provider !== "browser" && stored.provider !== "kokoro" && stored.provider !== "openai-compatible" && stored.provider !== "elevenlabs")) return DEFAULT_TTS_SETTINGS
+    if (!stored || (stored.provider !== "browser" && stored.provider !== "kokoro" && stored.provider !== "irodori" && stored.provider !== "openai-compatible" && stored.provider !== "elevenlabs")) return DEFAULT_TTS_SETTINGS
     const settings: TtsSettings = {
       provider: stored.provider,
       apiKey: typeof stored.apiKey === "string" ? stored.apiKey : "",
       endpoint: typeof stored.endpoint === "string" ? stored.endpoint : DEFAULT_TTS_SETTINGS.endpoint,
       model: typeof stored.model === "string" ? stored.model : DEFAULT_TTS_SETTINGS.model,
       voice: typeof stored.voice === "string" ? stored.voice : DEFAULT_TTS_SETTINGS.voice,
+      irodoriQuality: stored.irodoriQuality === "fast" || stored.irodoriQuality === "balanced" || stored.irodoriQuality === "quality"
+        ? stored.irodoriQuality
+        : undefined,
     }
     return settings
   } catch {
@@ -94,6 +101,40 @@ function persistTtsSettings(settings: TtsSettings) {
   } catch {
     // Storage may be unavailable in privacy-restricted browser contexts.
   }
+}
+
+function readScenarioVoiceSelections(): Record<string, ScenarioVoiceSelection> {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(SCENARIO_VOICES_STORAGE_KEY) ?? "{}") as Record<string, unknown>
+    return Object.fromEntries(Object.entries(stored).filter((entry): entry is [string, ScenarioVoiceSelection] => {
+      const value = entry[1] as Partial<ScenarioVoiceSelection> | null
+      return Boolean(value)
+        && typeof value?.characterId === "string" && value.characterId.length > 0 && value.characterId.length <= 64
+        && typeof value.voiceId === "string" && /^[A-Za-z0-9_-]{1,200}$/.test(value.voiceId)
+        && typeof value.caption === "string" && value.caption.trim().length > 0 && value.caption.length <= 1_000
+        && Number.isInteger(value.seed) && (value.seed ?? -1) >= 0 && (value.seed ?? Number.MAX_SAFE_INTEGER) <= 2_147_483_647
+        && typeof value.scenarioVersion === "string" && value.scenarioVersion.length > 0 && value.scenarioVersion.length <= 100
+    }))
+  } catch {
+    return {}
+  }
+}
+
+function persistScenarioVoiceSelections(selections: Record<string, ScenarioVoiceSelection>) {
+  try {
+    window.localStorage.setItem(SCENARIO_VOICES_STORAGE_KEY, JSON.stringify(selections))
+  } catch {
+    // Storage may be unavailable in privacy-restricted contexts.
+  }
+}
+
+function voiceSelectionKey(scenarioId: string, characterId: string) {
+  return `${scenarioId}:${characterId}`
+}
+
+function findVoiceSelection(selections: Record<string, ScenarioVoiceSelection>, scenarioId: string, characterId: string) {
+  return selections[voiceSelectionKey(scenarioId, characterId)]
+    ?? (selections[scenarioId]?.characterId === characterId ? selections[scenarioId] : undefined)
 }
 
 function readOnboardingProfile(): OnboardingProfile | null {
@@ -213,14 +254,34 @@ export function AppContent() {
   const [connectionType, setConnectionType] = useState<ConnectionType>(connectionSettings.type)
   const [readAloud, setReadAloud] = useState(false)
   const [ttsSettings, setTtsSettings] = useState<TtsSettings>(readTtsSettings)
+  const [scenarioVoiceSelections, setScenarioVoiceSelections] = useState<Record<string, ScenarioVoiceSelection>>(readScenarioVoiceSelections)
+  const [voiceSetupRequired, setVoiceSetupRequired] = useState(false)
+  const [voiceSetupCharacterId, setVoiceSetupCharacterId] = useState("")
+  const [confirmedVoiceGateKey, setConfirmedVoiceGateKey] = useState("")
+  const [voiceGateRetry, setVoiceGateRetry] = useState(0)
+  const checkedVoiceGate = useRef("")
+  const voiceGatePrompted = useRef(false)
+  const irodoriSelected = isIrodoriTtsSettings(ttsSettings)
+  const irodoriRuntime = useSyncExternalStore(subscribeIrodoriRuntime, getIrodoriRuntimeSnapshot)
   const [showStoryIntro, setShowStoryIntro] = useState(false)
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(readOnboardingProfile)
   const [appearanceSettings, setAppearanceSettings] = useState<AppearanceSettings>(readAppearanceSettings)
   const [desktopReady, setDesktopReady] = useState(!isDesktopApp() || !getDesktopBridge()?.store)
+  const [conversationScenarioIds, setConversationScenarioIds] = useState<Set<string>>(new Set())
+  const [conversationsLoaded, setConversationsLoaded] = useState(!getDesktopBridge()?.conversations)
   const routeCharacter = routePublicId ? library.find((character) => character.publicId === routePublicId) ?? null : null
   const activeCharacter = routeCharacter ?? selectedCharacter
   const homeTab: HomeTab = chatsMatch ? "chat" : "home"
   const talkBackTo = (location.state as { backTo?: string } | null)?.backTo
+  const activeVoiceDesigns = getScenarioVoiceDesigns(activeCharacter)
+  const activeVoiceDesign = activeVoiceDesigns.find((design) => design.characterId === voiceSetupCharacterId) ?? activeVoiceDesigns[0]
+  const activeVoiceSelections = activeVoiceDesigns.flatMap((design) => {
+    const selection = findVoiceSelection(scenarioVoiceSelections, activeCharacter.id, design.characterId)
+    return selection ? [selection] : []
+  })
+  const activeVoiceGateKey = activeVoiceDesigns.length ? `${activeCharacter.id}:${scenarioVersion(activeCharacter)}` : ""
+  const voiceGateApplies = desktopReady && screen === "talk" && irodoriSelected && Boolean(getDesktopBridge()?.tts?.hasReference) && activeVoiceDesigns.some((design) => !hasScenarioReferenceAudio(activeCharacter, design.characterId))
+  const ttsVoiceReady = !voiceGateApplies || confirmedVoiceGateKey === activeVoiceGateKey
 
   const refreshScenarios = useCallback(async () => {
     const requestId = ++scenariosRequestId.current
@@ -249,6 +310,111 @@ export function AppContent() {
   }, [])
 
   useEffect(() => { void refreshScenarios() }, [refreshScenarios])
+
+  useEffect(() => {
+    const conversations = getDesktopBridge()?.conversations
+    if (!desktopReady || screen !== "home" || !conversations) return
+    let active = true
+    setConversationsLoaded(false)
+    void conversations.list().then((items) => {
+      if (active) setConversationScenarioIds(new Set(items.map((item) => item.scenarioId)))
+    }).catch((error) => {
+      console.error("Failed to list conversations", error)
+    }).finally(() => {
+      if (active) setConversationsLoaded(true)
+    })
+    return () => { active = false }
+  }, [desktopReady, screen])
+
+  useEffect(() => {
+    if (!desktopReady) return
+    const bridge = getDesktopBridge()?.irodori
+    if (!bridge) return
+    if (!irodoriSelected) {
+      void bridge.stop().catch(() => undefined)
+      return
+    }
+    let active = true
+    void bridge.status().then((runtime) => {
+      if (!active) return
+      if (runtime.state === "ready" || runtime.state === "running" || runtime.state === "starting") return bridge.start()
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [desktopReady, irodoriSelected])
+
+  useEffect(() => {
+    if (screen !== "talk") {
+      checkedVoiceGate.current = ""
+      voiceGatePrompted.current = false
+      setVoiceSetupRequired(false)
+      setConfirmedVoiceGateKey("")
+      return
+    }
+    if (!irodoriSelected) {
+      checkedVoiceGate.current = ""
+      voiceGatePrompted.current = false
+      setVoiceSetupRequired(false)
+      setConfirmedVoiceGateKey("")
+      return
+    }
+    const bridge = getDesktopBridge()
+    const designs = getScenarioVoiceDesigns(activeCharacter)
+    if (!desktopReady || !bridge?.irodori || !bridge.tts?.hasReference || !designs.length) {
+      setVoiceSetupRequired(false)
+      return
+    }
+    if (irodoriRuntime && !["ready", "running"].includes(irodoriRuntime.state)) {
+      checkedVoiceGate.current = ""
+      setConfirmedVoiceGateKey("")
+      setVoiceSetupRequired(false)
+      return
+    }
+    const gateKey = `${activeCharacter.id}:${scenarioVersion(activeCharacter)}`
+    if (checkedVoiceGate.current === gateKey) return
+    let active = true
+    let retryTimer: number | undefined
+    void (async () => {
+      for (let attempt = 0; attempt < 3 && active; attempt += 1) {
+        try {
+          const runtime = await bridge.irodori!.status()
+          if (!active || !["ready", "running"].includes(runtime.state)) return
+          let missing = null
+          for (const design of designs) {
+            if (hasScenarioReferenceAudio(activeCharacter, design.characterId)) continue
+            const selection = findVoiceSelection(scenarioVoiceSelections, activeCharacter.id, design.characterId)
+            if (!await isScenarioVoiceConfirmed(activeCharacter, selection, bridge.tts!.hasReference!)) {
+              missing = design
+              break
+            }
+          }
+          if (!active) return
+          checkedVoiceGate.current = gateKey
+          if (!missing) {
+            setConfirmedVoiceGateKey(gateKey)
+            setVoiceSetupRequired(false)
+            if (voiceGatePrompted.current) {
+              voiceGatePrompted.current = false
+              setOverlay(null)
+            }
+            return
+          }
+          setConfirmedVoiceGateKey("")
+          setVoiceSetupCharacterId(missing.characterId)
+          setVoiceSetupRequired(true)
+          voiceGatePrompted.current = true
+          setOverlay("voice")
+          return
+        } catch {
+          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 750))
+        }
+      }
+      if (active) retryTimer = window.setTimeout(() => setVoiceGateRetry((current) => current + 1), 2_000)
+    })()
+    return () => {
+      active = false
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+    }
+  }, [activeCharacter, desktopReady, irodoriRuntime, irodoriSelected, scenarioVoiceSelections, screen, voiceGateRetry])
 
   useEffect(() => {
     const store = getDesktopBridge()?.store
@@ -356,6 +522,7 @@ export function AppContent() {
       imported: true,
       opening,
       pack: loaded.raw,
+      assets: loaded.assets,
     }
   }
 
@@ -396,9 +563,16 @@ export function AppContent() {
       .map(([tag]) => tag)
   }, [library])
 
+  const conversationLibrary = useMemo(
+    () => getDesktopBridge()?.conversations ? library.filter((character) => conversationScenarioIds.has(character.id)) : library,
+    [conversationScenarioIds, library],
+  )
   const recommendedLibrary = useMemo(
-    () => onboardingProfile ? rankScenarios(library, onboardingProfile) : library,
-    [library, onboardingProfile],
+    () => {
+      const unread = library.filter((character) => !conversationScenarioIds.has(character.id))
+      return onboardingProfile ? rankScenarios(unread, onboardingProfile) : unread
+    },
+    [conversationScenarioIds, library, onboardingProfile],
   )
 
   if (!desktopReady) return <main className="h-dvh bg-background" aria-label="アプリを準備しています" />
@@ -446,15 +620,15 @@ export function AppContent() {
 
       {screen === "home" ? (
         <HomeScreen
-          characters={library}
-          recommendedCharacters={recommendedLibrary}
+          characters={conversationLibrary}
+          recommendedCharacters={conversationsLoaded ? recommendedLibrary : []}
           activeTab={homeTab}
           onTabChange={(tab) => navigate(tab === "home" ? "/" : "/chats")}
           onSelectCharacter={talkWith}
           onAddPack={() => openOverlay("import")}
           onOpenDocs={() => showScreen("docs")}
           onOpenSettings={() => showScreen("settings")}
-          loading={scenariosLoading}
+          loading={scenariosLoading || !conversationsLoaded}
           error={scenariosError}
           onRetry={refreshScenarios}
         />
@@ -490,6 +664,8 @@ export function AppContent() {
             conversationId={activeConversationId}
             connection={connectionSettings}
             ttsSettings={ttsSettings}
+            voiceSelections={activeVoiceSelections}
+            ttsVoiceReady={ttsVoiceReady}
             readAloud={readAloud}
             isNewStory={showStoryIntro}
             onBack={() => navigate(talkBackTo ?? (routePublicId ? scenarioPath(activeCharacter) : "/"))}
@@ -539,10 +715,21 @@ export function AppContent() {
         open={overlay === "voice"}
         readAloud={readAloud}
         ttsSettings={ttsSettings}
+        character={screen === "talk" ? activeCharacter : undefined}
+        voiceDesign={screen === "talk" ? activeVoiceDesign : undefined}
+        voiceSelection={screen === "talk" && activeVoiceDesign ? findVoiceSelection(scenarioVoiceSelections, activeCharacter.id, activeVoiceDesign.characterId) : undefined}
+        voiceSetupRequired={voiceSetupRequired}
         onReadAloudChange={setReadAloud}
         onTtsSettingsChange={(settings) => {
           persistTtsSettings(settings)
           setTtsSettings(settings)
+          if (!isIrodoriTtsSettings(settings)) setVoiceSetupRequired(false)
+        }}
+        onVoiceConfirmed={(selection) => {
+          const next = { ...scenarioVoiceSelections, [voiceSelectionKey(activeCharacter.id, selection.characterId)]: selection }
+          persistScenarioVoiceSelections(next)
+          setScenarioVoiceSelections(next)
+          checkedVoiceGate.current = ""
         }}
         onOpenChange={(open) => setOverlayOpen("voice", open)}
       />

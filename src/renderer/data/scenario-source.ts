@@ -4,7 +4,7 @@ import { readScenarioRecommendation } from "@/lib/scenario-recommendation"
 import { isDesktopApp } from "@/lib/platform"
 
 const bundledPacks = import.meta.glob("../../../examples/*/pack.json", { eager: true, import: "default" }) as Record<string, Record<string, unknown>>
-const bundledAssets = import.meta.glob("../../../examples/*/assets/*.{webp,png,jpg,jpeg}", { eager: true, query: "?url", import: "default" }) as Record<string, string>
+const bundledAssets = import.meta.glob("../../../examples/*/assets/*.{webp,png,jpg,jpeg,wav,mp3,flac}", { eager: true, query: "?url", import: "default" }) as Record<string, string>
 
 export type ScenarioSummary = {
   id: string
@@ -94,6 +94,10 @@ function toBundledCharacter(directory: string, pack: Record<string, unknown>): C
   })
   const coverPath = Array.isArray(discovery?.covers) ? assetUrl(discovery.covers[0]) : undefined
   const stageImage = assetUrl(primary.image) ?? coverPath
+  const assets = Object.fromEntries(Object.entries(bundledAssets).flatMap(([path, url]) => {
+    const asset = path.match(new RegExp(`examples/${directory}/(assets/.+)$`))?.[1]
+    return asset ? [[asset, url]] : []
+  }))
   const lastMessage = [...opening].reverse().find((event) => event.role === "character")?.text ?? pack.summary
 
   return [{
@@ -111,6 +115,7 @@ function toBundledCharacter(directory: string, pack: Record<string, unknown>): C
     stageImage,
     opening,
     pack,
+    assets,
   }]
 }
 

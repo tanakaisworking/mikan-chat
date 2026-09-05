@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createKokoroTtsDriver, createTtsDriver, deleteKokoroModel, downloadKokoroModel, getKokoroModelSnapshot, getTtsSettingsError, isKokoroModelDownloaded, subscribeKokoroModel } from "@/lib/tts"
+import { chooseKokoroBackend, createKokoroTtsDriver, createTtsDriver, deleteKokoroModel, downloadKokoroModel, getKokoroAssetsUrl, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isKokoroModelDownloaded, subscribeKokoroModel } from "@/lib/tts"
 
 describe("TTS driver", () => {
   afterEach(() => {
@@ -9,6 +9,28 @@ describe("TTS driver", () => {
     vi.restoreAllMocks()
     Reflect.deleteProperty(URL, "createObjectURL")
     Reflect.deleteProperty(URL, "revokeObjectURL")
+    Reflect.deleteProperty(navigator, "gpu")
+  })
+
+  it("KokoroはWebGPUを短時間で初期化できる端末ではWebGPUを選ぶ", async () => {
+    window.localStorage.removeItem("mikan-chat.kokoro-backend.v1")
+    Object.defineProperty(navigator, "gpu", {
+      configurable: true,
+      value: {
+        requestAdapter: vi.fn(async () => ({
+          requestDevice: vi.fn(async () => ({ queue: { submit: vi.fn(), onSubmittedWorkDone: vi.fn(async () => undefined) } })),
+        })),
+      },
+    })
+    vi.spyOn(performance, "now").mockReturnValueOnce(0).mockReturnValueOnce(100)
+
+    await expect(chooseKokoroBackend()).resolves.toBe("webgpu")
+  })
+
+  it("Electron製品版では同梱したKokoro資産をindex.html基準で読む", () => {
+    expect(getKokoroAssetsUrl(new URL("file:///Applications/mikan-chat/out/renderer/index.html"))).toBe(
+      "file:///Applications/mikan-chat/out/renderer/kokoro-js-jp",
+    )
   })
 
   it("ブラウザ標準TTSを同じ再生・停止契約で駆動する", () => {
@@ -361,6 +383,99 @@ describe("TTS driver", () => {
 
   it("外部TTSの必須設定を検証する", () => {
     expect(getTtsSettingsError({ provider: "openai-compatible", apiKey: "", endpoint: "https://example.com/v1", model: "model", voice: "voice" })).toBe("APIキーを入力してください。")
+  })
+
+  it("Irodori TTSはローカルサーバーへAPIキーなしで接続できる", async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const synthesizeLocal = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]).buffer)
+    const cancelLocal = vi.fn()
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal, cancelLocal } }
+    vi.stubGlobal("Audio", class { onended = null; onerror = null; pause = vi.fn(); play = play })
+    vi.stubGlobal("fetch", vi.fn())
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:irodori") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+
+    expect(getTtsSettingsError(IRODORI_TTS_SETTINGS)).toBeNull()
+    const driver = createTtsDriver(IRODORI_TTS_SETTINGS, { supported: true, state: "running", progress: 100, stage: "利用できます" })
+    driver.speak("こんにちは。")
+
+    await vi.waitFor(() => expect(play).toHaveBeenCalledOnce())
+    expect(driver.label).toBe("Irodori TTS")
+    expect(synthesizeLocal).toHaveBeenCalledWith(expect.objectContaining({ endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none", apiKey: "", text: "こんにちは。", numSteps: 32 }))
+    expect(fetch).not.toHaveBeenCalled()
+    driver.stop()
+    expect(cancelLocal).toHaveBeenCalledOnce()
+  })
+
+  it("Irodoriへシナリオの参照音声と推奨値を渡す", async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const synthesizeLocal = vi.fn().mockResolvedValue(new Uint8Array([1]).buffer)
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal, cancelLocal: vi.fn() } }
+    vi.stubGlobal("Audio", class { onended = null; onerror = null; pause = vi.fn(); play = play })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), { status: 200 })))
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:irodori") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+
+    const driver = createTtsDriver(IRODORI_TTS_SETTINGS, { supported: true, state: "running", progress: 100, stage: "利用できます" })
+    driver.speak("こんにちは。", {}, {
+      caption: "落ち着いた声",
+      seed: 42,
+      referenceAudio: { source: "data:audio/wav;base64,UklGRg==", voiceId: "mikan-aoi", fileName: "aoi.wav" },
+    })
+
+    await vi.waitFor(() => expect(synthesizeLocal).toHaveBeenCalledOnce())
+    expect(synthesizeLocal).toHaveBeenCalledWith(expect.objectContaining({
+      caption: "落ち着いた声",
+      seed: 42,
+      numSteps: 32,
+      referenceAudio: expect.objectContaining({ voiceId: "mikan-aoi", fileName: "aoi.wav", mimeType: "audio/wav", data: expect.any(ArrayBuffer) }),
+    }))
+  })
+
+  it("同じモデル名の手動ローカルTTSを内蔵Irodoriと誤認しない", async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const synthesizeLocal = vi.fn()
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal, cancelLocal: vi.fn() } }
+    vi.stubGlobal("Audio", class { onended = null; onerror = null; pause = vi.fn(); play = play })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Blob(["audio"]))))
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:manual") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+
+    const driver = createTtsDriver({
+      provider: "openai-compatible",
+      apiKey: "manual-key",
+      endpoint: "http://127.0.0.1:5000/v1",
+      model: "irodori-tts",
+      voice: "none",
+    })
+    driver.speak("手動サーバー")
+
+    await vi.waitFor(() => expect(play).toHaveBeenCalledOnce())
+    expect(driver.label).toBe("外部TTS")
+    expect(synthesizeLocal).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:5000/v1/audio/speech", expect.anything())
+  })
+
+  it("未起動の内蔵Irodoriをブラウザ標準音声へ切り替えない", async () => {
+    const browserSpeak = vi.fn()
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal: vi.fn().mockRejectedValue(new Error("セットアップ中")), cancelLocal: vi.fn() } }
+    vi.stubGlobal("SpeechSynthesisUtterance", class {})
+    vi.stubGlobal("speechSynthesis", { cancel: vi.fn(), speak: browserSpeak })
+    vi.stubGlobal("Audio", class {})
+    const onError = vi.fn()
+
+    createTtsDriver(IRODORI_TTS_SETTINGS, { supported: true, state: "running", progress: 100, stage: "利用できます" }).speak("こんにちは。", { onError })
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("セットアップ中"))
+    expect(browserSpeak).not.toHaveBeenCalled()
+  })
+
+  it("未導入のIrodoriを再生可能として扱わない", () => {
+    vi.stubGlobal("Audio", class {})
+    const driver = createTtsDriver(IRODORI_TTS_SETTINGS, { supported: true, state: "missing", progress: 0, stage: "セットアップが必要です" })
+
+    expect(driver.supported).toBe(false)
+    expect(driver.unavailableReason).toBe("セットアップが必要です")
   })
 
   it("新しい読み上げ開始後に古い応答が到着しても再生を上書きしない", async () => {

@@ -12,7 +12,8 @@ const limits = {
 }
 
 const allowedRootFiles = new Set(["pack.json", "LICENSE.txt"])
-const allowedAssetExtensions = new Set(["webp", "png", "jpg", "jpeg"])
+const imageAssetExtensions = new Set(["webp", "png", "jpg", "jpeg"])
+const audioAssetExtensions = new Set(["wav", "mp3", "flac"])
 const reservedCharacterIds = new Set(["user", "narrator"])
 const decoder = new TextDecoder("utf-8", { fatal: true })
 const uuidPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i
@@ -28,6 +29,31 @@ export type ChatPackCharacter = {
   name: string
   profile: string
   image?: string
+  voice?: ChatPackVoice
+}
+
+export type ChatPackVoice = {
+  profile?: {
+    language?: string
+    description?: string
+    traits?: string[]
+    speed?: number
+    pitch?: number
+    [key: string]: unknown
+  }
+  referenceAudio?: {
+    asset: string
+    transcript?: string
+    language?: string
+    creator?: string
+    source?: string
+    license?: string
+  }
+  preferred?: Array<{
+    provider: string
+    voiceId: string
+    parameters?: Record<string, unknown>
+  }>
 }
 
 export type ChatPack = {
@@ -99,9 +125,10 @@ export async function loadChatPack(file: File): Promise<LoadedChatPack> {
   const assets: Record<string, string> = {}
   for (const [assetPath, data] of Object.entries(entries)) {
     if (!assetPath.startsWith("assets/")) continue
-    const mime = detectImageMime(data)
-    if (!mime) throw new ChatPackError(`画像形式を確認できません: ${assetPath}`)
-    await validateImage(data, mime, assetPath)
+    const mime = detectAssetMime(data)
+    if (!mime) throw new ChatPackError(`ファイル形式を確認できません: ${assetPath}`)
+    if (!matchesAssetExtension(assetPath, mime)) throw new ChatPackError(`拡張子とファイル形式が一致しません: ${assetPath}`)
+    if (mime.startsWith("image/")) await validateImage(data, mime, assetPath)
     assets[assetPath] = toDataUrl(data, mime)
   }
 
@@ -222,7 +249,7 @@ function validateArchiveEntry(file: UnzipFile) {
   if (allowedRootFiles.has(path)) return
   if (!path.startsWith("assets/")) throw new ChatPackError(`許可されていないファイルです: ${path}`)
   const extension = path.split(".").pop()?.toLowerCase() ?? ""
-  if (!allowedAssetExtensions.has(extension)) throw new ChatPackError(`許可されていない画像形式です: ${path}`)
+  if (!imageAssetExtensions.has(extension) && !audioAssetExtensions.has(extension)) throw new ChatPackError(`許可されていないファイル形式です: ${path}`)
 }
 
 function validatePack(input: unknown): ChatPack {
@@ -266,11 +293,13 @@ function validatePack(input: unknown): ChatPack {
     }
     ids.add(id)
     const image = character.image === undefined ? undefined : requireAssetPath(character.image, `plot.characters[${index}].image`)
+    const voice = character.voice === undefined ? undefined : validateVoice(character.voice, `plot.characters[${index}].voice`)
     return {
       id,
       name: requireString(character.name, `plot.characters[${index}].name`),
       profile: requireString(character.profile, `plot.characters[${index}].profile`),
       ...(image ? { image } : {}),
+      ...(voice ? { voice } : {}),
     }
   })
 
@@ -323,6 +352,7 @@ function validateEvent(input: unknown, index: number, characterIds: Set<string>)
 function collectAssetPaths(pack: ChatPack, raw: Record<string, unknown>) {
   const paths = new Set((pack.discovery.covers ?? []).map((path) => requireAssetPath(path, "discovery.covers")))
   for (const character of pack.plot.characters) if (character.image) paths.add(character.image)
+  for (const character of pack.plot.characters) if (character.voice?.referenceAudio) paths.add(character.voice.referenceAudio.asset)
   for (const event of pack.plot.opening) if (event.image) paths.add(event.image)
   const discovery = raw.discovery as Record<string, unknown>
   for (const value of (discovery.credits as Array<Record<string, unknown>> | undefined) ?? []) {
@@ -338,6 +368,32 @@ function collectAssetPaths(pack: ChatPack, raw: Record<string, unknown>) {
     }
   }
   return paths
+}
+
+function validateVoice(value: unknown, field: string): ChatPackVoice {
+  const voice = requireObject(value, field)
+  const profile = voice.profile === undefined ? undefined : requireObject(voice.profile, `${field}.profile`)
+  const reference = voice.referenceAudio === undefined ? undefined : requireObject(voice.referenceAudio, `${field}.referenceAudio`)
+  const preferred = voice.preferred === undefined ? undefined : (Array.isArray(voice.preferred) ? voice.preferred.map((item, index) => {
+    const preference = requireObject(item, `${field}.preferred[${index}]`)
+    return {
+      provider: requireString(preference.provider, `${field}.preferred[${index}].provider`),
+      voiceId: requireString(preference.voiceId, `${field}.preferred[${index}].voiceId`),
+      ...(preference.parameters === undefined ? {} : { parameters: requireObject(preference.parameters, `${field}.preferred[${index}].parameters`) }),
+    }
+  }) : (() => { throw new ChatPackError(`${field}.preferredを確認してください。`) })())
+  return {
+    ...(profile ? { profile } : {}),
+    ...(reference ? { referenceAudio: {
+      asset: requireAssetPath(reference.asset, `${field}.referenceAudio.asset`),
+      ...(optionalString(reference.transcript, `${field}.referenceAudio.transcript`) ? { transcript: reference.transcript as string } : {}),
+      ...(optionalString(reference.language, `${field}.referenceAudio.language`) ? { language: reference.language as string } : {}),
+      ...(optionalString(reference.creator, `${field}.referenceAudio.creator`) ? { creator: reference.creator as string } : {}),
+      ...(optionalString(reference.source, `${field}.referenceAudio.source`) ? { source: reference.source as string } : {}),
+      ...(optionalString(reference.license, `${field}.referenceAudio.license`) ? { license: reference.license as string } : {}),
+    } } : {}),
+    ...(preferred ? { preferred } : {}),
+  }
 }
 
 function requireObject(value: unknown, field: string): Record<string, unknown> {
@@ -378,11 +434,24 @@ function isSemver(value: string) {
   return semverPattern.test(value)
 }
 
-function detectImageMime(data: Uint8Array) {
+function detectAssetMime(data: Uint8Array) {
   if (data.length >= 12 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 && data[8] === 0x57 && data[9] === 0x45 && data[10] === 0x42 && data[11] === 0x50) return "image/webp"
   if (data.length >= 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47) return "image/png"
   if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return "image/jpeg"
+  if (data.length >= 12 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 && data[8] === 0x57 && data[9] === 0x41 && data[10] === 0x56 && data[11] === 0x45) return "audio/wav"
+  if (data.length >= 4 && data[0] === 0x66 && data[1] === 0x4c && data[2] === 0x61 && data[3] === 0x43) return "audio/flac"
+  if ((data.length >= 3 && data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) || (data.length >= 2 && data[0] === 0xff && (data[1] & 0xe0) === 0xe0)) return "audio/mpeg"
   return null
+}
+
+function matchesAssetExtension(path: string, mime: string) {
+  const extension = path.split(".").pop()?.toLowerCase()
+  return (mime === "image/webp" && extension === "webp")
+    || (mime === "image/png" && extension === "png")
+    || (mime === "image/jpeg" && (extension === "jpg" || extension === "jpeg"))
+    || (mime === "audio/wav" && extension === "wav")
+    || (mime === "audio/mpeg" && extension === "mp3")
+    || (mime === "audio/flac" && extension === "flac")
 }
 
 async function validateImage(data: Uint8Array, mime: string, path: string) {

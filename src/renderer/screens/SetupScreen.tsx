@@ -2,11 +2,11 @@ import { Bot, Check, Monitor, Moon, Sun, Type, UserRound, Volume2 } from "lucide
 
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import { AppHeader } from "@/components/ui/app-header"
+import { BirthYearField } from "@/components/ui/birth-year-field"
 import { Button } from "@/components/ui/button"
 import { GenrePicker } from "@/components/ui/genre-picker"
 import { cn } from "@/lib/utils"
-import type { TtsSettings } from "@/lib/tts"
-import { isDesktopApp } from "@/lib/platform"
+import { isIrodoriTtsSettings, type TtsSettings } from "@/lib/tts"
 import type { OnboardingGender, OnboardingProfile } from "@/screens/OnboardingScreen"
 
 export type AppearanceSettings = {
@@ -27,8 +27,6 @@ type SetupScreenProps = {
   onAppearanceChange: (appearance: AppearanceSettings) => void
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
-const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1899 }, (_, index) => CURRENT_YEAR - index)
 const GENDERS: Array<{ value: OnboardingGender; label: string }> = [
   { value: "woman", label: "女性" },
   { value: "man", label: "男性" },
@@ -38,6 +36,8 @@ const GENDERS: Array<{ value: OnboardingGender; label: string }> = [
 
 export function SetupScreen({ connection, ttsSettings, profile, genres, appearance, onBack, onOpenConnection, onOpenVoice, onProfileChange, onAppearanceChange }: SetupScreenProps) {
   const availableGenres = [...new Set([...genres, ...profile.favoriteGenres])]
+  const ttsLabel = ttsSettings.provider === "browser" ? "ブラウザ標準TTS" : ttsSettings.provider === "kokoro" ? "Kokoro" : ttsSettings.provider === "elevenlabs" ? "ElevenLabs" : isIrodoriTtsSettings(ttsSettings) ? "Irodori TTS" : "外部TTS"
+  const ttsDescription = ttsSettings.provider === "browser" ? "APIキー不要" : ttsSettings.provider === "kokoro" ? "無料・端末内で生成" : ttsSettings.voice ? `${ttsSettings.model} / ${ttsSettings.voice}` : ttsSettings.provider === "elevenlabs" ? "Voice IDは未設定です" : "音声は未設定です"
 
   return (
     <main className="grid h-screen grid-rows-[88px_minmax(0,1fr)] overflow-hidden bg-background supports-[height:100dvh]:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="settings-screen">
@@ -113,12 +113,11 @@ export function SetupScreen({ connection, ttsSettings, profile, genres, appearan
                   {GENDERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
-              <label className="grid gap-2 text-sm font-semibold">
-                生年
-                <select className="h-12 rounded-md border border-input bg-surface px-4 font-normal outline-none focus:border-primary focus:ring-2 focus:ring-ring/20" value={profile.birthYear} onChange={(event) => onProfileChange({ ...profile, birthYear: Number(event.target.value) })}>
-                  {BIRTH_YEARS.map((year) => <option key={year} value={year}>{year}年</option>)}
-                </select>
-              </label>
+              <BirthYearField
+                id="settings-birth-year"
+                value={profile.birthYear}
+                onChange={(birthYear) => onProfileChange({ ...profile, birthYear })}
+              />
               <fieldset className="sm:col-span-2">
                 <legend className="text-sm font-semibold">好きなジャンル</legend>
                 <p className="mt-1 text-xs font-normal text-muted-foreground">複数選べます。1つ以上選んでください。</p>
@@ -149,7 +148,7 @@ export function SetupScreen({ connection, ttsSettings, profile, genres, appearan
               <div className="flex items-center gap-3">
                 <span className="text-primary" aria-hidden="true">{connection.type === "local" ? <Monitor /> : <Bot />}</span>
                 <div>
-                  <p className="font-semibold">{connection.type === "local" ? "このPCのAI" : "オンラインAI"}</p>
+                  <p className="font-semibold">{connection.type === "builtin" ? "内蔵AI" : connection.type === "local" ? "LM Studio / Ollama" : "オンラインAI"}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{connection.type === "online" && !connection.apiKey ? "APIキーは未設定です" : connection.model || "モデルを接続時に確認します"}</p>
                 </div>
               </div>
@@ -170,10 +169,8 @@ export function SetupScreen({ connection, ttsSettings, profile, genres, appearan
               <div className="flex items-center gap-3">
                 <span className="text-primary" aria-hidden="true"><Volume2 /></span>
                 <div>
-                  <p className="font-semibold">{isDesktopApp() ? "Irodori TTS" : ttsSettings.provider === "browser" ? "ブラウザ標準TTS" : ttsSettings.provider === "kokoro" ? "Kokoro" : ttsSettings.provider === "elevenlabs" ? "ElevenLabs" : "外部TTS"}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {isDesktopApp() ? "接続機能は準備中です" : ttsSettings.provider === "browser" ? "APIキー不要" : ttsSettings.provider === "kokoro" ? "無料・端末内で生成" : ttsSettings.voice ? `${ttsSettings.model} / ${ttsSettings.voice}` : ttsSettings.provider === "elevenlabs" ? "Voice IDは未設定です" : "音声は未設定です"}
-                  </p>
+                  <p className="font-semibold">{ttsLabel}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{ttsDescription}</p>
                 </div>
               </div>
               <Button variant="outline" onClick={onOpenVoice}>音声設定</Button>

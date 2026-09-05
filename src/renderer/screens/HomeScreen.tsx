@@ -42,21 +42,21 @@ export function HomeScreen({
       <section className="min-w-0 overflow-y-auto px-10 py-8 max-md:overflow-visible max-md:px-4 max-md:py-5">
         <div className="mx-auto max-w-[1120px]">
           <h1 className="sr-only">{activeTab === "home" ? "ホーム" : "チャット"}</h1>
-          {loading && characters.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground" role="status">シナリオを読み込んでいます…</p> : null}
+          {loading && characters.length === 0 && recommendedCharacters.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground" role="status">シナリオを読み込んでいます…</p> : null}
           {error ? (
             <div className={`mx-auto max-w-md rounded-lg border border-border bg-surface p-6 text-center shadow-soft ${characters.length > 0 ? "mb-6" : "my-12"}`} role="alert">
               <p className="font-semibold">{error}</p>
               <button type="button" className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" onClick={onRetry}>もう一度試す</button>
             </div>
           ) : null}
-          {characters.length > 0 || (!loading && !error) ? <>
+          {characters.length > 0 || recommendedCharacters.length > 0 || (!loading && !error) ? <>
           {activeTab === "chat" ? <div>
             <div className="mb-3">
               <SectionHeading>続きから</SectionHeading>
             </div>
 
             <div className="divide-y divide-border/70 border-y border-border/70">
-              {characters.slice(0, 2).map((character) => (
+              {characters.map((character) => (
                 <button
                   key={character.id}
                   type="button"
@@ -77,6 +77,7 @@ export function HomeScreen({
                 </button>
               ))}
             </div>
+            {characters.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground">まだ会話はありません。</p> : null}
           </div> : null}
 
           {activeTab === "home" ? <div>
@@ -93,6 +94,7 @@ export function HomeScreen({
                 />
               ))}
             </div>
+            {recommendedCharacters.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground">新しくおすすめできる物語はありません。会話の続きは「チャット」から開けます。</p> : null}
           </div> : null}
           </> : null}
         </div>

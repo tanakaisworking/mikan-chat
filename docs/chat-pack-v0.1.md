@@ -68,10 +68,10 @@ late-night-cafe.mikanchat
 ```
 
 - `pack.json`はルート直下に1つだけ置くMUST
-- 画像を同梱する場合は`assets/`以下へ置くMUST
+- 画像または参照音声を同梱する場合は`assets/`以下へ置くMUST
 - アセットのファイル名はASCII小文字、数字、ハイフン、ピリオドだけを使うMUST
 - ZIP内のパス区切りには`/`を使うMUST
-- `pack.json`から外部URL上の画像やローカルファイルを参照してはならないMUST NOT
+- `pack.json`から外部URL上の画像・音声やローカルファイルを参照してはならないMUST NOT
 
 メタデータと体験データは、二重管理を避けるため`pack.json`へまとめます。配信サービス用の検索インデックスは、サービス側が`pack.json`から生成します。
 
@@ -256,16 +256,24 @@ late-night-cafe.mikanchat
   "voice": {
     "profile": {
       "language": "ja",
+      "description": "落ち着いた若い女性の声。息を少し含み、近い距離で静かに話す。",
       "traits": ["young-adult", "calm", "soft"],
       "speed": 0.95,
       "pitch": 0
+    },
+    "referenceAudio": {
+      "asset": "assets/aoi-reference.wav",
+      "transcript": "こんばんは。今日は少しだけ、ここにいてください。",
+      "creator": "雨音",
+      "license": "CC0-1.0"
     },
     "preferred": [
       {
         "provider": "irodori",
         "voiceId": "aoi-soft",
         "parameters": {
-          "style": "soft"
+          "caption": "落ち着いた若い女性の声。穏やかに、少し照れながら話す。",
+          "seed": 42
         }
       }
     ]
@@ -280,6 +288,10 @@ late-night-cafe.mikanchat
 | `profile` | Yes | 人物設定 |
 | `image` | No | 会話画面で使う画像 |
 | `voice` | No | 音声の希望設定 |
+
+`voice.profile`は特定エンジンに依存しない声の参考情報です。`description`と`traits`を中心に、言語、速度、ピッチなどを記録できます。個人側のAIエージェントや音声選択ロジックは、人物の`profile`、`discovery.tags`、この情報を合わせて利用可能な声を選べます。ここに書かれた属性から人物の性別や年齢を推測して補完してはなりませんMUST NOT。
+
+`voice.referenceAudio`は任意の固定参照音声です。`asset`は`.wav`、`.mp3`、`.flac`のいずれかを参照し、権利を確認できる`creator`と`license`を記載するSHOULD。台詞が分かる場合は`transcript`も記載するSHOULD。
 
 `characters[].id`に`user`または`narrator`を使ってはならないMUST NOT。大文字小文字を区別し、`^[a-z][a-z0-9-]{0,63}$`へ適合するMUST。
 
@@ -525,8 +537,8 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
         "provider": "irodori",
         "voiceId": "aoi-soft",
         "parameters": {
-          "style": "soft",
-          "emotionStrength": 0.7
+          "caption": "落ち着いた若い女性の声。穏やかに話す。",
+          "seed": 42
         }
       }
     ]
@@ -540,9 +552,11 @@ LLMとの通信形式までは規定しません。JSON Schema出力、タグ形
 2. 利用できなければ`profile`に近いインストール済み音声を使う
 3. 音声がなければ、テキストだけで会話を続ける
 
+Irodori TTSでは、`referenceAudio`があれば話者の同一性を固定する参照として使い、`preferred[].parameters.caption`を発話の雰囲気、`seed`を再現性の参考値として使います。参照音声がなくても、`profile.description`をVoice Designのcaption候補にできます。ランタイムはユーザーが明示的に選んだ音声設定を作者の推奨より優先してよいMAY。
+
 未知の`provider`と`parameters`は無視するMUST。音声解決の失敗でチャットを停止してはならないMUST NOT。
 
-音声モデル本体、認証情報、APIキーをパックへ含めてはならないMUST NOT。`preferred`は音声の取得を保証するものではなく、実行環境への希望指定です。
+音声モデル本体、認証情報、APIキーをパックへ含めてはならないMUST NOT。参照音声はモデル本体ではなく、キャラクターの声を固定するための任意アセットです。`preferred`は音声の取得を保証するものではなく、実行環境への希望指定です。
 
 `delivery`があるイベントでは、対応できる音声エンジンが感情と強度を反映できます。対応できない場合は通常音声で読み上げます。
 
@@ -640,8 +654,11 @@ v0.1で許可するファイルは次のとおりです。
 - `.webp`
 - `.png`
 - `.jpg` / `.jpeg`
+- `.wav`
+- `.mp3`
+- `.flac`
 
-SVG、HTML、JavaScript、実行ファイル、モデル、フォント、音声ファイルを含むパックは拒否するMUST。画像は拡張子だけでなくマジックバイトでも判定するMUST。
+SVG、HTML、JavaScript、実行ファイル、モデル、フォント、上記以外の音声ファイルを含むパックは拒否するMUST。画像と音声は拡張子だけでなくマジックバイトでも判定するMUST。
 
 インポート時に画像を再エンコードして、EXIFなど不要なメタデータを削除するSHOULD。
 
@@ -765,7 +782,8 @@ mikanからCCv3への変換では、複数人物、ユーザー役、構造化�
 | `playerProfiles` | 元データを保持、選択UIは未対応 |
 | `style` | 元データを保持、生成への反映は未対応 |
 | `settingBooks` | 元データを保持、注入は未対応 |
-| `voice`と`delivery` | 元データを保持、Irodori TTS接続は未対応 |
+| `voice` | Irodoriの参照音声、caption、seedに対応。その他のプロバイダー推奨値は保持 |
+| `delivery` | 元データを保持、発話ごとの感情反映は未対応 |
 | `situationExamples` | 元データを保持、生成への反映は未対応 |
 | 未知フィールドと`extensions` | `raw`として保持 |
 

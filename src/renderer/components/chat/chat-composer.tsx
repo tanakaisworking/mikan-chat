@@ -60,10 +60,9 @@ export function ChatComposer({ onSend, isGenerating, onStop, disabled = false }:
         <textarea
           value={value}
           rows={1}
-          placeholder={disabled ? "物語を読み込み中…" : speechStatus === "listening" ? "聞き取り中…" : "メッセージを入力"}
+          placeholder={speechStatus === "listening" ? "聞き取り中…" : "メッセージを入力"}
           aria-label="メッセージ"
           className="min-h-8 min-w-0 flex-1 resize-none appearance-none overflow-y-auto rounded-none border-0 bg-transparent p-0 text-lg leading-8 outline-none [field-sizing:content] placeholder:text-muted-foreground/70 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 max-h-40 max-[1100px]:text-base max-md:max-h-32 max-md:text-base"
-          disabled={disabled}
           onChange={(event) => setValue(event.target.value)}
           onCompositionStart={() => {
             isComposing.current = true

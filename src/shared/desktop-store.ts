@@ -1,16 +1,24 @@
 import { z } from "zod"
 
 const connectionSchema = z.object({
-  type: z.enum(["local", "online"]),
+  type: z.enum(["builtin", "local", "online"]),
   endpoint: z.string(),
   model: z.string(),
 })
 
+const connectionFileSchema = z.object({
+  type: z.enum(["builtin", "local", "online"]),
+  endpoint: z.string(),
+  model: z.string(),
+  builtinAI: z.boolean().optional(),
+})
+
 const ttsSchema = z.object({
-  provider: z.enum(["browser", "kokoro", "openai-compatible", "elevenlabs"]),
+  provider: z.enum(["browser", "kokoro", "irodori", "openai-compatible", "elevenlabs"]),
   endpoint: z.string(),
   model: z.string(),
   voice: z.string(),
+  irodoriQuality: z.enum(["fast", "balanced", "quality"]).optional(),
 })
 
 const profileSchema = z.object({
@@ -34,7 +42,7 @@ export const desktopSettingsInputSchema = z.object({
 
 export const desktopSettingsFileSchema = z.object({
   version: z.literal(1),
-  connection: connectionSchema,
+  connection: connectionFileSchema,
   connectionSecret: z.string().nullable(),
   tts: ttsSchema,
   ttsSecret: z.string().nullable(),
@@ -80,4 +88,3 @@ export type DesktopStoreLoadResult = {
   recoveredCorruptData: boolean
   secretsAvailable: boolean
 }
-

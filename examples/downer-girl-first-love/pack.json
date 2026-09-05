@@ -47,6 +47,7 @@
         "voice": {
           "profile": {
             "language": "ja",
+            "description": "20歳前後の女性の低めで静かな声。眠たげで息を少し含み、普段は平坦だが、親しい相手には柔らかく甘える。",
             "traits": [
               "young-adult",
               "quiet",
@@ -55,7 +56,17 @@
             ],
             "speed": 0.9,
             "pitch": 0
-          }
+          },
+          "preferred": [
+            {
+              "provider": "irodori",
+              "voiceId": "shizuku-soft",
+              "parameters": {
+                "caption": "20歳前後の女性の低めで静かな声。眠たげで息を少し含み、照れを隠しながら近い距離で柔らかく話す。",
+                "seed": 271828
+              }
+            }
+          ]
         }
       }
     ],

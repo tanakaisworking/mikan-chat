@@ -12,6 +12,7 @@ import {
   type DesktopSettingsInput,
   type DesktopStoreLoadResult,
 } from "../shared/desktop-store"
+import { BUILTIN_MODEL_ID, DEFAULT_BUILTIN_MODEL_SOURCE } from "../shared/local-ai"
 
 type SecretCodec = {
   available: () => boolean
@@ -21,7 +22,7 @@ type SecretCodec = {
 
 const defaultSettings: DesktopSettingsFile = {
   version: 1,
-  connection: { type: "local", endpoint: "http://127.0.0.1:11434/v1", model: "" },
+  connection: { type: "local", endpoint: "", model: DEFAULT_BUILTIN_MODEL_SOURCE, builtinAI: true },
   connectionSecret: null,
   tts: { provider: "browser", endpoint: "", model: "", voice: "" },
   ttsSecret: null,
@@ -49,7 +50,16 @@ export class DesktopStore {
     }
     return {
       settings: {
-        connection: { ...stored.connection, apiKey: decrypt(stored.connectionSecret) },
+        connection: {
+          type: stored.connection.builtinAI || stored.connection.type === "builtin" || (
+            stored.connection.type === "local" && stored.connection.endpoint === "" && (
+              stored.connection.model === BUILTIN_MODEL_ID || stored.connection.model.startsWith("hf:")
+            )
+          ) ? "builtin" : stored.connection.type,
+          endpoint: stored.connection.endpoint,
+          model: stored.connection.model,
+          apiKey: decrypt(stored.connectionSecret),
+        },
         tts: { ...stored.tts, apiKey: decrypt(stored.ttsSecret) },
         profile: stored.profile,
         appearance: stored.appearance,
@@ -65,9 +75,17 @@ export class DesktopStore {
     const canEncrypt = this.secrets.available()
     await this.atomicWrite(this.settingsPath, {
       version: 1,
-      connection: { type: settings.connection.type, endpoint: settings.connection.endpoint, model: settings.connection.model },
+      connection: settings.connection.type === "builtin"
+        ? { type: "local", endpoint: "", model: settings.connection.model, builtinAI: true }
+        : { type: settings.connection.type, endpoint: settings.connection.endpoint, model: settings.connection.model },
       connectionSecret: canEncrypt && settings.connection.apiKey ? this.secrets.encrypt(settings.connection.apiKey) : null,
-      tts: { provider: settings.tts.provider, endpoint: settings.tts.endpoint, model: settings.tts.model, voice: settings.tts.voice },
+      tts: {
+        provider: settings.tts.provider,
+        endpoint: settings.tts.endpoint,
+        model: settings.tts.model,
+        voice: settings.tts.voice,
+        ...(settings.tts.irodoriQuality ? { irodoriQuality: settings.tts.irodoriQuality } : {}),
+      },
       ttsSecret: canEncrypt && settings.tts.apiKey ? this.secrets.encrypt(settings.tts.apiKey) : null,
       profile: settings.profile,
       appearance: settings.appearance,

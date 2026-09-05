@@ -14,7 +14,50 @@ import {
 } from "@/lib/ai-chat"
 
 describe("AI chat transport", () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    delete window.mikan
+  })
+
+  it("Electron内蔵AIへ会話を渡し、返答を順次更新する", async () => {
+    let onChunk: ((requestId: string, text: string) => void) | undefined
+    const chat = vi.fn(async (request: { requestId: string }) => {
+      onChunk?.(request.requestId, "葵: おかえり")
+      onChunk?.(request.requestId, "葵: おかえり。")
+      return "葵: おかえり。"
+    })
+    window.mikan = {
+      platform: "darwin",
+      localAI: {
+        status: vi.fn(async () => ({ state: "ready", modelId: "qwen3-1.7b", label: "Qwen3 1.7B", source: "hf:Qwen/Qwen3-1.7B-GGUF:Q8_0", downloadedBytes: 1, totalBytes: 1 } as const)),
+        download: vi.fn(),
+        delete: vi.fn(),
+        chat,
+        cancel: vi.fn(),
+        onStatus: vi.fn(() => () => undefined),
+        onChunk: vi.fn((callback) => {
+          onChunk = callback
+          return () => { onChunk = undefined }
+        }),
+      },
+    }
+    const updates: string[] = []
+
+    const reply = await streamCharacterReply({
+      connection: { type: "builtin", endpoint: "", apiKey: "", model: "qwen3-1.7b" },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "ただいま", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: (text) => updates.push(text),
+    })
+
+    expect(reply).toBe("葵: おかえり。")
+    expect(updates).toEqual(["葵: おかえり", "葵: おかえり。"])
+    expect(chat).toHaveBeenCalledWith(expect.objectContaining({
+      systemPrompt: expect.stringContaining("シナリオ進行役"),
+      messages: [{ role: "user", content: "ただいま" }],
+    }))
+  })
 
   it("OpenAI互換SSEを受け取り、返答を順次更新する", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response([

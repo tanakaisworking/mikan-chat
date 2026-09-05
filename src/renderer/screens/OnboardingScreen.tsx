@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { ArrowLeft, ChevronRight } from "lucide-react"
 
 import { Brand } from "@/components/ui/brand"
+import { BirthYearField } from "@/components/ui/birth-year-field"
 import { Button } from "@/components/ui/button"
 import { GenrePicker } from "@/components/ui/genre-picker"
 import { cn } from "@/lib/utils"
@@ -24,8 +25,6 @@ type OnboardingScreenProps = {
 
 type Step = "gender" | "birthYear" | "genre"
 
-const CURRENT_YEAR = new Date().getFullYear()
-const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1899 }, (_, index) => CURRENT_YEAR - index)
 const STEPS: Step[] = ["gender", "birthYear", "genre"]
 const GENDER_OPTIONS: Array<{ value: OnboardingGender; label: string; description: string }> = [
   { value: "woman", label: "女性", description: "女性として楽しみたい" },
@@ -38,6 +37,7 @@ export function OnboardingScreen({ genres, genresLoading, genresError, onRetryGe
   const [step, setStep] = useState<Step>("gender")
   const [gender, setGender] = useState<OnboardingGender | null>(null)
   const [birthYear, setBirthYear] = useState<number | null>(null)
+  const [birthYearValid, setBirthYearValid] = useState(false)
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>([])
   const questionRef = useRef<HTMLHeadingElement>(null)
   const stepIndex = STEPS.indexOf(step)
@@ -127,24 +127,18 @@ export function OnboardingScreen({ genres, genresLoading, genresError, onRetryGe
               <div>
                 <p className="text-sm font-semibold text-primary">年代に合う物語のために</p>
                 <h2 ref={questionRef} id="onboarding-question" tabIndex={-1} className="mt-2 text-2xl leading-snug font-semibold outline-none max-md:text-xl">生まれた年を教えてください</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">選ぶと次の質問へ進みます。</p>
-                <label className="mt-7 block" htmlFor="onboarding-birth-year">
-                  <span className="mb-2 block text-sm font-semibold">生年</span>
-                  <select
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">生年を入力して、次へ進んでください。</p>
+                <div className="mt-7 grid gap-5">
+                  <BirthYearField
                     id="onboarding-birth-year"
-                    value={birthYear ?? ""}
-                    className="h-13 w-full rounded-md border border-input bg-background px-4 text-base outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => {
-                      const selectedYear = Number(event.target.value)
-                      if (!Number.isInteger(selectedYear)) return
-                      setBirthYear(selectedYear)
-                      setStep("genre")
-                    }}
-                  >
-                    <option value="" disabled>生年を選ぶ</option>
-                    {BIRTH_YEARS.map((year) => <option key={year} value={year}>{year}年</option>)}
-                  </select>
-                </label>
+                    value={birthYear}
+                    onChange={setBirthYear}
+                    onValidityChange={setBirthYearValid}
+                  />
+                  <Button size="lg" className="w-full" disabled={!birthYearValid} onClick={() => setStep("genre")}>
+                    次へ
+                  </Button>
+                </div>
               </div>
             ) : null}
 

@@ -9,6 +9,7 @@ const webp = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
   0x56, 0x50, 0x38, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ])
+const wav = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45])
 
 function createPackFile(pack: Record<string, unknown>, extraFiles: Record<string, Uint8Array> = {}) {
   return new File([
@@ -71,6 +72,31 @@ describe("Chat Pack loader", () => {
     expect(loaded.pack.discovery.covers).toBeUndefined()
     expect(loaded.pack.plot.characters[0].image).toBeUndefined()
     expect(loaded.assets).toEqual({})
+  })
+
+  it("キャラクターの参照音声とIrodori推奨情報を読み込む", async () => {
+    const base = readFixture("valid/minimal-text-only.json")
+    const plot = base.plot as Record<string, unknown>
+    const characters = plot.characters as Array<Record<string, unknown>>
+    characters[0] = {
+      ...characters[0],
+      voice: {
+        profile: { language: "ja", description: "落ち着いた声", traits: ["calm"] },
+        referenceAudio: { asset: "assets/reference.wav", transcript: "こんにちは。", license: "CC0-1.0" },
+        preferred: [{ provider: "irodori", voiceId: "character-ref", parameters: { caption: "穏やかに話す", seed: 42 } }],
+      },
+    }
+
+    const loaded = await loadChatPack(createPackFile(base, { "assets/reference.wav": wav }))
+
+    expect(loaded.pack.plot.characters[0].voice?.referenceAudio?.asset).toBe("assets/reference.wav")
+    expect(loaded.assets["assets/reference.wav"]).toMatch(/^data:audio\/wav;base64,/)
+  })
+
+  it("偽装した参照音声の拡張子を拒否する", async () => {
+    await expect(loadChatPack(createPack({}, { "assets/fake.wav": webp }))).rejects.toEqual(
+      expect.objectContaining<Partial<ChatPackError>>({ message: "拡張子とファイル形式が一致しません: assets/fake.wav" }),
+    )
   })
 
   it("Schemaが許容するnil UUIDをパックIDとして読み込める", async () => {
@@ -147,7 +173,7 @@ describe("Chat Pack loader", () => {
 
   it("参照されていない不正画像も拒否する", async () => {
     await expect(loadChatPack(createPack({}, { "assets/unused.webp": strToU8("not an image") }))).rejects.toEqual(
-      expect.objectContaining<Partial<ChatPackError>>({ message: "画像形式を確認できません: assets/unused.webp" }),
+      expect.objectContaining<Partial<ChatPackError>>({ message: "ファイル形式を確認できません: assets/unused.webp" }),
     )
   })
 

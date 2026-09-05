@@ -19,7 +19,7 @@
 
 WindowsとmacOSで動き、シチュエーション中心のチャットパックを選ぶか外部からインポートするだけで、1対1・多人数の物語をテキストや音声で始められます。会話データを外へ送らず、AI処理も基本的にユーザーのPC内で完結します。
 
-> 現在はアーリーアクセス版です。Web版を公開していますが、Electronの配布用ビルドと音声読み上げはまだありません。
+> 現在はアーリーアクセス版です。Web版を公開しており、Electronの配布用ビルドは開発中です。
 
 ## 画面から見るmikan chat
 
@@ -85,6 +85,8 @@ npm run dev
 
 Electron上で確認する場合は `npm run dev:electron`、品質チェックは `npm run lint && npm run typecheck && npm run test && npm run build` を使います。
 
+Apple Silicon MacのElectronプレビューでは、音声設定からIrodori TTSの実行環境とモデルを自動セットアップできます。初回は数GBをダウンロードし、以後は端末内の環境を再利用します。
+
 Electron版のHayamimi連携は、Hayamimi側に接続認証が実装されるまで既定で無効です。開発時に信頼できるローカルサーバーへ接続する場合だけ、`MIKAN_HAYAMIMI_WS_URL=ws://127.0.0.1:8766/ingest npm run dev:electron`のように接続先を明示します。
 
 Web版はCloudflare Workers Static Assetsで配信します。ローカル確認は `npm run dev:worker`、本番反映は `npm run deploy:worker` を使います。AIへのリクエストは、ユーザーが設定したOpenAI互換エンドポイントへブラウザから直接送信します。
@@ -134,7 +136,7 @@ Web版はCloudflare Workers Static Assetsで配信します。ローカル確認
 
 Choose or import a community-created Chat Pack, then enter a one-on-one or multi-character scenario by text or voice while keeping conversations and AI inference on your own computer by default.
 
-> mikan chat is in early access. The web version is available now; Electron distribution builds and read-aloud are not available yet.
+> mikan chat is in early access. The web version is available now; Electron distribution builds are still in development.
 
 ### Web Early Access
 
@@ -152,6 +154,8 @@ npm run dev
 ```
 
 Use `npm run dev:electron` for the Electron shell. Run `npm run lint && npm run typecheck && npm run test && npm run build` for the full quality check.
+
+On Apple Silicon Macs, the Electron preview can install and run Irodori TTS from the voice settings screen. The first setup downloads several gigabytes of runtime and model data; later launches reuse the local installation.
 
 The web preview runs on Cloudflare Workers Static Assets. Use `npm run dev:worker` locally and `npm run deploy:worker` for production deployment. Operator-owned API keys must be stored as Worker Secrets rather than committed to the repository.
 

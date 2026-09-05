@@ -1,11 +1,18 @@
 import { getEndpointError, normalizeApiKey } from "@/lib/ai-chat"
-import { isDesktopApp } from "@/lib/platform"
+import type { IrodoriRuntimeStatus } from "../../shared/local-tts"
 
 const ELEVENLABS_API_ENDPOINT = "https://api.elevenlabs.io/v1"
-const KOKORO_ASSETS_URL = "/kokoro-js-jp"
+export function getKokoroAssetsUrl(location: Pick<Location, "protocol" | "href"> = window.location) {
+  return location.protocol === "file:"
+    ? new URL("./kokoro-js-jp", location.href).href.replace(/\/$/, "")
+    : "/kokoro-js-jp"
+}
+
+const KOKORO_ASSETS_URL = getKokoroAssetsUrl()
 const KOKORO_MODULE_URL = `${KOKORO_ASSETS_URL}/kokoro-jp.web.js`
 const KOKORO_MODEL_ID = "Kokoro-82M-v1.0-ONNX"
 const KOKORO_MODEL_MARKER = "mikan-chat.kokoro-model.v1"
+const KOKORO_BACKEND_MARKER = "mikan-chat.kokoro-backend.v1"
 const KOKORO_MODEL_CACHE = "transformers-cache"
 const KOKORO_VOICE_CACHE = "kokoro-voices"
 const KOKORO_JAPANESE_CACHE = "mikan-chat-kokoro-japanese-v1"
@@ -23,11 +30,12 @@ const KOKORO_JAPANESE_ASSETS = [
 ] as const
 
 export type TtsSettings = {
-  provider: "browser" | "kokoro" | "openai-compatible" | "elevenlabs"
+  provider: "browser" | "kokoro" | "irodori" | "openai-compatible" | "elevenlabs"
   apiKey: string
   endpoint: string
   model: string
   voice: string
+  irodoriQuality?: "fast" | "balanced" | "quality"
 }
 
 export const DEFAULT_TTS_SETTINGS: TtsSettings = {
@@ -59,12 +67,61 @@ export const OPENAI_COMPATIBLE_TTS_SETTINGS: TtsSettings = {
   provider: "openai-compatible",
 }
 
+export const IRODORI_TTS_SETTINGS: TtsSettings = {
+  provider: "irodori",
+  apiKey: "",
+  endpoint: "http://127.0.0.1:8088/v1",
+  model: "irodori-tts",
+  voice: "none",
+  irodoriQuality: "balanced",
+}
+
+const IRODORI_STEPS = { fast: 24, balanced: 32, quality: 40 } as const
+
+export function isIrodoriTtsSettings(settings: TtsSettings) {
+  return settings.provider === "irodori"
+}
+
+let irodoriRuntimeSnapshot: IrodoriRuntimeStatus | null = null
+
+export function getIrodoriRuntimeSnapshot() {
+  return irodoriRuntimeSnapshot
+}
+
+export function subscribeIrodoriRuntime(listener: () => void) {
+  const bridge = window.mikan?.irodori
+  if (!bridge) return () => undefined
+  let active = true
+  const update = (next: IrodoriRuntimeStatus) => {
+    if (!active) return
+    irodoriRuntimeSnapshot = next
+    listener()
+  }
+  const unsubscribe = bridge.onStatus(update)
+  void bridge.status().then(update).catch(() => undefined)
+  return () => {
+    active = false
+    unsubscribe()
+  }
+}
+
 export type TtsDriver = {
   label: string
   supported: boolean
   unavailableReason: string | null
-  speak: (text: string, callbacks?: { onEnd?: () => void; onError?: (message: string) => void }) => void
+  speak: (text: string, callbacks?: { onEnd?: () => void; onError?: (message: string) => void }, options?: TtsSpeakOptions) => void
   stop: () => void
+}
+
+export type TtsSpeakOptions = {
+  voiceId?: string
+  caption?: string
+  seed?: number
+  referenceAudio?: {
+    source: string
+    voiceId: string
+    fileName: string
+  }
 }
 
 export type KokoroDownloadProgress = {
@@ -115,28 +172,18 @@ function setKokoroModelSnapshot(snapshot: KokoroModelSnapshot) {
 export function getTtsSettingsError(settings: TtsSettings) {
   if (settings.provider === "browser" || settings.provider === "kokoro") return null
   if (settings.provider === "openai-compatible") {
-    const endpointError = getEndpointError({ type: "online", endpoint: settings.endpoint })
+    const endpointError = getEndpointError({ type: isLoopbackEndpoint(settings.endpoint) ? "local" : "online", endpoint: settings.endpoint })
     if (endpointError) return endpointError.replace("オンラインAI", "外部TTS")
   }
   if (!settings.model.trim()) return settings.provider === "elevenlabs" ? "モデルIDを入力してください。" : "モデル名を入力してください。"
   if (!settings.voice.trim()) return settings.provider === "elevenlabs" ? "Voice IDを入力してください。" : "声の名前を入力してください。"
   const apiKey = normalizeApiKey(settings.apiKey)
-  if (!apiKey) return "APIキーを入力してください。"
-  if (!/^[\x21-\x7e]+$/.test(apiKey)) return "APIキーに使用できない文字が含まれています。"
+  if (!apiKey && !isIrodoriTtsSettings(settings)) return "APIキーを入力してください。"
+  if (apiKey && !/^[\x21-\x7e]+$/.test(apiKey)) return "APIキーに使用できない文字が含まれています。"
   return null
 }
 
-export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS): TtsDriver {
-  if (isDesktopApp()) {
-    return {
-      label: "Irodori TTS",
-      supported: false,
-      unavailableReason: "Irodori TTS接続後に利用できます",
-      speak: () => undefined,
-      stop: () => undefined,
-    }
-  }
-
+export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS, irodoriRuntime = irodoriRuntimeSnapshot): TtsDriver {
   const browserTts = createBrowserTtsDriver()
   if (settings.provider === "browser") return browserTts
   if (settings.provider === "kokoro") {
@@ -153,7 +200,10 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS): T
 
   const settingsError = getTtsSettingsError(settings)
   const isElevenLabs = settings.provider === "elevenlabs"
-  type Playback = { controller: AbortController; audio: HTMLAudioElement | null; audioUrl: string | null }
+  const isIrodori = isIrodoriTtsSettings(settings)
+  const irodoriReady = !isIrodori || irodoriRuntime?.state === "ready" || irodoriRuntime?.state === "running"
+  const unavailableReason = isIrodori && !irodoriReady ? irodoriRuntime?.stage ?? "Irodori TTSをセットアップしてください" : settingsError
+  type Playback = { controller: AbortController; requestId: string; audio: HTMLAudioElement | null; audioUrl: string | null }
   let active: Playback | null = null
 
   const cleanup = (playback: Playback) => {
@@ -166,46 +216,68 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS): T
     const playback = active
     active = null
     playback?.controller.abort()
+    if (isIrodori && playback) window.mikan?.tts?.cancelLocal(playback.requestId)
     if (playback) cleanup(playback)
     browserTts.stop()
   }
 
   return {
-    label: isElevenLabs ? "ElevenLabs" : "外部TTS",
-    supported: !settingsError && typeof Audio !== "undefined",
-    unavailableReason: settingsError,
-    speak: (text, callbacks = {}) => {
+    label: isElevenLabs ? "ElevenLabs" : isIrodori ? "Irodori TTS" : "外部TTS",
+    supported: !unavailableReason && typeof Audio !== "undefined",
+    unavailableReason,
+    speak: (text, callbacks = {}, options) => {
       stop()
-      if (settingsError || typeof Audio === "undefined") {
-        callbacks.onError?.(settingsError ?? "この環境では音声を再生できません。")
+      if (unavailableReason || typeof Audio === "undefined") {
+        callbacks.onError?.(unavailableReason ?? "この環境では音声を再生できません。")
         callbacks.onEnd?.()
         return
       }
       const requestController = new AbortController()
-      const playback: Playback = { controller: requestController, audio: null, audioUrl: null }
+      const requestId = crypto.randomUUID()
+      const playback: Playback = { controller: requestController, requestId, audio: null, audioUrl: null }
       active = playback
       const fallback = (message: string) => {
         if (active !== playback) return
         cleanup(playback)
         callbacks.onError?.(message)
-        if (browserTts.supported) browserTts.speak(text, { onEnd: callbacks.onEnd })
+        if (!isIrodori && browserTts.supported) browserTts.speak(text, { onEnd: callbacks.onEnd })
         else callbacks.onEnd?.()
       }
       const endpoint = (isElevenLabs ? ELEVENLABS_API_ENDPOINT : settings.endpoint).trim().replace(/\/+$/, "")
-      void fetch(isElevenLabs
-        ? `${endpoint}/text-to-speech/${encodeURIComponent(settings.voice.trim())}?output_format=mp3_44100_128`
-        : `${endpoint}/audio/speech`, {
+      const localSynthesis = isIrodori ? window.mikan?.tts?.synthesizeLocal : undefined
+      const audioRequest = localSynthesis
+        ? prepareReferenceAudio(options?.referenceAudio).then((referenceAudio) => localSynthesis({
+          requestId,
+          endpoint,
+          model: settings.model,
+          voice: options?.voiceId ?? settings.voice,
+          apiKey: settings.apiKey,
+          text,
+          ...(options?.caption ? { caption: options.caption } : {}),
+          ...(options?.seed !== undefined ? { seed: options.seed } : {}),
+          numSteps: IRODORI_STEPS[settings.irodoriQuality ?? "balanced"],
+          ...(referenceAudio ? { referenceAudio } : {}),
+        }))
+          .then((audio) => new Blob([audio], { type: "audio/wav" }))
+        : fetch(isElevenLabs
+          ? `${endpoint}/text-to-speech/${encodeURIComponent(settings.voice.trim())}?output_format=mp3_44100_128`
+          : `${endpoint}/audio/speech`, {
         method: "POST",
         headers: isElevenLabs
           ? { "xi-api-key": normalizeApiKey(settings.apiKey), "Content-Type": "application/json" }
-          : { Authorization: `Bearer ${normalizeApiKey(settings.apiKey)}`, "Content-Type": "application/json" },
+          : {
+              ...(normalizeApiKey(settings.apiKey) ? { Authorization: `Bearer ${normalizeApiKey(settings.apiKey)}` } : {}),
+              "Content-Type": "application/json",
+            },
         body: JSON.stringify(isElevenLabs
           ? { text, model_id: settings.model.trim(), language_code: "ja" }
           : { model: settings.model.trim(), input: text, voice: settings.voice.trim(), response_format: "mp3" }),
         signal: requestController.signal,
       }).then(async (response) => {
-        if (!response.ok) throw new Error(`接続先からエラーが返りました（${response.status}）`)
-        const blob = await response.blob()
+          if (!response.ok) throw new Error(`接続先からエラーが返りました（${response.status}）`)
+          return response.blob()
+        })
+      void audioRequest.then((blob) => {
         if (active !== playback || requestController.signal.aborted) return
         playback.audioUrl = URL.createObjectURL(blob)
         playback.audio = new Audio(playback.audioUrl)
@@ -219,7 +291,9 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS): T
       }).catch((error: unknown) => {
         if (requestController.signal.aborted) return
         const message = error instanceof TypeError
-          ? `${isElevenLabs ? "ElevenLabs" : "外部TTS"}へ接続できませんでした。${isElevenLabs ? "通信状況を確認してください。" : "接続先のCORS設定を確認してください。"}`
+          ? isIrodori
+            ? "Irodori TTSサーバーへ接続できませんでした。サーバーを起動してから、もう一度お試しください。"
+            : `${isElevenLabs ? "ElevenLabs" : "外部TTS"}へ接続できませんでした。${isElevenLabs ? "通信状況を確認してください。" : "接続先のCORS設定を確認してください。"}`
           : error instanceof Error ? error.message : "外部TTSで読み上げられませんでした。"
         fallback(message)
       })
@@ -228,10 +302,54 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS): T
   }
 }
 
+export async function generateIrodoriVoiceCandidate(settings: TtsSettings, text: string, caption: string, seed: number) {
+  const bridge = window.mikan?.tts
+  if (!bridge) throw new Error("Irodori TTSはアプリ版で利用できます。")
+  return bridge.synthesizeLocal({
+    requestId: crypto.randomUUID(),
+    endpoint: settings.endpoint,
+    model: settings.model,
+    voice: "none",
+    apiKey: settings.apiKey,
+    text,
+    caption,
+    seed,
+    numSteps: IRODORI_STEPS[settings.irodoriQuality ?? "balanced"],
+  })
+}
+
+export async function saveIrodoriVoiceCandidate(voiceId: string, audio: ArrayBuffer) {
+  const register = window.mikan?.tts?.registerReference
+  if (!register) throw new Error("アプリを再起動してから、もう一度お試しください。")
+  await register({ voiceId, fileName: `${voiceId}.wav`, mimeType: "audio/wav", data: audio })
+}
+
+async function prepareReferenceAudio(reference: TtsSpeakOptions["referenceAudio"]) {
+  if (!reference) return undefined
+  const response = await fetch(reference.source)
+  if (!response.ok) throw new Error("シナリオの参照音声を読み込めませんでした。")
+  const mimeType = reference.fileName.toLowerCase().endsWith(".flac")
+    ? "audio/flac" as const
+    : reference.fileName.toLowerCase().endsWith(".mp3") ? "audio/mpeg" as const : "audio/wav" as const
+  return { voiceId: reference.voiceId, fileName: reference.fileName, mimeType, data: await response.arrayBuffer() }
+}
+
+function isLoopbackEndpoint(endpoint: string) {
+  try {
+    const url = new URL(endpoint)
+    return url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "[::1]")
+  } catch {
+    return false
+  }
+}
+
 type KokoroInstance = {
   speak: (text: string, voice: string) => Promise<{ toBlob: () => Blob }>
   loadJapaneseG2POnce?: () => Promise<unknown>
 }
+
+type KokoroBackend = "webgpu" | "wasm"
+type KokoroModule = { KokoroJP: { load: (options: { japanese: unknown; device: KokoroBackend; dtype: "q8" }) => Promise<KokoroInstance> } }
 
 let kokoroInstancePromise: Promise<KokoroInstance> | null = null
 let kokoroJapaneseConfigPromise: Promise<{ dicArchiveUrl: string; voiceUrl: string; workerUrl: string }> | null = null
@@ -255,13 +373,81 @@ async function getKokoroJapaneseConfig() {
   return kokoroJapaneseConfigPromise
 }
 
+function setKokoroBackend(backend: KokoroBackend) {
+  try { window.localStorage.setItem(KOKORO_BACKEND_MARKER, backend) } catch { /* Storage is optional. */ }
+  if (kokoroModelSnapshot.status === "ready") {
+    setKokoroModelSnapshot({
+      ...kokoroModelSnapshot,
+      progress: { percent: 100, message: `ダウンロード済み・${backend === "webgpu" ? "WebGPU" : "WASM"}で動作` },
+    })
+  }
+}
+
+export async function chooseKokoroBackend(): Promise<KokoroBackend> {
+  try {
+    const saved = window.localStorage.getItem(KOKORO_BACKEND_MARKER)
+    if (saved === "webgpu" || saved === "wasm") return saved
+  } catch { /* Probe again when storage is unavailable. */ }
+
+  const gpu = (navigator as Navigator & {
+    gpu?: { requestAdapter: (options?: { powerPreference?: string }) => Promise<{
+      requestDevice: () => Promise<{ queue: { submit: (commands: unknown[]) => void; onSubmittedWorkDone: () => Promise<void> } }>
+    } | null> }
+  }).gpu
+  if (!gpu) return "wasm"
+  try {
+    const startedAt = performance.now()
+    const adapter = await gpu.requestAdapter({ powerPreference: "high-performance" })
+    const device = await adapter?.requestDevice()
+    if (!device) return "wasm"
+    device.queue.submit([])
+    await device.queue.onSubmittedWorkDone()
+    return performance.now() - startedAt <= 1_500 ? "webgpu" : "wasm"
+  } catch {
+    return "wasm"
+  }
+}
+
+async function loadKokoroForBackend(module: KokoroModule, japanese: unknown, backend: KokoroBackend): Promise<KokoroInstance> {
+  const instance = await module.KokoroJP.load({ japanese, device: backend, dtype: "q8" })
+  if (backend === "wasm") return instance
+  return {
+    loadJapaneseG2POnce: () => instance.loadJapaneseG2POnce?.() ?? Promise.resolve(),
+    speak: async (text: string, voice: string): Promise<{ toBlob: () => Blob }> => {
+      try {
+        return await instance.speak(text, voice)
+      } catch (error) {
+        console.warn("Kokoro WebGPU failed; retrying with WASM", error)
+        const fallback = loadKokoroForBackend(module, japanese, "wasm")
+        kokoroInstancePromise = fallback
+        const audio = await (await fallback).speak(text, voice)
+        setKokoroBackend("wasm")
+        return audio
+      }
+    },
+  } satisfies KokoroInstance
+}
+
 async function loadKokoroInstance() {
   if (!kokoroInstancePromise) {
     kokoroInstancePromise = Promise.all([
       import(/* @vite-ignore */ KOKORO_MODULE_URL),
       getKokoroJapaneseConfig(),
     ])
-      .then(([module, japanese]) => module.KokoroJP.load({ japanese }) as Promise<KokoroInstance>)
+      .then(async ([module, japanese]) => {
+        const backend = await chooseKokoroBackend()
+        try {
+          const instance = await loadKokoroForBackend(module as KokoroModule, japanese, backend)
+          setKokoroBackend(backend)
+          return instance
+        } catch (error) {
+          if (backend !== "webgpu") throw error
+          console.warn("Kokoro WebGPU initialization failed; using WASM", error)
+          const instance = await loadKokoroForBackend(module as KokoroModule, japanese, "wasm")
+          setKokoroBackend("wasm")
+          return instance
+        }
+      })
       .catch((error) => {
         kokoroInstancePromise = null
         throw error
@@ -434,6 +620,7 @@ async function performKokoroModelDownload(
 async function deleteKokoroModelFiles() {
   kokoroInstancePromise = null
   setKokoroModelMarker(false)
+  try { window.localStorage.removeItem(KOKORO_BACKEND_MARKER) } catch { /* Storage is optional. */ }
   if (!("caches" in window)) return
 
   const modelCache = await caches.open(KOKORO_MODEL_CACHE)

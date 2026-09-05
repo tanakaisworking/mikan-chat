@@ -22,6 +22,7 @@ export default defineConfig({
     },
   },
   renderer: {
+    publicDir: path.resolve(projectRoot, "public"),
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

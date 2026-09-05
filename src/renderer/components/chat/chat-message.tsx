@@ -1,7 +1,6 @@
 import { Pause, Play } from "lucide-react"
 
 import { IconButton } from "@/components/ui/icon-button"
-import { cn } from "@/lib/utils"
 
 export type ChatMessageData = {
   id: string
@@ -26,8 +25,8 @@ export function ChatMessage({
 }) {
   if (message.role === "narration") {
     return (
-      <article className="mx-auto max-w-2xl px-8 py-2 text-center max-md:px-4">
-        <p className="text-[15px] leading-8 text-muted-foreground italic max-md:rounded-2xl max-md:bg-black/42 max-md:px-4 max-md:py-3 max-md:text-sm max-md:leading-7 max-md:text-white max-md:not-italic max-md:shadow-overlay max-md:backdrop-blur-md">
+      <article aria-label="情景描写" className="mx-auto max-w-2xl px-8 py-1 text-center max-md:px-5">
+        <p className="text-sm leading-7 text-muted-foreground italic max-md:text-[13px] max-md:leading-6 max-md:text-white max-md:drop-shadow-md">
           {message.text}
         </p>
       </article>
@@ -36,36 +35,42 @@ export function ChatMessage({
 
   const isUser = message.role === "user"
 
+  if (isUser) {
+    return (
+      <article aria-label="あなたの発言" className="flex justify-end">
+        <div className="max-w-[64%] max-md:max-w-[78%]">
+          <div className="rounded-lg rounded-br-sm border border-primary-bright/45 bg-surface-accent/45 px-4 py-2.5 text-[15px] leading-7 text-primary max-md:border-white/60 max-md:bg-[#d9fdd3]/92 max-md:text-[14px] max-md:leading-6 max-md:text-[#18361f]">
+            <p>{message.text}</p>
+          </div>
+          <time className="mt-1 block px-1 text-right text-[11px] text-muted-foreground max-md:text-white max-md:drop-shadow-md">
+            {message.time}
+          </time>
+        </div>
+      </article>
+    )
+  }
+
   return (
-    <article className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-      <div className={cn("max-w-[78%] max-md:max-w-[86%]", isUser ? "items-end" : "items-start")}>
-        {!isUser && message.speakerName ? (
-          <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground max-md:text-white max-md:drop-shadow-md">
-            {message.speakerName}
+    <article aria-label={`${message.speakerName ?? "キャラクター"}の発言`} className="flex justify-start py-1">
+      <div className="w-full max-w-[88%] border-l-2 border-primary/25 pl-5 max-md:max-w-[92%] max-md:border-white/40 max-md:pl-4">
+        <div className="mb-1.5 flex items-center gap-2">
+          <p className="text-sm font-semibold text-primary max-md:text-white max-md:drop-shadow-md">
+            {message.speakerName ?? "キャラクター"}
           </p>
-        ) : null}
-        <div
-          className={cn(
-            "flex min-h-[90px] items-center gap-3 rounded-lg border px-8 py-5 text-[19px] leading-[1.75] shadow-soft max-[1100px]:min-h-20 max-[1100px]:px-6 max-[1100px]:text-[17px] max-md:min-h-0 max-md:rounded-2xl max-md:px-4 max-md:py-3 max-md:text-[15px] max-md:leading-relaxed max-md:shadow-overlay max-md:backdrop-blur-md",
-            isUser
-              ? "rounded-br-sm border-primary-bright/55 bg-surface-accent/45 text-primary max-md:rounded-br-sm max-md:border-white/60 max-md:bg-[#d9fdd3]/92 max-md:text-[#18361f]"
-              : "rounded-bl-sm border-border/70 bg-surface text-foreground max-md:rounded-bl-sm max-md:border-white/75 max-md:bg-white/90",
-          )}
-        >
-          <p>{message.text}</p>
-          {message.audio || (!isUser && canPlayAudio) ? (
+          <time className="text-[11px] text-muted-foreground max-md:text-white max-md:drop-shadow-md">{message.time}</time>
+        </div>
+        <div className="flex items-start gap-3 text-[18px] leading-8 text-foreground max-[1100px]:text-[17px] max-md:text-[15px] max-md:leading-7 max-md:text-white max-md:drop-shadow-md">
+          <p className="min-w-0 flex-1">{message.text}</p>
+          {message.audio || canPlayAudio ? (
             <IconButton
               label={isPlaying ? "音声を停止" : "音声を再生"}
-              className="-mr-2 bg-surface-soft text-primary-bright hover:bg-surface-accent max-md:size-11"
+              className="mt-0.5 shrink-0 bg-surface text-primary hover:bg-surface-accent max-md:size-11 max-md:drop-shadow-md"
               onClick={onToggleAudio}
             >
               {isPlaying ? <Pause /> : <Play className="translate-x-px" />}
             </IconButton>
           ) : null}
         </div>
-        <time className={cn("mt-1.5 block px-2 text-xs text-muted-foreground max-md:mt-1 max-md:text-[11px] max-md:text-white/90 max-md:drop-shadow-md", isUser && "text-right")}>
-          {message.time}
-        </time>
       </div>
     </article>
   )

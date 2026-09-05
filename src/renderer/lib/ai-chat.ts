@@ -5,6 +5,8 @@ import { z } from "zod"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { ChatMessageData } from "@/components/chat/chat-message"
 import type { Character } from "@/data/characters"
+import { getDesktopBridge } from "@/lib/platform"
+import { DEFAULT_BUILTIN_MODEL, localAIModelSpec } from "../../shared/local-ai"
 
 type StreamReplyOptions = {
   connection: ConnectionSettings
@@ -35,6 +37,9 @@ export async function streamCharacterReply({
   onText,
 }: StreamReplyOptions) {
   assertConnection(connection)
+  if (connection.type === "builtin") {
+    return streamBuiltinReply({ connection, character, messages, signal, onText })
+  }
   const provider = createOpenAICompatible({
     name: "mikan-chat",
     baseURL: normalizeBaseUrl(connection.endpoint),
@@ -56,6 +61,11 @@ export async function streamCharacterReply({
 
 export async function testAIConnection(connection: ConnectionSettings, signal?: AbortSignal) {
   assertConnection(connection)
+  if (connection.type === "builtin") {
+    const status = await getDesktopBridge()?.localAI?.status(builtinSpec(connection.model))
+    if (status?.state !== "ready") throw new Error("内蔵AIのモデルを先にダウンロードしてください。")
+    return
+  }
   const availableModelIds = await listAIModels(connection, signal)
   const modelCandidates = getModelCandidates(connection)
   const availableModels = new Set(availableModelIds)
@@ -67,6 +77,10 @@ export async function testAIConnection(connection: ConnectionSettings, signal?: 
 }
 
 export async function listAIModels(connection: Pick<ConnectionSettings, "type" | "endpoint" | "apiKey">, signal?: AbortSignal) {
+  if (connection.type === "builtin") {
+    const status = await getDesktopBridge()?.localAI?.status(builtinSpec(DEFAULT_BUILTIN_MODEL.source))
+    return status?.state === "ready" ? [status.modelId] : []
+  }
   const endpointError = getEndpointError(connection)
   if (endpointError) throw new Error(endpointError)
   const apiKey = normalizeApiKey(connection.apiKey)
@@ -139,6 +153,7 @@ export function isConnectionReady(connection: ConnectionSettings) {
 }
 
 export function getEndpointError(connection: Pick<ConnectionSettings, "endpoint" | "type">) {
+  if (connection.type === "builtin") return null
   if (!connection.endpoint.trim()) return "接続先URLを入力してください。"
   let url: URL
   try {
@@ -159,6 +174,7 @@ export function getEndpointError(connection: Pick<ConnectionSettings, "endpoint"
 }
 
 export function getConnectionError(connection: ConnectionSettings) {
+  if (connection.type === "builtin") return getDesktopBridge()?.localAI ? null : "内蔵AIはデスクトップアプリで利用できます。"
   const endpointError = getEndpointError(connection)
   if (endpointError) return endpointError
   if (!connection.model.trim()) return "モデル名を入力してください。"
@@ -203,6 +219,39 @@ function assertConnection(connection: ConnectionSettings) {
 
 function normalizeBaseUrl(endpoint: string) {
   return endpoint.trim().replace(/\/+$/, "")
+}
+
+async function streamBuiltinReply({ connection, character, messages, signal, onText }: StreamReplyOptions) {
+  const bridge = getDesktopBridge()?.localAI
+  if (!bridge) throw new Error("内蔵AIはデスクトップアプリで利用できます。")
+  const requestId = crypto.randomUUID()
+  const unsubscribe = bridge.onChunk((id, text) => {
+    if (id === requestId) onText(text)
+  })
+  const cancel = () => bridge.cancel(requestId)
+  signal.addEventListener("abort", cancel, { once: true })
+  try {
+    return await bridge.chat({
+      requestId,
+      modelSource: builtinSpec(connection.model).source,
+      systemPrompt: buildSystemPrompt(character),
+      messages: messages.slice(-30).map((message) => ({
+        role: message.role === "user" ? "user" : "assistant",
+        content: message.role === "narration"
+          ? `>: ${message.text}`
+          : message.role === "character"
+            ? `${message.speakerName ?? character.name}: ${message.text}`
+            : message.text,
+      })),
+    })
+  } finally {
+    signal.removeEventListener("abort", cancel)
+    unsubscribe()
+  }
+}
+
+function builtinSpec(source: string) {
+  return localAIModelSpec({ source: source || DEFAULT_BUILTIN_MODEL.source, label: "" })
 }
 
 export function normalizeApiKey(apiKey: string) {

@@ -3,9 +3,14 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { DesktopStore } from "./desktop-store"
+import { IrodoriRuntimeManager } from "./irodori-runtime"
+import { LocalAIManager, localAIChatRequestSchema, localAIModelSpecSchema } from "./local-ai"
+import { localTtsReferenceSchema, localTtsSynthesisRequestSchema } from "./local-tts"
 import { desktopConversationInputSchema, desktopSettingsInputSchema } from "../shared/desktop-store"
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
+const shutdownTasks = new Set<() => Promise<void>>()
+let quitAfterCleanup = false
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -29,6 +34,8 @@ function createWindow() {
     callback(webContents === window.webContents && permission === "media")
   })
   registerStoreHandlers(window)
+  registerLocalAIHandlers(window)
+  registerLocalTtsHandlers(window)
   const hayamimiUrl = getHayamimiUrl()
   if (hayamimiUrl) registerSpeechHandlers(window, hayamimiUrl)
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -41,6 +48,90 @@ function createWindow() {
   } else {
     void window.loadFile(path.join(currentDirectory, "../renderer/index.html"))
   }
+}
+
+function registerLocalTtsHandlers(window: BrowserWindow) {
+  const manager = new IrodoriRuntimeManager(path.join(app.getPath("userData"), "irodori"), window)
+  ipcMain.removeHandler("irodori:status")
+  ipcMain.removeHandler("irodori:install")
+  ipcMain.removeHandler("irodori:start")
+  ipcMain.removeHandler("irodori:stop")
+  ipcMain.removeHandler("irodori:delete")
+  ipcMain.removeHandler("tts:synthesize-local")
+  ipcMain.removeHandler("tts:has-reference")
+  ipcMain.removeHandler("tts:register-reference")
+  ipcMain.removeAllListeners("tts:cancel-local")
+  ipcMain.handle("irodori:status", (event) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.status()
+  })
+  ipcMain.handle("irodori:install", (event) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.install()
+  })
+  ipcMain.handle("irodori:start", (event) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.start()
+  })
+  ipcMain.handle("irodori:stop", (event) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.stop()
+  })
+  ipcMain.handle("irodori:delete", (event) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.delete()
+  })
+  ipcMain.handle("tts:synthesize-local", (event, input) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.synthesize(localTtsSynthesisRequestSchema.parse(input))
+  })
+  ipcMain.handle("tts:has-reference", (event, voiceId) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.hasVoice(localTtsReferenceSchema.shape.voiceId.parse(voiceId))
+  })
+  ipcMain.handle("tts:register-reference", (event, input) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.registerVoice(localTtsReferenceSchema.parse(input))
+  })
+  ipcMain.on("tts:cancel-local", (event, requestId) => {
+    if (event.sender !== window.webContents || typeof requestId !== "string") return
+    void manager.cancelSynthesis(requestId)
+  })
+  const dispose = () => manager.dispose()
+  shutdownTasks.add(dispose)
+  window.on("closed", () => void dispose().finally(() => shutdownTasks.delete(dispose)))
+}
+
+function registerLocalAIHandlers(window: BrowserWindow) {
+  const manager = new LocalAIManager(path.join(app.getPath("userData"), "models"), window)
+  const assertSender = (sender: Electron.WebContents) => {
+    if (sender !== window.webContents) throw new Error("内蔵AIへアクセスできません。")
+  }
+  ipcMain.removeHandler("local-ai:status")
+  ipcMain.removeHandler("local-ai:download")
+  ipcMain.removeHandler("local-ai:delete")
+  ipcMain.removeHandler("local-ai:chat")
+  ipcMain.removeAllListeners("local-ai:cancel")
+  ipcMain.handle("local-ai:status", (event, input) => {
+    assertSender(event.sender)
+    return manager.status(localAIModelSpecSchema.parse(input))
+  })
+  ipcMain.handle("local-ai:download", (event, input) => {
+    assertSender(event.sender)
+    return manager.download(localAIModelSpecSchema.parse(input))
+  })
+  ipcMain.handle("local-ai:delete", (event, input) => {
+    assertSender(event.sender)
+    return manager.delete(localAIModelSpecSchema.parse(input))
+  })
+  ipcMain.handle("local-ai:chat", (event, input) => {
+    assertSender(event.sender)
+    return manager.chat(localAIChatRequestSchema.parse(input))
+  })
+  ipcMain.on("local-ai:cancel", (event, requestId) => {
+    if (event.sender === window.webContents && typeof requestId === "string") manager.cancel(requestId)
+  })
+  window.on("closed", () => void manager.dispose())
 }
 
 function registerStoreHandlers(window: BrowserWindow) {
@@ -176,6 +267,13 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on("before-quit", (event) => {
+  if (quitAfterCleanup || shutdownTasks.size === 0) return
+  event.preventDefault()
+  quitAfterCleanup = true
+  void Promise.allSettled([...shutdownTasks].map((dispose) => dispose())).finally(() => app.quit())
 })
 
 app.on("window-all-closed", () => {

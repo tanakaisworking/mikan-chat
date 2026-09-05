@@ -202,7 +202,34 @@
     "voice": {
       "type": "object",
       "properties": {
-        "profile": { "type": "object", "additionalProperties": true },
+        "profile": {
+          "type": "object",
+          "properties": {
+            "language": { "type": "string" },
+            "description": { "$ref": "#/$defs/nonEmptyString" },
+            "traits": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/nonEmptyString" }
+            },
+            "speed": { "type": "number", "exclusiveMinimum": 0 },
+            "pitch": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "referenceAudio": {
+          "type": "object",
+          "required": ["asset"],
+          "properties": {
+            "asset": { "$ref": "#/$defs/assetPath" },
+            "transcript": { "$ref": "#/$defs/nonEmptyString" },
+            "language": { "type": "string" },
+            "creator": { "$ref": "#/$defs/nonEmptyString" },
+            "source": { "type": "string", "format": "uri" },
+            "license": { "$ref": "#/$defs/nonEmptyString" }
+          },
+          "additionalProperties": true
+        },
         "preferred": {
           "type": "array",
           "items": {

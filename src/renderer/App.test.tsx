@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { App, AppContent } from "@/App"
 import { streamCharacterReply } from "@/lib/ai-chat"
+import { DEFAULT_BUILTIN_MODEL, GEMMA_4_12B_MODEL, type LocalAIStatus } from "../shared/local-ai"
 
 const AOI_PUBLIC_ID = "5e17395e-79b0-4b46-8e55-4ddac9a8e787"
 const MIA_PUBLIC_ID = "b1aa0948-3062-4f41-90c5-7fa451dec95f"
@@ -182,7 +183,18 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "戻る" }))
     expect(screen.getByRole("button", { name: /女性/ })).toHaveAttribute("aria-pressed", "true")
     fireEvent.click(screen.getByRole("button", { name: /女性/ }))
-    fireEvent.change(screen.getByLabelText("生年"), { target: { value: "1998" } })
+    const birthYearInput = screen.getByLabelText("生年")
+    const nextButton = screen.getByRole("button", { name: "次へ" })
+    expect(nextButton).toBeDisabled()
+    fireEvent.change(birthYearInput, { target: { value: "1899" } })
+    expect(birthYearInput).toHaveAttribute("aria-invalid", "true")
+    expect(nextButton).toBeDisabled()
+    fireEvent.blur(birthYearInput)
+    expect(birthYearInput).toHaveValue("")
+    fireEvent.change(birthYearInput, { target: { value: "１９９８" } })
+    expect(birthYearInput).toHaveValue("1998")
+    expect(nextButton).toBeEnabled()
+    fireEvent.click(nextButton)
     expect(await screen.findByRole("heading", { name: "好きなジャンルを選んでください" })).toHaveFocus()
     fireEvent.click(await screen.findByRole("button", { name: "静かな恋" }))
     fireEvent.click(screen.getByRole("button", { name: "大学" }))
@@ -391,6 +403,28 @@ describe("mikan chat UI flow", () => {
     expect(chatTab).toHaveAttribute("aria-current", "page")
     expect(homeTab).not.toHaveAttribute("aria-current")
     expect(screen.getByText("続きから")).toBeInTheDocument()
+  })
+
+  it("会話済みのシナリオをおすすめから外してチャットに表示する", async () => {
+    window.mikan!.conversations = {
+      list: vi.fn().mockResolvedValue([{
+        id: `${AOI_PUBLIC_ID}:today`,
+        scenarioId: AOI_PUBLIC_ID,
+        title: "葵との会話",
+        updatedAt: "2026-09-05T10:00:00.000Z",
+        messages: [],
+      }]),
+      save: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    }
+    render(<App />)
+
+    await screen.findByRole("button", { name: "閉店後の酒場で、秘密の依頼を" })
+    expect(screen.queryByRole("button", { name: /雨の夜、幼なじみ/ })).not.toBeInTheDocument()
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "PCメインナビゲーション" })).getByRole("button", { name: "チャット" }))
+    expect(await screen.findByRole("button", { name: /葵/ })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /ミア/ })).not.toBeInTheDocument()
   })
 
   it("PCサイドバーでホームとチャットを別ページとして切り替えられる", () => {
@@ -605,8 +639,12 @@ describe("mikan chat UI flow", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
 
-    fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
-    const confirm = screen.getByRole("button", { name: "この接続を使う" })
+    const googleAI = screen.getByRole("button", { name: /Google AI Studio/ })
+    fireEvent.click(googleAI)
+    expect(googleAI).toHaveAttribute("aria-pressed", "true")
+    expect(within(googleAI).getByText("選択中")).toBeInTheDocument()
+    expect(screen.getByText("選んだAI").nextElementSibling).toHaveTextContent("Google AI Studio")
+    const confirm = screen.getByRole("button", { name: "Google AI Studioを使う" })
     expect(confirm).toBeDisabled()
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
     expect(confirm).toBeEnabled()
@@ -617,6 +655,86 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
   })
 
+  it("内蔵モデルの起動エラー時にもモデルを削除できる", async () => {
+    const deleteModel = vi.fn().mockResolvedValue(undefined)
+    window.mikan!.localAI = {
+      status: vi.fn().mockResolvedValue({
+        state: "error",
+        modelId: "qwen3-1.7b",
+        label: "Qwen3 1.7B",
+        source: DEFAULT_BUILTIN_MODEL.source,
+        downloadedBytes: 0,
+        totalBytes: 0,
+        error: "モデルが破損しています。",
+      }),
+      download: vi.fn().mockResolvedValue(undefined),
+      delete: deleteModel,
+      chat: vi.fn(),
+      cancel: vi.fn(),
+      onStatus: vi.fn().mockReturnValue(vi.fn()),
+      onChunk: vi.fn().mockReturnValue(vi.fn()),
+    }
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "モデルを削除" }))
+
+    expect(deleteModel).toHaveBeenCalledTimes(1)
+  })
+
+  it("内蔵モデル切り替え後に直前モデルの遅い状態を表示しない", async () => {
+    let resolveQwen!: (status: LocalAIStatus) => void
+    const qwenStatus = new Promise<LocalAIStatus>((resolve) => { resolveQwen = resolve })
+    window.mikan!.localAI = {
+      status: vi.fn((spec) => spec.source === DEFAULT_BUILTIN_MODEL.source
+        ? qwenStatus
+        : Promise.resolve({ state: "missing" as const, modelId: spec.source, label: spec.label, source: spec.source, downloadedBytes: 0, totalBytes: 0 })),
+      download: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      chat: vi.fn(),
+      cancel: vi.fn(),
+      onStatus: vi.fn().mockReturnValue(vi.fn()),
+      onChunk: vi.fn().mockReturnValue(vi.fn()),
+    }
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.click(screen.getByRole("button", { name: GEMMA_4_12B_MODEL.label }))
+    expect(await screen.findByRole("button", { name: "モデルをダウンロード" })).toBeEnabled()
+    await act(async () => resolveQwen({ state: "ready", modelId: "qwen3-1.7b", label: DEFAULT_BUILTIN_MODEL.label, source: DEFAULT_BUILTIN_MODEL.source, downloadedBytes: 1, totalBytes: 1 }))
+
+    expect(screen.queryByText("利用できます")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "モデルをダウンロード" })).toBeEnabled()
+  })
+
+  it("内蔵AIから別の接続へ切り替えると利用可能な初期値を入れる", async () => {
+    window.mikan!.localAI = {
+      status: vi.fn().mockResolvedValue({
+        state: "ready",
+        modelId: "qwen3-1.7b",
+        label: "Qwen3 1.7B",
+        source: DEFAULT_BUILTIN_MODEL.source,
+        downloadedBytes: 1,
+        totalBytes: 1,
+      }),
+      download: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      chat: vi.fn(),
+      cancel: vi.fn(),
+      onStatus: vi.fn().mockReturnValue(vi.fn()),
+      onChunk: vi.fn().mockReturnValue(vi.fn()),
+    }
+    window.history.replaceState({}, "", "/?screen=home&overlay=connection")
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /このPCのAI/ }))
+    expect(screen.getByRole("textbox", { name: /接続先URL/ })).toHaveValue("http://127.0.0.1:11434/v1")
+    fireEvent.click(screen.getByRole("button", { name: /内蔵AI/ }))
+    fireEvent.click(screen.getByRole("button", { name: /その他のオンラインAI/ }))
+    expect(screen.getByRole("textbox", { name: /接続先URL/ })).toHaveValue("https://api.openai.com/v1")
+    expect(screen.getByRole("textbox", { name: "モデル名" })).toHaveValue("gpt-4.1-mini")
+  })
+
   it("Web版は保存した接続設定を次回起動時に復元する", () => {
     delete window.mikan
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json({ items: [] }))))
@@ -624,7 +742,7 @@ describe("mikan chat UI flow", () => {
     const firstRender = render(<App />)
 
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
-    fireEvent.click(screen.getByRole("button", { name: "この接続を使う" }))
+    fireEvent.click(screen.getByRole("button", { name: "Google AI Studioを使う" }))
     firstRender.unmount()
 
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
@@ -689,7 +807,7 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
-    fireEvent.click(screen.getByRole("button", { name: "接続をテスト" }))
+    fireEvent.click(screen.getByRole("button", { name: "接続を確認" }))
     expect(await screen.findByText("接続できました")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: /Google AI Studio/ }))
 
@@ -715,7 +833,7 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
-    fireEvent.click(screen.getByRole("button", { name: "接続をテスト" }))
+    fireEvent.click(screen.getByRole("button", { name: "接続を確認" }))
     fireEvent.change(screen.getByRole("textbox", { name: /接続先URL/ }), { target: { value: "http://127.0.0.1:1234/v1" } })
     await act(async () => {
       resolveFetch(Response.json({ data: [{ id: "qwen3:8b" }] }))
@@ -733,7 +851,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
 
     expect(screen.getByText("オンラインAIの接続先にはhttpsを指定してください。")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "この接続を使う" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "その他のオンラインAIを使う" })).toBeDisabled()
   })
 
   it("接続設定をキャンセルすると未確定の選択を破棄する", () => {
@@ -745,7 +863,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }))
     fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
 
-    expect(screen.getByRole("button", { name: /このPCのAI OllamaやLM Studioへ接続/ })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: /このPCのAI OllamaやLM Studioにつなぎます/ })).toHaveAttribute("aria-pressed", "true")
   })
 
   it("日本語入力中とShift+Enterでは送信しない", () => {
@@ -886,7 +1004,16 @@ describe("mikan chat UI flow", () => {
     expect(screen.getByRole("link", { name: "JSON Schema" })).toHaveAttribute("download", "chat-pack-0.1.json")
   })
 
-  it("Electron版の音声設定にHayamimiと未接続のTTSを表示する", () => {
+  it("Electron版の音声設定からIrodori TTSを自動セットアップできる", async () => {
+    const install = vi.fn().mockResolvedValue(undefined)
+    window.mikan!.irodori = {
+      status: vi.fn().mockResolvedValue({ supported: true, state: "missing", progress: 0, stage: "セットアップが必要です" }),
+      install,
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      onStatus: vi.fn().mockReturnValue(vi.fn()),
+    }
     window.history.replaceState({}, "", "/?screen=talk&overlay=voice")
     render(<App />)
 
@@ -895,8 +1022,87 @@ describe("mikan chat UI flow", () => {
     const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
     expect(readAloud).toHaveAttribute("aria-disabled", "true")
     expect(readAloud).not.toBeChecked()
-    expect(screen.getByRole("button", { name: "Irodori TTS接続後に利用できます" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: /Irodori TTS このPC/ }))
+    const setup = await screen.findByRole("button", { name: "IrodoriをこのMacで使えるようにする" })
+    expect(screen.queryByRole("textbox", { name: /接続先URL/ })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Irodori TTSをセットアップしてください" })).toBeDisabled()
+    fireEvent.click(setup)
+
+    await waitFor(() => expect(install).toHaveBeenCalledOnce())
   })
+
+  it("Electron版でも無料のKokoroを選択してモデルを管理できる", async () => {
+    window.history.replaceState({}, "", "/?screen=talk&overlay=voice")
+    render(<App />)
+
+    const kokoroCard = screen.getByRole("button", { name: /Kokoro/ })
+    fireEvent.click(kokoroCard)
+
+    expect(kokoroCard).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByText("音声生成はアプリ内で完結し、文章は外部へ送信しません。", { exact: false })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "モデルをダウンロード" })).toBeEnabled()
+  })
+
+  it("Irodoriの参照音声確認が一時失敗しても再確認する", async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined)
+    const hasReference = vi.fn()
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockResolvedValue(false)
+    window.mikan = {
+      platform: "darwin",
+      store: {
+        load: vi.fn().mockResolvedValue({
+          settings: {
+            connection: { type: "local", apiKey: "", endpoint: "http://127.0.0.1:11434/v1", model: "qwen3:8b" },
+            tts: { provider: "irodori", apiKey: "", endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none" },
+            profile: { gender: "prefer-not-to-say", birthYear: 2000, favoriteGenres: ["日常"] },
+            appearance: { textSize: "medium", theme: "light" },
+            readAloud: true,
+          },
+          recoveredCorruptData: false,
+          secretsAvailable: true,
+        }),
+        saveSettings,
+      },
+      irodori: {
+        status: vi.fn().mockResolvedValue({ supported: true, state: "ready", progress: 100, stage: "利用できます" }),
+        install: vi.fn().mockResolvedValue(undefined),
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(undefined),
+        onStatus: vi.fn().mockReturnValue(vi.fn()),
+      },
+      tts: {
+        synthesizeLocal: vi.fn(),
+        hasReference,
+        registerReference: vi.fn(),
+        cancelLocal: vi.fn(),
+      },
+    }
+    window.localStorage.setItem("mikan-chat.scenario-voices.v1", JSON.stringify({
+      [`${DEMO_PUBLIC_ID}:aoi`]: {
+        characterId: "aoi",
+        voiceId: `mikan-user-${DEMO_PUBLIC_ID}-aoi-1-0-0`,
+        caption: "物静かな声",
+        seed: 42,
+        scenarioVersion: "1.0.0",
+      },
+    }))
+    mockDemoPackFetch()
+    window.history.replaceState({}, "", "/#/?screen=home&overlay=import")
+
+    render(<HashRouter><AppContent /></HashRouter>)
+    fireEvent.click(await screen.findByRole("button", { name: "デモを読み込む" }))
+    await screen.findByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })
+    fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
+
+    expect(await screen.findByRole("heading", { name: "キャラクターの声を決める" }, { timeout: 8_000 })).toBeInTheDocument()
+    expect(hasReference).toHaveBeenCalledTimes(4)
+    expect(screen.getByRole("switch", { name: "返答を読み上げる" })).not.toBeChecked()
+    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: true }))
+  }, 10_000)
 
   it("Web版はブラウザ標準TTSで返答を読み上げる", async () => {
     class MockUtterance {
@@ -1048,7 +1254,7 @@ function scenarioApiItem(id: string, title: string, publicId = TEST_PUBLIC_ID) {
 function configureLocalAI() {
   fireEvent.click(screen.getByRole("button", { name: "AI接続設定" }))
   fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
-  fireEvent.click(screen.getByRole("button", { name: "この接続を使う" }))
+  fireEvent.click(screen.getByRole("button", { name: "このPCのAIを使う" }))
 }
 
 function mockDemoPackFetch(overrides: Record<string, unknown> = {}) {

@@ -41,6 +41,44 @@ describe("DesktopStore", () => {
     expect(saved).not.toContain("tts-secret")
   })
 
+  it("内蔵AI設定を旧版が読めるlocal形式で保存する", async () => {
+    const { directory, store } = await createStore()
+    await store.saveSettings({
+      ...settings,
+      connection: { type: "builtin", endpoint: "", model: "qwen3-1.7b", apiKey: "" },
+    })
+
+    expect((await store.loadSettings()).settings.connection.type).toBe("builtin")
+    const saved = JSON.parse(await readFile(path.join(directory, "settings.json"), "utf8"))
+    expect(saved.connection).toEqual({ type: "local", endpoint: "", model: "qwen3-1.7b", builtinAI: true })
+  })
+
+  it("Irodoriの生成速度を保存して復元する", async () => {
+    const { store } = await createStore()
+    await store.saveSettings({
+      ...settings,
+      tts: { provider: "irodori", endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none", apiKey: "", irodoriQuality: "fast" },
+    })
+
+    expect((await store.loadSettings()).settings.tts.irodoriQuality).toBe("fast")
+  })
+
+  it("旧版の再保存でマーカーが消えた内蔵AI設定も復元する", async () => {
+    const { directory, store } = await createStore()
+    await writeFile(path.join(directory, "settings.json"), JSON.stringify({
+      version: 1,
+      connection: { type: "local", endpoint: "", model: "qwen3-1.7b" },
+      connectionSecret: null,
+      tts: settings.tts,
+      ttsSecret: null,
+      profile: settings.profile,
+      appearance: settings.appearance,
+      readAloud: false,
+    }))
+
+    expect((await store.loadSettings()).settings.connection.type).toBe("builtin")
+  })
+
   it("破損した設定を退避して既定値で起動する", async () => {
     const { directory, store } = await createStore()
     await writeFile(path.join(directory, "settings.json"), "broken")
@@ -48,7 +86,7 @@ describe("DesktopStore", () => {
     const loaded = await store.loadSettings()
 
     expect(loaded.recoveredCorruptData).toBe(true)
-    expect(loaded.settings.connection.type).toBe("local")
+    expect(loaded.settings.connection.type).toBe("builtin")
     expect(await readFile(path.join(directory, "settings.json.bak"), "utf8")).toBe("broken")
   })
 

@@ -22,6 +22,7 @@ export type Character = {
   stageImage?: string
   imported?: boolean
   pack?: Record<string, unknown>
+  assets?: Record<string, string>
   opening?: Array<{
     role: "narration" | "character" | "user"
     text: string
