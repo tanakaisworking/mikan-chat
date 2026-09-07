@@ -13,3 +13,9 @@ public/schema/
 src/renderer/assets/**/raw/
 src/renderer/assets/**/*.zip
 src/renderer/assets/characters/*.png
+
+# ローカル運用メモ（キャラクター待機モーション生成）
+/docs/idle-motion-generation.md
+
+# アイコン生成の中間ファイル
+/build/icon.iconset/

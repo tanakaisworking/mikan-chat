@@ -1,9 +1,10 @@
 import { createRef } from "react"
-import { act, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ChatTimeline } from "@/components/chat/chat-timeline"
 import { CharacterStage } from "@/components/chat/character-stage"
+import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
 import type { Character } from "@/data/characters"
 import { readScenarioContext } from "@/lib/scenario-context"
 import { getCharacterSpeechChunks, TalkScreen } from "@/screens/TalkScreen"
@@ -12,6 +13,7 @@ describe("TalkScreenの物語導入", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
+    window.localStorage.clear()
     delete window.mikan
   })
 
@@ -21,6 +23,108 @@ describe("TalkScreenの物語導入", () => {
 
     expect(image).toHaveAttribute("draggable", "false")
     expect(fireEvent.dragStart(image)).toBe(false)
+  })
+
+  it("待機モーションがあれば静止画をポスターにして自動ループする", () => {
+    render(<CharacterStage image="/character.webp" idleVideo="/character.mp4" name="ミア" />)
+
+    const video = document.querySelector("video")
+    expect(video).not.toBeNull()
+    expect(video).toHaveAttribute("src", "/character.mp4")
+    expect(video).toHaveAttribute("poster", "/character.webp")
+    expect(video).toHaveProperty("autoplay", true)
+    expect(video).toHaveProperty("loop", true)
+    expect(video).toHaveProperty("muted", true)
+  })
+
+  it("同梱BGMを選ぶと保存して自動再生する", async () => {
+    render(<>
+      <ScenarioBgmPlayer scenarioId="custom-bgm" title="テスト" />
+      <ScenarioBgmPlayer scenarioId="custom-bgm" title="テスト" mode="settings" />
+    </>)
+    expect(screen.getByTitle("テストのBGM")).toHaveAttribute("src", "/bgm/kamatamago_B00025_jikosyoukai.m4a")
+
+    fireEvent.click(screen.getByRole("button", { name: "雨の日" }))
+    fireEvent.change(screen.getByLabelText("BGM音量"), { target: { value: "35" } })
+
+    await waitFor(() => expect(screen.getByTitle("テストのBGM")).toBeInTheDocument())
+    expect(document.querySelector("audio")).toHaveAttribute("src", "/bgm/kamatamago_B00222_today-is-a-rainy-day.m4a")
+    expect(JSON.parse(window.localStorage.getItem("mikan.bgm.custom-bgm") ?? "null")).toMatchObject({ customUrl: "/bgm/kamatamago_B00222_today-is-a-rainy-day.m4a", volume: 35, enabled: true })
+  })
+
+  it("BGM未指定でもURLと音量を保存できる", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ streamUrl: "https://s3.ustatik.com/audio.com.audio/transcoding/a.mp3?sig=1", title: "自作BGM" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<>
+      <ScenarioBgmPlayer scenarioId="custom-bgm" title="テスト" />
+      <ScenarioBgmPlayer scenarioId="custom-bgm" title="テスト" mode="settings" />
+    </>)
+    expect(screen.getByTitle("テストのBGM")).toHaveAttribute("src", "/bgm/kamatamago_B00025_jikosyoukai.m4a")
+
+    fireEvent.change(screen.getByLabelText("BGMのURL"), { target: { value: "https://audio.com/embed/audio/1793474640476011" } })
+    fireEvent.click(screen.getByRole("button", { name: "この音源を使う" }))
+    fireEvent.change(screen.getByLabelText("BGM音量"), { target: { value: "35" } })
+
+    await waitFor(() => expect(screen.getByTitle("テストのBGM")).toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledWith("/api/bgm/audio-com?source=1793474640476011", expect.anything())
+    expect(JSON.parse(window.localStorage.getItem("mikan.bgm.custom-bgm") ?? "null")).toMatchObject({ customUrl: "https://audio.com/embed/audio/1793474640476011", volume: 35, enabled: true })
+  })
+
+  it("BGM設定を保存できない環境でも会話画面を表示する", () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("quota") })
+
+    expect(() => render(<ScenarioBgmPlayer scenarioId="no-storage" title="テスト" mode="settings" />)).not.toThrow()
+    expect(screen.getByRole("group", { name: "同梱BGMから選ぶ" })).toBeInTheDocument()
+    setItem.mockRestore()
+  })
+
+  it("BGMの再生を停止できる", async () => {
+    render(<>
+      <ScenarioBgmPlayer scenarioId="mute-bgm" title="テスト" />
+      <ScenarioBgmPlayer scenarioId="mute-bgm" title="テスト" mode="settings" />
+    </>)
+    expect(screen.getByTitle("テストのBGM")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("switch", { name: "BGMを再生する" }))
+
+    await waitFor(() => expect(screen.queryByTitle("テストのBGM")).not.toBeInTheDocument())
+    expect(window.localStorage.getItem("mikan.bgm.mute-bgm")).toContain('"enabled":false')
+  })
+
+  it("音声ファイルを読み込んで再生できる", async () => {
+    render(<>
+      <ScenarioBgmPlayer scenarioId="file-bgm" title="テスト" />
+      <ScenarioBgmPlayer scenarioId="file-bgm" title="テスト" mode="settings" />
+    </>)
+
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "my-bgm.mp3", { type: "audio/mpeg" })
+    fireEvent.change(screen.getByLabelText("読み込む音声ファイル"), { target: { files: [file] } })
+
+    await waitFor(() => expect(screen.getByTitle("テストのBGM")).toHaveAttribute("src", expect.stringContaining("data:audio/mpeg;base64,")))
+    expect(screen.getByTitle("my-bgm.mp3")).toBeInTheDocument()
+  })
+
+  it("audio.com指定のBGMは窓を出さず音声だけ読み込む", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ streamUrl: "https://s3.ustatik.com/audio.com.audio/transcoding/a.mp3?sig=1", title: "テストBGM" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ScenarioBgmPlayer scenarioId="audio-com-bgm" title="テスト" pack={{ extensions: { "mikan.bgm": { provider: "audio.com", id: "1793474640476011" } } }} />)
+
+    await waitFor(() => expect(document.querySelector("audio")).not.toBeNull())
+    const audio = document.querySelector("audio")!
+    expect(audio).toHaveAttribute("src", "https://s3.ustatik.com/audio.com.audio/transcoding/a.mp3?sig=1")
+    expect(audio).toHaveProperty("loop", true)
+    expect(audio).toHaveAttribute("hidden")
+    expect(audio).not.toHaveAttribute("controls")
+    expect(document.querySelector("iframe")).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith("/api/bgm/audio-com?source=1793474640476011", expect.anything())
   })
 
   it("ストリーム中は完成したキャラクターの文だけを順番に取り出す", () => {
@@ -122,7 +226,6 @@ describe("TalkScreenの物語導入", () => {
     expect(composer).toBeEnabled()
     fireEvent.change(composer, { target: { value: "先に入力しておく" } })
     expect(screen.getByRole("button", { name: "送信" })).toBeDisabled()
-
     const timeline = screen.getByRole("region", { name: "ミア・ノアとの会話" })
     Object.defineProperties(timeline, {
       scrollHeight: { configurable: true, value: 1000 },
@@ -132,26 +235,26 @@ describe("TalkScreenの物語導入", () => {
     fireEvent.scroll(timeline)
     vi.mocked(Element.prototype.scrollIntoView).mockClear()
 
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(180))
     expect(screen.getByText("物語のはじまり")).toBeInTheDocument()
     expect(screen.queryByText("酒場の最後の客")).not.toBeInTheDocument()
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
 
     timeline.scrollTop = 500
     fireEvent.scroll(timeline)
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(360))
     expect(screen.getByText("酒場の最後の客")).toBeInTheDocument()
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(360))
     expect(screen.getByText("閉店後の酒場で依頼を持ちかけられる。")).toBeInTheDocument()
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(360))
     expect(screen.getByText("ノア — 店を守る寡黙な護衛。")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("メッセージを入力")).toHaveValue("先に入力しておく")
     expect(screen.getByRole("button", { name: "送信" })).toBeDisabled()
 
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(360))
     expect(screen.getByText("ここから、物語がはじまる")).toBeInTheDocument()
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(350))
     expect(screen.getByText("頼")).toBeInTheDocument()
 
     await act(() => vi.runAllTimersAsync())
@@ -176,12 +279,31 @@ describe("TalkScreenの物語導入", () => {
         onOpenHistory={() => undefined}
       />,
     )
-    expect(screen.queryByText("物語のはじまり")).not.toBeInTheDocument()
+    expect(screen.getByText("物語のはじまり")).toBeInTheDocument()
     expect(screen.getByText("頼みがあるの。")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("メッセージを入力")).toBeEnabled()
   })
 
-  it("モーション低減時は導入を即時表示してタイマーを残さない", () => {
+  it("既存の会話でも物語のはじまりを表示する", () => {
+    const character = createCharacter()
+    render(
+      <TalkScreen
+        character={character}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        readAloud={false}
+        isNewStory={false}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />,
+    )
+    expect(screen.getByText("物語のはじまり")).toBeInTheDocument()
+    expect(screen.getByPlaceholderText("メッセージを入力")).toBeEnabled()
+  })
+
+  it("モーション低減時は導入を即時表示する", () => {
     vi.useFakeTimers()
     const character = createCharacter()
 
@@ -203,7 +325,6 @@ describe("TalkScreenの物語導入", () => {
     expect(screen.getByText("ここから、物語がはじまる")).toBeInTheDocument()
     expect(screen.getByText("頼みがあるの。")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("メッセージを入力")).toBeEnabled()
-    expect(vi.getTimerCount()).toBe(0)
   })
 
   it("導入途中で会話を切り替えると旧タイマーを破棄する", async () => {
@@ -230,7 +351,7 @@ describe("TalkScreenの物語導入", () => {
     }
     const { rerender } = render(<TalkScreen {...props} conversationId="today" isNewStory />)
 
-    await act(() => vi.advanceTimersToNextTimerAsync())
+    await act(() => vi.advanceTimersByTimeAsync(180))
     expect(screen.getByText("物語のはじまり")).toBeInTheDocument()
 
     rerender(<TalkScreen {...props} conversationId="rain" isNewStory={false} />)

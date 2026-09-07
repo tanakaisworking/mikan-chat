@@ -7,14 +7,38 @@ export type ScenarioVoiceSelection = {
   caption: string
   seed: number
   scenarioVersion: string
+  gender?: VoiceGender | null
 }
 
 export type ScenarioVoiceDesign = {
   caption: string
+  gender: VoiceGender | null
   seeds: [number, number, number]
   sampleText: string
   characterId: string
   characterName: string
+}
+
+export type VoiceGender = "female" | "male"
+
+export function readVoiceGender(value: unknown): VoiceGender | null {
+  if (value === "male" || value === "男性") return "male"
+  if (value === "female" || value === "女性") return "female"
+  return null
+}
+
+const genderedCaptionPattern = /男|女|男性|女性/
+
+function profileGender(target: Record<string, unknown>) {
+  const voice = isRecord(target.voice) ? target.voice : null
+  const profile = voice && isRecord(voice.profile) ? voice.profile : null
+  return readVoiceGender(profile?.gender)
+}
+
+export function applyVoiceGender(caption: string | undefined, gender: VoiceGender | null | undefined) {
+  if (!caption || !gender) return caption
+  if (genderedCaptionPattern.test(caption)) return caption
+  return gender === "male" ? "男性の声。" + caption : "女性の声。" + caption
 }
 
 export function resolveScenarioVoice(character: Character, speakerName?: string, selections?: ScenarioVoiceSelection | ScenarioVoiceSelection[] | null): TtsSpeakOptions | undefined {
@@ -25,8 +49,12 @@ export function resolveScenarioVoice(character: Character, speakerName?: string,
 
   const selection = (Array.isArray(selections) ? selections : selections ? [selections] : [])
     .find((item) => item.characterId === target.id)
-  if (selection && selection.scenarioVersion === scenarioVersion(character)) {
-    return { voiceId: selection.voiceId, caption: selection.caption, seed: selection.seed }
+  if (selection) {
+    return {
+      voiceId: selection.voiceId,
+      caption: applyVoiceGender(selection.caption, selection.gender ?? profileGender(target)),
+      seed: selection.seed,
+    }
   }
   if (!isRecord(target.voice)) return undefined
 
@@ -38,7 +66,7 @@ export function resolveScenarioVoice(character: Character, speakerName?: string,
   const referenceAsset = isRecord(target.voice.referenceAudio) && typeof target.voice.referenceAudio.asset === "string"
     ? target.voice.referenceAudio.asset
     : null
-  const source = referenceAsset ? character.assets?.[referenceAsset] : undefined
+const source = referenceAsset ? character.assets?.[referenceAsset] : undefined
   const traits = Array.isArray(profile?.traits) ? profile.traits.filter((trait): trait is string => typeof trait === "string" && Boolean(trait.trim())) : []
   const caption = normalizeCaption(typeof parameters?.caption === "string"
     ? parameters.caption
@@ -48,7 +76,7 @@ export function resolveScenarioVoice(character: Character, speakerName?: string,
 
   if (!caption && seed === undefined && !source) return undefined
   return {
-    caption,
+    caption: applyVoiceGender(caption, profileGender(target)),
     seed,
     ...(source && typeof target.id === "string" && typeof character.pack?.id === "string" ? {
       referenceAudio: {
@@ -86,6 +114,7 @@ export function getScenarioVoiceDesigns(character: Character): ScenarioVoiceDesi
     const sample = opening.find((event) => event.type === "dialogue" && event.speaker === target.id && typeof event.text === "string")
     return [{
       caption,
+      gender: profileGender(target),
       seeds: [baseSeed, (baseSeed + 1) % 2_147_483_647, (baseSeed + 2) % 2_147_483_647],
       sampleText: normalizeSampleText(sample?.text),
       characterId: target.id,
@@ -108,7 +137,7 @@ export function scenarioVersion(character: Character) {
 
 export function createScenarioVoiceId(character: Character, characterId: string) {
   const packId = typeof character.pack?.id === "string" ? character.pack.id : character.id
-  return `mikan-user-${packId}-${characterId}-${scenarioVersion(character).replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 40)}`.slice(0, 196)
+  return `mikan-user-${packId}-${characterId}`.slice(0, 196)
 }
 
 export async function isScenarioVoiceConfirmed(
@@ -121,10 +150,19 @@ export async function isScenarioVoiceConfirmed(
   return Boolean(
     design
     && selection?.characterId === design.characterId
-    && selection.scenarioVersion === scenarioVersion(character)
-    && selection.voiceId === createScenarioVoiceId(character, design.characterId)
     && await hasReference(selection.voiceId),
   )
+}
+
+export async function recoverScenarioVoice(
+  character: Character,
+  design: ScenarioVoiceDesign,
+  findReference: (prefix: string) => Promise<string | null>,
+): Promise<ScenarioVoiceSelection | null> {
+  const voiceId = createScenarioVoiceId(character, design.characterId)
+  const found = await findReference(voiceId)
+  if (!found) return null
+  return { characterId: design.characterId, voiceId: found, caption: design.caption, seed: design.seeds[0], scenarioVersion: scenarioVersion(character) }
 }
 
 function stableSeed(value: string) {

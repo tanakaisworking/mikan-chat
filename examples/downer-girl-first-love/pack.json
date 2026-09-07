@@ -2,7 +2,7 @@
   "spec": "mikan.chat-pack",
   "specVersion": "0.1",
   "id": "f0b4e40f-6596-4e14-bef5-fa5707faabac",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "language": "ja",
   "title": "男嫌いのダウナーちゃんが、あなたにだけ甘えてくる",
   "summary": "男の人が苦手な銀髪のダウナー女子が、一目惚れしたあなたの隣でだけ静かに甘える。",
@@ -32,6 +32,18 @@
         "creator": "mikan chat contributors / OpenAI image generation",
         "source": "https://mikanchat.mikan-chat.workers.dev/",
         "license": "All-Rights-Reserved"
+      },
+      {
+        "asset": "assets/shizuku-idle.mp4",
+        "creator": "mikan chat contributors / MiniMax H3 generation",
+        "source": "https://github.com/Comfy-Org/ComfyUI",
+        "license": "All-Rights-Reserved"
+      },
+      {
+        "asset": "assets/bgm.m4a",
+        "creator": "かまタマゴ",
+        "source": "https://kamatamago.com",
+        "license": "Kamatamago guideline (commercial use allowed)"
       }
     ]
   },
@@ -67,6 +79,12 @@
               }
             }
           ]
+        },
+        "extensions": {
+          "mikan.motion": {
+            "idleVideo": "assets/shizuku-idle.mp4",
+            "idleVideoUrl": "/scenario-motion/downer-girl-first-love-shizuku-idle.mp4"
+          }
         }
       }
     ],
@@ -197,6 +215,10 @@
         "min": 18,
         "max": 27
       }
+    },
+    "mikan.bgm": {
+      "audio": "assets/bgm.m4a",
+      "loop": true
     }
   }
 }

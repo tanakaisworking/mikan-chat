@@ -35,7 +35,7 @@ export function HomeScreen({
   onRetry,
 }: HomeScreenProps) {
   return (
-    <main className="grid h-screen grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background max-md:block max-md:h-dvh max-md:overflow-y-auto max-md:pb-[calc(148px+env(safe-area-inset-bottom))]" data-testid="home-screen">
+    <main className="grid h-full grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background max-md:block max-md:h-full max-md:overflow-y-auto max-md:pb-[calc(148px+env(safe-area-inset-bottom))]" data-testid="home-screen">
       <DesktopSidebar activePage={activeTab} onPageChange={onTabChange} onAddPack={onAddPack} onOpenDocs={onOpenDocs} onOpenSettings={onOpenSettings} />
       <MobileHeader onOpenDocs={onOpenDocs} onOpenSettings={onOpenSettings} />
 

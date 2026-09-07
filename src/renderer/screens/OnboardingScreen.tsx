@@ -52,7 +52,7 @@ export function OnboardingScreen({ genres, genresLoading, genresError, onRetryGe
   }
 
   return (
-    <main className="relative h-screen overflow-x-hidden overflow-y-auto overscroll-y-contain bg-background px-5 py-10 supports-[height:100dvh]:h-dvh max-md:pt-[calc(1.75rem+env(safe-area-inset-top))] max-md:pb-[calc(1.75rem+env(safe-area-inset-bottom))]" data-testid="onboarding-screen">
+    <main className="relative h-full overflow-x-hidden overflow-y-auto overscroll-y-contain bg-background px-5 py-10 max-md:pt-[calc(1.75rem+env(safe-area-inset-top))] max-md:pb-[calc(1.75rem+env(safe-area-inset-bottom))]" data-testid="onboarding-screen">
       <div className="pointer-events-none absolute -top-20 -right-20 size-72 rounded-full border-[40px] border-surface-accent/70" aria-hidden="true" />
       <div className="pointer-events-none absolute bottom-12 -left-16 size-44 rounded-full bg-surface-soft" aria-hidden="true" />
 

@@ -24,6 +24,15 @@ const settings = {
   profile: { gender: "woman" as const, birthYear: 2000, favoriteGenres: ["恋愛"] },
   appearance: { textSize: "large" as const, theme: "dark" as const },
   readAloud: true,
+  scenarioVoices: {
+    "scenario:character": {
+      characterId: "character",
+      voiceId: "mikan-user-scenario-character-1-0-0",
+      caption: "落ち着いた声",
+      seed: 42,
+      scenarioVersion: "1.0.0",
+    },
+  },
 }
 
 afterEach(async () => {

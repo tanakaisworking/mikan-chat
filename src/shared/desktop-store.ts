@@ -32,12 +32,24 @@ const appearanceSchema = z.object({
   theme: z.enum(["light", "dark"]),
 })
 
+const scenarioVoiceSelectionSchema = z.object({
+  characterId: z.string().min(1).max(64),
+  voiceId: z.string().regex(/^[A-Za-z0-9_-]+$/).max(200),
+  caption: z.string().trim().min(1).max(1_000),
+  seed: z.number().int().min(0).max(2_147_483_647),
+  scenarioVersion: z.string().min(1).max(100),
+})
+
+const scenarioVoicesSchema = z.record(z.string().min(1).max(512), scenarioVoiceSelectionSchema)
+  .refine((voices) => Object.keys(voices).length <= 500, "保存できるキャラクター音声は500件までです。")
+
 export const desktopSettingsInputSchema = z.object({
   connection: connectionSchema.extend({ apiKey: z.string() }),
   tts: ttsSchema.extend({ apiKey: z.string() }),
   profile: profileSchema.nullable(),
   appearance: appearanceSchema,
   readAloud: z.boolean(),
+  scenarioVoices: scenarioVoicesSchema,
 })
 
 export const desktopSettingsFileSchema = z.object({
@@ -49,6 +61,7 @@ export const desktopSettingsFileSchema = z.object({
   profile: profileSchema.nullable(),
   appearance: appearanceSchema,
   readAloud: z.boolean(),
+  scenarioVoices: scenarioVoicesSchema.default({}),
 })
 
 export const desktopMessageSchema = z.object({

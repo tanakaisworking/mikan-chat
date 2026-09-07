@@ -13,7 +13,8 @@ const limits = {
 
 const allowedRootFiles = new Set(["pack.json", "LICENSE.txt"])
 const imageAssetExtensions = new Set(["webp", "png", "jpg", "jpeg"])
-const audioAssetExtensions = new Set(["wav", "mp3", "flac"])
+const audioAssetExtensions = new Set(["wav", "mp3", "flac", "m4a"])
+const videoAssetExtensions = new Set(["mp4"])
 const reservedCharacterIds = new Set(["user", "narrator"])
 const decoder = new TextDecoder("utf-8", { fatal: true })
 const uuidPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i
@@ -89,6 +90,12 @@ export type LoadedChatPack = {
   assets: Record<string, string>
 }
 
+export function revokeChatPackAssets(loaded: LoadedChatPack) {
+  for (const url of Object.values(loaded.assets)) {
+    if (url.startsWith("blob:")) URL.revokeObjectURL(url)
+  }
+}
+
 export class ChatPackError extends Error {
   constructor(message: string) {
     super(message)
@@ -120,7 +127,7 @@ export async function loadChatPack(file: File): Promise<LoadedChatPack> {
   const raw = input as Record<string, unknown>
   const referencedAssets = collectAssetPaths(pack, raw)
   for (const assetPath of referencedAssets) {
-    if (!entries[assetPath]) throw new ChatPackError(`画像が見つかりません: ${assetPath}`)
+    if (!entries[assetPath]) throw new ChatPackError(`参照ファイルが見つかりません: ${assetPath}`)
   }
   const assets: Record<string, string> = {}
   for (const [assetPath, data] of Object.entries(entries)) {
@@ -129,7 +136,12 @@ export async function loadChatPack(file: File): Promise<LoadedChatPack> {
     if (!mime) throw new ChatPackError(`ファイル形式を確認できません: ${assetPath}`)
     if (!matchesAssetExtension(assetPath, mime)) throw new ChatPackError(`拡張子とファイル形式が一致しません: ${assetPath}`)
     if (mime.startsWith("image/")) await validateImage(data, mime, assetPath)
-    assets[assetPath] = toDataUrl(data, mime)
+    if (mime.startsWith("video/") && data.length > 8 * 1024 * 1024) throw new ChatPackError(`動画が8 MiBの上限を超えています: ${assetPath}`)
+  }
+  for (const [assetPath, data] of Object.entries(entries)) {
+    if (!assetPath.startsWith("assets/")) continue
+    const mime = detectAssetMime(data)!
+    assets[assetPath] = mime.startsWith("video/") ? URL.createObjectURL(new Blob([data.slice().buffer], { type: mime })) : toDataUrl(data, mime)
   }
 
   return { fileName: file.name, pack, raw, assets }
@@ -249,7 +261,7 @@ function validateArchiveEntry(file: UnzipFile) {
   if (allowedRootFiles.has(path)) return
   if (!path.startsWith("assets/")) throw new ChatPackError(`許可されていないファイルです: ${path}`)
   const extension = path.split(".").pop()?.toLowerCase() ?? ""
-  if (!imageAssetExtensions.has(extension) && !audioAssetExtensions.has(extension)) throw new ChatPackError(`許可されていないファイル形式です: ${path}`)
+  if (!imageAssetExtensions.has(extension) && !audioAssetExtensions.has(extension) && !videoAssetExtensions.has(extension)) throw new ChatPackError(`許可されていないファイル形式です: ${path}`)
 }
 
 function validatePack(input: unknown): ChatPack {
@@ -367,6 +379,14 @@ function collectAssetPaths(pack: ChatPack, raw: Record<string, unknown>) {
       if (event.image !== undefined) paths.add(requireAssetPath(event.image, "plot.situationExamples[].events[].image"))
     }
   }
+  for (const character of (plot.characters as Array<Record<string, unknown>> | undefined) ?? []) {
+    const extensions = isRecord(character.extensions) ? character.extensions : null
+    const motion = isRecord(extensions?.["mikan.motion"]) ? extensions["mikan.motion"] : null
+    if (motion?.idleVideo !== undefined) paths.add(requireAssetPath(motion.idleVideo, "plot.characters[].extensions[mikan.motion].idleVideo"))
+  }
+  const topExtensions = isRecord(raw.extensions) ? raw.extensions : null
+  const bgm = isRecord(topExtensions?.["mikan.bgm"]) ? topExtensions["mikan.bgm"] : null
+  if (bgm?.audio !== undefined) paths.add(requireAssetPath(bgm.audio, "extensions[mikan.bgm].audio"))
   return paths
 }
 
@@ -421,7 +441,7 @@ function optionalString(value: unknown, field: string) {
 function requireAssetPath(value: unknown, field: string) {
   const path = requireString(value, field)
   if (!assetPathPattern.test(path)) {
-    throw new ChatPackError(`${field}はassets/以下の画像を参照してください。`)
+    throw new ChatPackError(`${field}はassets/以下のファイルを参照してください。`)
   }
   return path
 }
@@ -441,7 +461,19 @@ function detectAssetMime(data: Uint8Array) {
   if (data.length >= 12 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 && data[8] === 0x57 && data[9] === 0x41 && data[10] === 0x56 && data[11] === 0x45) return "audio/wav"
   if (data.length >= 4 && data[0] === 0x66 && data[1] === 0x4c && data[2] === 0x61 && data[3] === 0x43) return "audio/flac"
   if ((data.length >= 3 && data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) || (data.length >= 2 && data[0] === 0xff && (data[1] & 0xe0) === 0xe0)) return "audio/mpeg"
+  if (data.length >= 12 && data[4] === 0x66 && data[5] === 0x74 && data[6] === 0x79 && data[7] === 0x70) {
+    if (hasM4aBrand(data)) return "audio/mp4"
+    return "video/mp4"
+  }
   return null
+}
+
+function hasM4aBrand(data: Uint8Array) {
+  const end = Math.min(data.length - 4, 64)
+  for (let offset = 8; offset <= end; offset += 1) {
+    if (data[offset] === 0x4d && data[offset + 1] === 0x34 && data[offset + 2] === 0x41 && data[offset + 3] === 0x20) return true
+  }
+  return false
 }
 
 function matchesAssetExtension(path: string, mime: string) {
@@ -452,6 +484,12 @@ function matchesAssetExtension(path: string, mime: string) {
     || (mime === "audio/wav" && extension === "wav")
     || (mime === "audio/mpeg" && extension === "mp3")
     || (mime === "audio/flac" && extension === "flac")
+    || (mime === "audio/mp4" && extension === "m4a")
+    || (mime === "video/mp4" && extension === "mp4")
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
 async function validateImage(data: Uint8Array, mime: string, path: string) {

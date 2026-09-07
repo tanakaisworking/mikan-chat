@@ -30,6 +30,8 @@ const uniquePublicIdsMigration = readFileSync(path.join(process.cwd(), "migratio
 const replacedPlaceholderPublicIdsMigration = readFileSync(path.join(process.cwd(), "migrations/0023_replace_placeholder_public_ids.sql"), "utf8")
 const recommendationMetadataMigration = readFileSync(path.join(process.cwd(), "migrations/0024_add_recommendation_metadata.sql"), "utf8")
 const recommendationVersionMigration = readFileSync(path.join(process.cwd(), "migrations/0025_bump_recommendation_pack_versions.sql"), "utf8")
+const shizukuIdleMotionMigration = readFileSync(path.join(process.cwd(), "migrations/0027_add_young_character_idle_motion.sql"), "utf8")
+const shizukuBundledBgmMigration = readFileSync(path.join(process.cwd(), "migrations/0029_add_shizuku_bundled_bgm.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -61,6 +63,8 @@ describe("full chat pack migration", () => {
     db.exec(recommendationMetadataMigration)
     db.exec(`UPDATE scenarios SET pack_json = '{"version":"1.0.0","extensions":{"mikan.recommendation":{"targetAudiences":["all"],"recommendedAge":{"min":20,"max":40}}}}' WHERE id = 'extra'`)
     db.exec(recommendationVersionMigration)
+    db.exec(shizukuIdleMotionMigration)
+    db.exec(shizukuBundledBgmMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -108,8 +112,18 @@ describe("full chat pack migration", () => {
     expect(mia.plot.characters).toHaveLength(2)
     const observatory = JSON.parse(seeded.find((row) => row.id === "satoru-ren")!.pack_json) as { plot: { characters: unknown[] } }
     expect(observatory.plot.characters).toHaveLength(2)
-    const shizuku = JSON.parse(seeded.find((row) => row.id === "shizuku-downer")!.pack_json) as { plot: { characters: unknown[] } }
+    const shizuku = JSON.parse(seeded.find((row) => row.id === "shizuku-downer")!.pack_json) as {
+      version: string
+      extensions: Record<string, unknown>
+      plot: { characters: unknown[] }
+    }
     expect(shizuku.plot.characters).toHaveLength(1)
+    expect(shizuku.plot.characters[0]).toHaveProperty(
+      ["extensions", "mikan.motion", "idleVideoUrl"],
+      '/scenario-motion/downer-girl-first-love-shizuku-idle.mp4',
+    )
+    expect(shizuku.version).toBe("1.0.3")
+    expect(shizuku.extensions["mikan.bgm"]).toEqual({ audio: "assets/bgm.m4a", loop: true })
     for (const id of ["lucien-contract", "kohaku-midnight", "tomoya-fake-date", "noah-voice-memory"]) {
       expect(JSON.parse(seeded.find((row) => row.id === id)!.pack_json).plot.characters).toHaveLength(1)
     }

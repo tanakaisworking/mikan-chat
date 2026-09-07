@@ -276,6 +276,38 @@ describe("IrodoriRuntimeManager", () => {
     await manager.delete()
   })
 
+  it("前回起動の残骸があっても起動できる", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    await writeFile(path.join(root, "installed.json"), JSON.stringify({
+      uvVersion: "0.11.33",
+      serverRevision: "841fb7c6ec57729c56b9b75c0ef2562249b13a10",
+      modelRevision: "4c92c7ee2bb15c19a97cf4e86d24fd6bf33b0135",
+      codecRevision: "47376ee24834d7a05a48ebabfe3cde29b3c5e214",
+    }))
+    await writeFile(path.join(root, "server.pid"), "4194304")
+    const child = new EventEmitter() as EventEmitter & { stdout: PassThrough; stderr: PassThrough; kill: ReturnType<typeof vi.fn> }
+    child.stdout = new PassThrough()
+    child.stderr = new PassThrough()
+    child.kill = vi.fn(() => {
+      queueMicrotask(() => child.emit("exit", 0))
+      return true
+    })
+    const spawnServer = vi.fn(() => child)
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: spawnServer as never,
+      getFreePort: vi.fn(async () => 39123),
+      fetcher: vi.fn(async () => new Response("ok")) as never,
+    })
+    await manager.start()
+
+    expect(spawnServer).toHaveBeenCalledOnce()
+    await expect(manager.status()).resolves.toMatchObject({ state: "running" })
+    await manager.delete()
+  })
+
   it("生成音声を再利用し、最終利用から30日を過ぎたら再生成する", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
     directories.push(root)

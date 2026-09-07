@@ -23,7 +23,7 @@ export function IconButton({ label, children, className, ...props }: IconButtonP
             variant="ghost"
             size="icon"
             aria-label={label}
-            className={cn("shrink-0", className)}
+            className={cn("shrink-0 [-webkit-app-region:no-drag]", className)}
             {...props}
           />
         }

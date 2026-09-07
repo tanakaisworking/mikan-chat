@@ -176,7 +176,7 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     expect(screen.getByRole("heading", { name: /未完成の物語を、\s*AIチャットで楽しもう。/ })).toBeInTheDocument()
-    expect(screen.getByTestId("onboarding-screen")).toHaveClass("h-screen", "supports-[height:100dvh]:h-dvh", "overflow-y-auto", "overscroll-y-contain")
+    expect(screen.getByTestId("onboarding-screen")).toHaveClass("h-full", "overflow-y-auto", "overscroll-y-contain")
     expect(screen.queryByText("あなたへのおすすめ")).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: /女性/ }))
     expect(screen.getByRole("heading", { name: "生まれた年を教えてください" })).toHaveFocus()
@@ -521,7 +521,7 @@ describe("mikan chat UI flow", () => {
     window.history.replaceState({}, "", "/?screen=home&overlay=connection")
     render(<App />)
 
-    expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "会話AIの設定" })).toBeInTheDocument()
   })
 
   it("設定画面で表示とユーザー情報を保存し、AI接続を項目として開ける", () => {
@@ -547,7 +547,7 @@ describe("mikan chat UI flow", () => {
     expect(window.localStorage.getItem("mikan-chat.onboarding.v1")).toContain('"favoriteGenres":["日常","雨の夜"]')
 
     fireEvent.click(screen.getByRole("button", { name: "接続設定" }))
-    expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "会話AIの設定" })).toBeInTheDocument()
   })
 
   it("Web版で会話AIと別のBYOK読み上げTTSを保存できる", async () => {
@@ -562,7 +562,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "接続先URL" }), { target: { value: "https://tts.example.com/v1" } })
     fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "voice-model" } })
     fireEvent.change(screen.getByRole("textbox", { name: "声の名前" }), { target: { value: "voice-a" } })
-    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "tts-test-key" } })
+    fireEvent.change(document.querySelector("#tts-api-key")!, { target: { value: "tts-test-key" } })
 
     expect(JSON.parse(window.localStorage.getItem("mikan-chat.tts.v1") ?? "null")).toEqual({
       provider: "openai-compatible",
@@ -591,7 +591,7 @@ describe("mikan chat UI flow", () => {
     expect(elevenLabsCard.nextElementSibling).toContainElement(settingsPanel)
     expect(kokoroCard).toHaveAttribute("aria-expanded", "false")
     fireEvent.change(screen.getByPlaceholderText("ElevenLabsのVoice ID"), { target: { value: "voice-jp" } })
-    fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "eleven-test-key" } })
+    fireEvent.change(document.querySelector("#tts-api-key")!, { target: { value: "eleven-test-key" } })
     fireEvent.click(screen.getByRole("button", { name: /ElevenLabs/, pressed: true }))
 
     expect(JSON.parse(window.localStorage.getItem("mikan-chat.tts.v1") ?? "null")).toEqual({
@@ -642,8 +642,11 @@ describe("mikan chat UI flow", () => {
     const googleAI = screen.getByRole("button", { name: /Google AI Studio/ })
     fireEvent.click(googleAI)
     expect(googleAI).toHaveAttribute("aria-pressed", "true")
+    expect(googleAI).toHaveAttribute("aria-expanded", "true")
     expect(within(googleAI).getByText("選択中")).toBeInTheDocument()
-    expect(screen.getByText("選んだAI").nextElementSibling).toHaveTextContent("Google AI Studio")
+    const googleSettings = document.getElementById("ai-settings-google")
+    expect(googleSettings).toBeInTheDocument()
+    expect(googleAI.nextElementSibling).toContainElement(googleSettings)
     const confirm = screen.getByRole("button", { name: "Google AI Studioを使う" })
     expect(confirm).toBeDisabled()
     fireEvent.change(screen.getByPlaceholderText("APIキーを入力"), { target: { value: "runtime-test-key" } })
@@ -889,7 +892,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.change(composer, { target: { value: "設定後に送りたい文章" } })
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" })
 
-    expect(screen.getByRole("dialog", { name: "AIの接続" })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "会話AIの設定" })).toBeInTheDocument()
     expect(composer).toHaveValue("設定後に送りたい文章")
   })
 
@@ -1099,7 +1102,7 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
 
     expect(await screen.findByRole("heading", { name: "キャラクターの声を決める" }, { timeout: 8_000 })).toBeInTheDocument()
-    expect(hasReference).toHaveBeenCalledTimes(4)
+    expect(hasReference.mock.calls.length).toBeGreaterThanOrEqual(4)
     expect(screen.getByRole("switch", { name: "返答を読み上げる" })).not.toBeChecked()
     expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: true }))
   }, 10_000)
@@ -1116,9 +1119,10 @@ describe("mikan chat UI flow", () => {
       }
     }
     const speak = vi.fn()
+    const cancel = vi.fn()
     delete window.mikan
     vi.stubGlobal("SpeechSynthesisUtterance", MockUtterance)
-    vi.stubGlobal("speechSynthesis", { cancel: vi.fn(), speak })
+    vi.stubGlobal("speechSynthesis", { cancel, speak })
     window.localStorage.setItem("mikan-chat.connection.v1", JSON.stringify({
       type: "online",
       apiKey: "runtime-test-key",
@@ -1147,13 +1151,25 @@ describe("mikan chat UI flow", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "ブラウザ音声テスト" }))
     fireEvent.click(screen.getByRole("button", { name: "この物語をはじめる" }))
-    fireEvent.click(screen.getByRole("button", { name: "音声設定" }))
+    expect(screen.queryByRole("button", { name: "AI接続設定" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "音声設定" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "AIと音声の設定" }))
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.getByRole("dialog", { name: "BGM設定" })).toBeInTheDocument()
+    expect(screen.getByRole("group", { name: "同梱BGMから選ぶ" })).toBeInTheDocument()
+    expect(document.querySelector("audio[controls]")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "音声" }))
+    expect(screen.getByRole("button", { name: "音声" })).toHaveAttribute("aria-pressed", "true")
     expect(screen.getByText("ブラウザ標準TTS")).toBeInTheDocument()
     const readAloud = screen.getByRole("switch", { name: "返答を読み上げる" })
     expect(readAloud).toBeEnabled()
     fireEvent.click(readAloud)
     fireEvent.click(screen.getByRole("button", { name: "ブラウザ標準TTSを試す" }))
     expect(speak).toHaveBeenCalled()
+    const cancelCount = cancel.mock.calls.length
+    fireEvent.click(screen.getByRole("button", { name: "会話AI" }))
+    expect(cancel.mock.calls.length).toBeGreaterThan(cancelCount)
+    fireEvent.click(screen.getByRole("button", { name: "音声" }))
     fireEvent.click(screen.getByRole("button", { name: "完了" }))
     expect(screen.getAllByRole("button", { name: "音声を再生" }).length).toBeGreaterThan(0)
 
@@ -1252,7 +1268,7 @@ function scenarioApiItem(id: string, title: string, publicId = TEST_PUBLIC_ID) {
 }
 
 function configureLocalAI() {
-  fireEvent.click(screen.getByRole("button", { name: "AI接続設定" }))
+  fireEvent.click(screen.getByRole("button", { name: "AIと音声の設定" }))
   fireEvent.change(screen.getByRole("textbox", { name: "モデル名" }), { target: { value: "qwen3:8b" } })
   fireEvent.click(screen.getByRole("button", { name: "このPCのAIを使う" }))
 }

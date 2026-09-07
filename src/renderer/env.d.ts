@@ -56,8 +56,12 @@ declare global {
       tts?: {
         synthesizeLocal: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer>
         hasReference?: (voiceId: string) => Promise<boolean>
+        findReference?: (prefix: string) => Promise<string | null>
         registerReference?: (reference: LocalTtsReference) => Promise<void>
         cancelLocal: (requestId: string) => void
+      }
+      bgm?: {
+        resolveAudioCom: (source: string) => Promise<{ streamUrl: string; title: string | null }>
       }
       irodori?: {
         status: () => Promise<IrodoriRuntimeStatus>

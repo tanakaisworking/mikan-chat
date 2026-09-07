@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { createScenarioVoiceId, getScenarioVoiceDesign, getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, resolveScenarioVoice, scenarioVersion } from "@/lib/scenario-voice"
+import { createScenarioVoiceId, getScenarioVoiceDesign, getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, resolveScenarioVoice, scenarioVersion } from "@/lib/scenario-voice"
 
 describe("resolveScenarioVoice", () => {
   it("Irodoriの推奨値と参照音声をキャラクターから解決する", () => {
@@ -55,7 +55,7 @@ describe("resolveScenarioVoice", () => {
     const selection = { characterId: "aoi", voiceId: "saved-aoi", caption: "選んだ声", seed: 9, scenarioVersion: "2.0.0" }
 
     expect(resolveScenarioVoice(character, undefined, selection)).toEqual({ voiceId: "saved-aoi", caption: "選んだ声", seed: 9 })
-    expect(createScenarioVoiceId(character, "aoi")).toBe("mikan-user-pack-aoi-2-0-0")
+    expect(createScenarioVoiceId(character, "aoi")).toBe("mikan-user-pack-aoi")
     expect(getScenarioVoiceDesign(character)).toMatchObject({ caption: "低い声", characterId: "aoi" })
   })
 
@@ -72,6 +72,42 @@ describe("resolveScenarioVoice", () => {
 
     expect(await isScenarioVoiceConfirmed(character, selection, async () => true)).toBe(true)
     expect(await isScenarioVoiceConfirmed(character, selection, async () => false)).toBe(false)
+  })
+
+  it("パック更新後もユーザーが確定した声を維持する", async () => {
+    const character = {
+      id: "scenario",
+      name: "葵",
+      description: "test",
+      lastMessage: "test",
+      lastActive: "test",
+      pack: { id: "pack", version: "2.0.0", plot: { characters: [{ id: "aoi", name: "葵", profile: "test" }] } },
+    }
+    const selection = { characterId: "aoi", voiceId: "mikan-user-pack-aoi-1-0-0", caption: "選んだ声", seed: 9, scenarioVersion: "1.0.0" }
+    const hasReference = vi.fn().mockResolvedValue(true)
+
+    expect(resolveScenarioVoice(character, "葵", selection)).toEqual({ voiceId: selection.voiceId, caption: "選んだ声", seed: 9 })
+    await expect(isScenarioVoiceConfirmed(character, selection, hasReference)).resolves.toBe(true)
+    expect(hasReference).toHaveBeenCalledWith(selection.voiceId)
+  })
+
+  it("Irodoriに登録済みの旧IDから声の設定を復元する", async () => {
+    const character = {
+      id: "scenario",
+      name: "しずく",
+      description: "test",
+      lastMessage: "test",
+      lastActive: "test",
+      pack: { id: "pack", version: "1.0.2", plot: { characters: [{ id: "shizuku", name: "しずく", profile: "test" }] } },
+    }
+    const design = getScenarioVoiceDesigns(character)[0]
+    const findReference = vi.fn(async (prefix: string) => prefix === "mikan-user-pack-shizuku" ? "mikan-user-pack-shizuku-1-0-1" : null)
+
+    await expect(recoverScenarioVoice(character, design, findReference)).resolves.toMatchObject({
+      characterId: "shizuku",
+      voiceId: "mikan-user-pack-shizuku-1-0-1",
+    })
+    await expect(recoverScenarioVoice(character, design, async () => null)).resolves.toBeNull()
   })
 
   it("複数の登場人物ごとに音声設計と保存済み音声を解決する", () => {

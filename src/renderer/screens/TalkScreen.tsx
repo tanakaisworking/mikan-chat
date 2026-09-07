@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { History, Mic2, Settings2 } from "lucide-react"
+import { History, Settings2 } from "lucide-react"
 
 import { ChatComposer } from "@/components/chat/chat-composer"
 import { CharacterStage } from "@/components/chat/character-stage"
 import type { ChatMessageData } from "@/components/chat/chat-message"
 import { ChatTimeline } from "@/components/chat/chat-timeline"
+import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
+import { getScenarioBgmAudioPath } from "@/lib/audio-com"
 import { AppHeader } from "@/components/ui/app-header"
 import { IconButton } from "@/components/ui/icon-button"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
@@ -133,7 +135,6 @@ export function TalkScreen({
   isNewStory = false,
   onBack,
   onOpenConnection,
-  onOpenVoice,
   onOpenHistory,
 }: TalkScreenProps) {
   const [messageStore, setMessageStore] = useState<Record<string, ChatMessageData[]>>(() => getSeededConversations(character))
@@ -149,7 +150,7 @@ export function TalkScreen({
   useSyncExternalStore(subscribeKokoroModel, getKokoroModelSnapshot)
   const irodoriRuntime = useSyncExternalStore(subscribeIrodoriRuntime, getIrodoriRuntimeSnapshot)
   const tts = useMemo(() => createTtsDriver(ttsSettings, irodoriRuntime), [irodoriRuntime, ttsSettings])
-  const intro = useMemo(() => isNewStory && character.opening?.length ? readScenarioContext(character) : null, [character, isNewStory])
+  const intro = useMemo(() => character.opening?.length ? readScenarioContext(character) : null, [character])
   const messages = messageStore[conversationId] ?? emptyMessages
   const initialMessageCount = useRef(messages.length)
 
@@ -370,7 +371,7 @@ export function TalkScreen({
 
   return (
     <main
-      className="grid h-screen grid-cols-[clamp(360px,40vw,560px)_minmax(0,1fr)] grid-rows-[96px_minmax(0,1fr)_auto] overflow-hidden bg-background max-[1100px]:grid-rows-[80px_minmax(0,1fr)_auto] max-md:h-dvh max-md:grid-cols-1 max-md:grid-rows-[64px_minmax(0,1fr)_auto]"
+      className="grid h-full grid-cols-[clamp(360px,40vw,560px)_minmax(0,1fr)] grid-rows-[96px_minmax(0,1fr)_auto] overflow-hidden bg-background max-[1100px]:grid-rows-[80px_minmax(0,1fr)_auto] max-md:h-full max-md:grid-cols-1 max-md:grid-rows-[64px_minmax(0,1fr)_auto]"
       data-testid="talk-screen"
     >
       <AppHeader
@@ -382,34 +383,42 @@ export function TalkScreen({
             <IconButton label="会話履歴" onClick={onOpenHistory}>
               <History />
             </IconButton>
-            <IconButton label="音声設定" onClick={onOpenVoice}>
-              <Mic2 />
-            </IconButton>
-            <IconButton label="AI接続設定" onClick={onOpenConnection}>
+            <IconButton label="AIと音声の設定" onClick={onOpenConnection}>
               <Settings2 />
             </IconButton>
           </>
         }
       />
 
-      <CharacterStage image={character.stageImage ?? character.image} name={character.name} className="max-md:col-start-1 max-md:row-start-2" />
+      <CharacterStage key={character.id} image={character.stageImage ?? character.image} idleVideo={character.idleVideo} name={character.name} className="max-md:col-start-1 max-md:row-start-2" />
 
-      <ChatTimeline
-        key={`${character.id}:${conversationId}:${intro ? "intro" : "resume"}`}
-        characterName={character.name}
-        intro={intro}
-        animateIntro={Boolean(intro)}
-        sequenceKey={`${character.id}:${conversationId}`}
-        onIntroPlaybackChange={setIsIntroPlaying}
-        messages={messages}
-        isGenerating={isGenerating}
-        error={generationError}
-        canPlayAudio={tts.supported && ttsVoiceReady}
-        playingMessageId={playingMessageId}
-        onToggleAudio={toggleMessageAudio}
-        endRef={timelineEnd}
-        className="max-md:z-10 max-md:col-start-1 max-md:row-start-2"
-      />
+      <div className="grid min-h-0 grid-rows-[minmax(0,1fr)] max-md:z-10 max-md:col-start-1 max-md:row-start-2">
+        <ScenarioBgmPlayer
+          key={character.id}
+          scenarioId={character.id}
+          pack={character.pack}
+          title={character.packTitle ?? character.name}
+          bundledAudio={(() => {
+            const audioPath = getScenarioBgmAudioPath(character.pack)
+            return audioPath ? character.assets?.[audioPath] ?? null : null
+          })()}
+        />
+        <ChatTimeline
+          key={`${character.id}:${conversationId}:${intro ? "intro" : "resume"}`}
+          characterName={character.name}
+          intro={intro}
+          animateIntro={isNewStory && Boolean(intro)}
+          sequenceKey={`${character.id}:${conversationId}`}
+          onIntroPlaybackChange={setIsIntroPlaying}
+          messages={messages}
+          isGenerating={isGenerating}
+          error={generationError}
+          canPlayAudio={tts.supported && ttsVoiceReady}
+          playingMessageId={playingMessageId}
+          onToggleAudio={toggleMessageAudio}
+          endRef={timelineEnd}
+        />
+      </div>
 
       <div className="col-span-2 max-md:col-span-1 max-md:row-start-3 max-md:z-20">
         <ChatComposer

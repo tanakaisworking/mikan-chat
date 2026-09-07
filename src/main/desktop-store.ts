@@ -29,6 +29,7 @@ const defaultSettings: DesktopSettingsFile = {
   profile: null,
   appearance: { textSize: "medium", theme: "light" },
   readAloud: false,
+  scenarioVoices: {},
 }
 
 export class DesktopStore {
@@ -64,6 +65,7 @@ export class DesktopStore {
         profile: stored.profile,
         appearance: stored.appearance,
         readAloud: stored.readAloud,
+        scenarioVoices: stored.scenarioVoices,
       },
       recoveredCorruptData: this.recoveredCorruptData,
       secretsAvailable,
@@ -90,6 +92,7 @@ export class DesktopStore {
       profile: settings.profile,
       appearance: settings.appearance,
       readAloud: settings.readAloud,
+      scenarioVoices: settings.scenarioVoices,
     } satisfies DesktopSettingsFile)
   }
 

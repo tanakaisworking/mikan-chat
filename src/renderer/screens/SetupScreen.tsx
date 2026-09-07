@@ -40,7 +40,7 @@ export function SetupScreen({ connection, ttsSettings, profile, genres, appearan
   const ttsDescription = ttsSettings.provider === "browser" ? "APIキー不要" : ttsSettings.provider === "kokoro" ? "無料・端末内で生成" : ttsSettings.voice ? `${ttsSettings.model} / ${ttsSettings.voice}` : ttsSettings.provider === "elevenlabs" ? "Voice IDは未設定です" : "音声は未設定です"
 
   return (
-    <main className="grid h-screen grid-rows-[88px_minmax(0,1fr)] overflow-hidden bg-background supports-[height:100dvh]:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="settings-screen">
+    <main className="grid h-full grid-rows-[88px_minmax(0,1fr)] overflow-hidden bg-background max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="settings-screen">
       <AppHeader title="設定" onBack={onBack} />
 
       <div className="overflow-y-auto px-6 py-10 max-md:px-4 max-md:py-6">

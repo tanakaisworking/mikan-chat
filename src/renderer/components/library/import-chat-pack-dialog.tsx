@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { demoChatPack } from "@/data/demo-chat-pack"
-import { ChatPackError, loadChatPack, type LoadedChatPack } from "@/lib/chat-pack"
+import { ChatPackError, loadChatPack, revokeChatPackAssets, type LoadedChatPack } from "@/lib/chat-pack"
 
 export function ImportChatPackDialog({
   open,
@@ -26,6 +26,7 @@ export function ImportChatPackDialog({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const requestIdRef = useRef(0)
+  const loadedRef = useRef<LoadedChatPack | null>(null)
   const [loaded, setLoaded] = useState<LoadedChatPack | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -34,6 +35,8 @@ export function ImportChatPackDialog({
   useEffect(() => {
     if (!open) {
       requestIdRef.current += 1
+      if (loadedRef.current) revokeChatPackAssets(loadedRef.current)
+      loadedRef.current = null
       setLoaded(null)
       setLoading(false)
       setError("")
@@ -44,11 +47,18 @@ export function ImportChatPackDialog({
   const readFile = async (file: File, requestId = ++requestIdRef.current) => {
     setLoading(true)
     setError("")
+    if (loadedRef.current) revokeChatPackAssets(loadedRef.current)
+    loadedRef.current = null
     setLoaded(null)
     setAdultPreview(false)
     try {
       const nextPack = await loadChatPack(file)
-      if (requestId === requestIdRef.current) setLoaded(nextPack)
+      if (requestId === requestIdRef.current) {
+        loadedRef.current = nextPack
+        setLoaded(nextPack)
+      } else {
+        revokeChatPackAssets(nextPack)
+      }
     } catch (cause) {
       if (requestId === requestIdRef.current) {
         setError(cause instanceof ChatPackError ? cause.message : "チャットパックを読み込めませんでした。")
@@ -79,6 +89,12 @@ export function ImportChatPackDialog({
   const character = loaded?.pack.plot.characters[0]
   const coverPath = loaded?.pack.discovery.covers?.[0]
   const cover = loaded && coverPath ? loaded.assets[coverPath] : ""
+  const submit = (action: (pack: LoadedChatPack) => string | undefined) => {
+    if (!loaded) return
+    const result = action(loaded)
+    if (!result) loadedRef.current = null
+    setError(result ?? "")
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,10 +205,10 @@ export function ImportChatPackDialog({
           </Button>
           {loaded && (loaded.pack.rating !== "r18" || adultPreview) ? (
             <>
-              <Button variant="outline" size="lg" onClick={() => setError(onAddToLibrary(loaded) ?? "")}>
+              <Button variant="outline" size="lg" onClick={() => submit(onAddToLibrary)}>
                 ライブラリに追加
               </Button>
-              <Button size="lg" onClick={() => setError(onAddAndTalk(loaded) ?? "")}>追加して話す</Button>
+              <Button size="lg" onClick={() => submit(onAddAndTalk)}>追加して話す</Button>
             </>
           ) : null}
         </DialogFooter>

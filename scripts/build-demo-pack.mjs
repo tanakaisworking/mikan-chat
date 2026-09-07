@@ -1,4 +1,4 @@
-import { copyFile, readFile, writeFile, mkdir } from "node:fs/promises"
+import { copyFile, readFile, readdir, writeFile, mkdir } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -68,7 +68,8 @@ for (const pack of packs) {
   const files = {
     "pack.json": new Uint8Array(await readFile(path.join(sourceRoot, "pack.json"))),
   }
-  for (const asset of pack.assets) {
+  const discoveredAssets = (await readdir(path.join(sourceRoot, "assets"))).filter((asset) => /\.(?:webp|png|jpe?g|wav|mp3|flac|m4a|mp4)$/i.test(asset))
+  for (const asset of new Set([...pack.assets, ...discoveredAssets])) {
     files[`assets/${asset}`] = new Uint8Array(await readFile(path.join(sourceRoot, "assets", asset)))
   }
   await writeFile(path.join(outputDirectory, pack.fileName), zipSync(files, { level: 6, mtime: new Date("1980-01-01T00:00:00Z") }))

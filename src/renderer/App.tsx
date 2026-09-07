@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import type { ReactNode } from "react"
 import { BrowserRouter, HashRouter, useLocation, useMatch, useNavigate } from "react-router"
 
 import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
 import { ImportChatPackDialog } from "@/components/library/import-chat-pack-dialog"
-import { AIConnectionDialog, type ConnectionSettings, type ConnectionType } from "@/components/settings/ai-connection-dialog"
-import { VoiceSettingsSheet } from "@/components/settings/voice-settings-sheet"
+import { type ConnectionSettings, type ConnectionType } from "@/components/settings/ai-connection-dialog"
+import { ChatSettingsDialog } from "@/components/settings/chat-settings-dialog"
+import { DesktopTitleBar } from "@/components/ui/desktop-title-bar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { characters, type Character } from "@/data/characters"
+import { readIdleVideo } from "@/data/scenario-source"
 import { loadScenarios } from "@/data/scenario-source"
 import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL, getConnectionError } from "@/lib/ai-chat"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { rankScenarios, readScenarioRecommendation } from "@/lib/scenario-recommendation"
-import { getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, scenarioVersion, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
+import { getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, scenarioVersion, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
 import { getDesktopBridge, isDesktopApp } from "@/lib/platform"
 import { DEFAULT_TTS_SETTINGS, getIrodoriRuntimeSnapshot, isIrodoriTtsSettings, subscribeIrodoriRuntime, type TtsSettings } from "@/lib/tts"
 import { DEFAULT_BUILTIN_MODEL_SOURCE } from "../shared/local-ai"
@@ -24,13 +27,22 @@ import { TalkScreen } from "@/screens/TalkScreen"
 import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
 type Screen = "settings" | "home" | "scenario" | "talk" | "docs" | "not-found"
-type Overlay = "connection" | "import" | "voice" | "history" | null
+type Overlay = "connection" | "import" | "voice" | "bgm" | "history" | null
 const CONNECTION_STORAGE_KEY = "mikan-chat.connection.v1"
 const ONBOARDING_STORAGE_KEY = "mikan-chat.onboarding.v1"
 const APPEARANCE_STORAGE_KEY = "mikan-chat.appearance.v1"
 const TTS_STORAGE_KEY = "mikan-chat.tts.v1"
 const SCENARIO_VOICES_STORAGE_KEY = "mikan-chat.scenario-voices.v1"
 const ONBOARDING_GENDERS: OnboardingGender[] = ["woman", "man", "nonbinary", "prefer-not-to-say"]
+
+function AppFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <DesktopTitleBar />
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+    </div>
+  )
+}
 
 function createDefaultConnection(): ConnectionSettings {
   const hasBuiltinAI = Boolean(getDesktopBridge()?.localAI)
@@ -200,6 +212,7 @@ function readInitialOverlay(search: string) {
     requestedOverlay === "connection" ||
     requestedOverlay === "import" ||
     requestedOverlay === "voice" ||
+    requestedOverlay === "bgm" ||
     requestedOverlay === "history"
       ? requestedOverlay
       : null
@@ -379,15 +392,27 @@ export function AppContent() {
           const runtime = await bridge.irodori!.status()
           if (!active || !["ready", "running"].includes(runtime.state)) return
           let missing = null
+          const recovered: ScenarioVoiceSelection[] = []
           for (const design of designs) {
             if (hasScenarioReferenceAudio(activeCharacter, design.characterId)) continue
             const selection = findVoiceSelection(scenarioVoiceSelections, activeCharacter.id, design.characterId)
             if (!await isScenarioVoiceConfirmed(activeCharacter, selection, bridge.tts!.hasReference!)) {
-              missing = design
-              break
+              const findReference = bridge.tts!.findReference
+              const restored = findReference ? await recoverScenarioVoice(activeCharacter, design, findReference) : null
+              if (!restored) {
+                missing = design
+                break
+              }
+              recovered.push(restored)
             }
           }
           if (!active) return
+          if (recovered.length) {
+            const next = { ...scenarioVoiceSelections }
+            for (const selection of recovered) next[voiceSelectionKey(activeCharacter.id, selection.characterId)] = selection
+            persistScenarioVoiceSelections(next)
+            setScenarioVoiceSelections(next)
+          }
           checkedVoiceGate.current = gateKey
           if (!missing) {
             setConfirmedVoiceGateKey(gateKey)
@@ -428,6 +453,7 @@ export function AppContent() {
       setOnboardingProfile((current) => settings.profile ?? current)
       setAppearanceSettings((current) => window.localStorage.getItem(APPEARANCE_STORAGE_KEY) ? current : settings.appearance)
       setReadAloud(settings.readAloud)
+      setScenarioVoiceSelections((current) => settings.scenarioVoices && Object.keys(settings.scenarioVoices).length ? settings.scenarioVoices : current)
     }).catch((error) => {
       console.error("Failed to load desktop settings", error)
     }).finally(() => {
@@ -446,13 +472,15 @@ export function AppContent() {
         profile: onboardingProfile,
         appearance: appearanceSettings,
         readAloud,
+        scenarioVoices: scenarioVoiceSelections,
       }).then(() => {
         window.localStorage.removeItem(ONBOARDING_STORAGE_KEY)
         window.localStorage.removeItem(APPEARANCE_STORAGE_KEY)
+        window.localStorage.removeItem(SCENARIO_VOICES_STORAGE_KEY)
       }).catch((error) => console.error("Failed to save desktop settings", error))
     }, 500)
     return () => window.clearTimeout(timer)
-  }, [appearanceSettings, connectionSettings, desktopReady, onboardingProfile, readAloud, ttsSettings])
+  }, [appearanceSettings, connectionSettings, desktopReady, onboardingProfile, readAloud, scenarioVoiceSelections, ttsSettings])
 
   useLayoutEffect(() => {
     applyAppearanceSettings(appearanceSettings)
@@ -504,6 +532,7 @@ export function AppContent() {
       return { role: "character" as const, text: dialogue, speakerName: names.get(event.speaker) ?? event.speaker, image }
     })
     const lastMessage = [...opening].reverse().find((event) => event.role === "character")?.text ?? loaded.pack.summary
+    const idleVideo = readIdleVideo(loaded.raw)
 
     return {
       id: loaded.pack.id,
@@ -519,6 +548,7 @@ export function AppContent() {
       lastActive: "たった今",
       image: coverPath ? loaded.assets[coverPath] : undefined,
       stageImage: primary.image ? loaded.assets[primary.image] : undefined,
+      idleVideo: idleVideo.asset ? loaded.assets[idleVideo.asset] : idleVideo.url,
       imported: true,
       opening,
       pack: loaded.raw,
@@ -575,27 +605,38 @@ export function AppContent() {
     [conversationScenarioIds, library, onboardingProfile],
   )
 
-  if (!desktopReady) return <main className="h-dvh bg-background" aria-label="アプリを準備しています" />
+  if (!desktopReady) {
+    return (
+      <TooltipProvider>
+        <AppFrame>
+          <main className="h-full bg-background" aria-label="アプリを準備しています" />
+        </AppFrame>
+      </TooltipProvider>
+    )
+  }
 
   if (!onboardingProfile && screen !== "docs" && screen !== "scenario" && screen !== "not-found") {
     return (
       <TooltipProvider>
-        <OnboardingScreen
-          genres={onboardingGenres}
-          genresLoading={scenariosLoading}
-          genresError={scenariosError}
-          onRetryGenres={refreshScenarios}
-          onComplete={(profile) => {
-            persistOnboardingProfile(profile)
-            setOnboardingProfile(profile)
-          }}
-        />
+        <AppFrame>
+          <OnboardingScreen
+            genres={onboardingGenres}
+            genresLoading={scenariosLoading}
+            genresError={scenariosError}
+            onRetryGenres={refreshScenarios}
+            onComplete={(profile) => {
+              persistOnboardingProfile(profile)
+              setOnboardingProfile(profile)
+            }}
+          />
+        </AppFrame>
       </TooltipProvider>
     )
   }
 
   return (
     <TooltipProvider>
+      <AppFrame>
       {screen === "settings" && onboardingProfile ? (
         <SetupScreen
           connection={connectionSettings}
@@ -687,38 +728,28 @@ export function AppContent() {
         <ScenarioRouteState title="ページが見つかりません" message="URLを確認するか、ホームへ戻ってください。" onBack={() => navigate("/")} />
       ) : null}
 
-      <AIConnectionDialog
-        open={overlay === "connection"}
-        initialConnection={connectionType}
-        initialApiKey={connectionSettings.apiKey}
-        initialEndpoint={connectionSettings.endpoint}
-        initialModel={connectionSettings.model}
+      <ChatSettingsDialog
+        open={overlay === "connection" || overlay === "voice" || overlay === "bgm"}
+        section={overlay === "voice" ? "voice" : overlay === "bgm" ? "bgm" : "connection"}
+        connection={{ ...connectionSettings, type: connectionType }}
         isDesktop={isDesktopApp()}
-        onOpenChange={(open) => {
-          if (!open) setConnectionType(connectionSettings.type)
-          setOverlayOpen("connection", open)
-        }}
-        onConfirm={(settings) => {
-          persistConnection(settings)
-          setConnectionSettings(settings)
-          setConnectionType(settings.type)
-          setOverlay(null)
-        }}
-      />
-      <ImportChatPackDialog
-        open={overlay === "import"}
-        onOpenChange={(open) => setOverlayOpen("import", open)}
-        onAddToLibrary={importToLibrary}
-        onAddAndTalk={importAndTalk}
-      />
-      <VoiceSettingsSheet
-        open={overlay === "voice"}
         readAloud={readAloud}
         ttsSettings={ttsSettings}
         character={screen === "talk" ? activeCharacter : undefined}
         voiceDesign={screen === "talk" ? activeVoiceDesign : undefined}
         voiceSelection={screen === "talk" && activeVoiceDesign ? findVoiceSelection(scenarioVoiceSelections, activeCharacter.id, activeVoiceDesign.characterId) : undefined}
         voiceSetupRequired={voiceSetupRequired}
+        onSectionChange={setOverlay}
+        onOpenChange={(open) => {
+          if (!open) setConnectionType(connectionSettings.type)
+          if (!open) setOverlay(null)
+        }}
+        onConnectionConfirm={(settings) => {
+          persistConnection(settings)
+          setConnectionSettings(settings)
+          setConnectionType(settings.type)
+          setOverlay(null)
+        }}
         onReadAloudChange={setReadAloud}
         onTtsSettingsChange={(settings) => {
           persistTtsSettings(settings)
@@ -731,7 +762,12 @@ export function AppContent() {
           setScenarioVoiceSelections(next)
           checkedVoiceGate.current = ""
         }}
-        onOpenChange={(open) => setOverlayOpen("voice", open)}
+      />
+      <ImportChatPackDialog
+        open={overlay === "import"}
+        onOpenChange={(open) => setOverlayOpen("import", open)}
+        onAddToLibrary={importToLibrary}
+        onAddAndTalk={importAndTalk}
       />
       <ConversationHistorySheet
         key={activeCharacter.id}
@@ -747,6 +783,7 @@ export function AppContent() {
           setOverlay(null)
         }}
       />
+      </AppFrame>
     </TooltipProvider>
   )
 }

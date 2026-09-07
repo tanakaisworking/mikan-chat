@@ -89,6 +89,7 @@ export class IrodoriRuntimeManager {
   private get modelDirectory() { return path.join(this.root, "models", "irodori") }
   private get codecDirectory() { return path.join(this.root, "models", "codec") }
   private get markerPath() { return path.join(this.root, "installed.json") }
+  private get serverPidPath() { return path.join(this.root, "server.pid") }
   private get audioCacheDirectory() { return path.join(this.root, "cache", "audio") }
 
   async status() {
@@ -192,6 +193,8 @@ export class IrodoriRuntimeManager {
       if ((await this.status()).state === "missing") return
       signal?.throwIfAborted()
       this.publish(status("starting", Math.max(this.statusValue.progress, 70), "音声モデルを読み込んでいます"))
+      // Detached servers outlive the app, so a previous run may still hold model memory.
+      await this.killStaleServer()
       const port = await this.dependencies.getFreePort()
       signal?.throwIfAborted()
       const token = randomBytes(24).toString("base64url")
@@ -215,6 +218,7 @@ export class IrodoriRuntimeManager {
       this.server = child
       this.endpoint = endpoint
       this.token = token
+      if (child.pid) await writeFile(this.serverPidPath, String(child.pid)).catch(() => undefined)
       const capture = (chunk: unknown) => {
         this.serverOutput = `${this.serverOutput}${String(chunk)}`.slice(-4000)
       }
@@ -286,6 +290,17 @@ export class IrodoriRuntimeManager {
     if (response.status === 404) return false
     if (!response.ok) throw new Error(`Irodori TTSの参照音声を確認できませんでした（${response.status}）`)
     return true
+  }
+
+  async findVoice(prefix: string) {
+    await this.ensureRunning()
+    try {
+      const names = await readdir(path.join(this.serverDirectory, "voices"))
+      const match = names.filter((name) => name.endsWith(".wav") && name.slice(0, -4).startsWith(prefix)).sort().at(-1)
+      return match ? match.slice(0, -4) : null
+    } catch {
+      return null
+    }
   }
 
   async registerVoice(reference: LocalTtsReference) {
@@ -407,6 +422,7 @@ export class IrodoriRuntimeManager {
     const child = this.server
     this.endpoint = null
     this.token = null
+    await rm(this.serverPidPath, { force: true }).catch(() => undefined)
     if (!child) return
     if (child.exitCode != null || child.signalCode != null) {
       if (this.server === child) this.server = null
@@ -424,6 +440,32 @@ export class IrodoriRuntimeManager {
       }
     }
     if (this.server === child) this.server = null
+  }
+
+  // ponytail: best-effort SIGTERM only; a fresh free port is used, so no exit wait.
+  private async killStaleServer() {
+    let pid = 0
+    try {
+      pid = Number.parseInt(await readFile(this.serverPidPath, "utf8"), 10)
+    } catch {
+      return
+    }
+    await rm(this.serverPidPath, { force: true }).catch(() => undefined)
+    if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return
+    try {
+      process.kill(pid, 0)
+    } catch {
+      return
+    }
+    try {
+      process.kill(-pid, "SIGTERM")
+    } catch {
+      try {
+        process.kill(pid, "SIGTERM")
+      } catch {
+        // Already gone; the pidfile is removed above.
+      }
+    }
   }
 
   private async ensureUv(signal: AbortSignal) {

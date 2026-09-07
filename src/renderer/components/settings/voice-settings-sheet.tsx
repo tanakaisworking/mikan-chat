@@ -21,6 +21,8 @@ import { createTtsDriver, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS
 
 export function VoiceSettingsSheet({
   open,
+  active = open,
+  embedded = false,
   readAloud,
   ttsSettings,
   character,
@@ -33,6 +35,8 @@ export function VoiceSettingsSheet({
   onOpenChange,
 }: {
   open: boolean
+  active?: boolean
+  embedded?: boolean
   readAloud: boolean
   ttsSettings: TtsSettings
   character?: Character
@@ -93,7 +97,7 @@ export function VoiceSettingsSheet({
   }, [])
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !active) {
       speechInput.current?.stop()
       tts.stop()
       setTranscript("")
@@ -102,7 +106,7 @@ export function VoiceSettingsSheet({
     }
     setTestingVoice(false)
     return () => tts.stop()
-  }, [open, tts])
+  }, [active, open, tts])
 
   useEffect(() => {
     if (open) setChoosingVoice(voiceSetupRequired || !voiceSelection)
@@ -117,6 +121,10 @@ export function VoiceSettingsSheet({
   }, [])
 
   useEffect(() => () => stopPreview(), [stopPreview])
+
+  useEffect(() => {
+    if (!active) stopPreview()
+  }, [active, stopPreview])
 
   useEffect(() => {
     stopPreview()
@@ -480,13 +488,12 @@ export function VoiceSettingsSheet({
     </Collapsible.Panel>
   )
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="gap-0" data-testid="voice-settings-sheet">
-        <SheetHeader>
+  const content = (
+    <>
+        {!embedded ? <SheetHeader>
           <SheetTitle className="text-3xl max-md:text-2xl">{voiceSetupRequired ? "キャラクターの声を決める" : "音声設定"}</SheetTitle>
           <SheetDescription className="sr-only">{voiceSetupRequired ? "読み上げに使うキャラクターの声を選びます" : "マイクと読み上げ音声を設定します"}</SheetDescription>
-        </SheetHeader>
+        </SheetHeader> : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 max-md:px-4 max-md:py-4">
           <section className="grid gap-7 rounded-lg border border-border/65 bg-surface p-8 shadow-soft max-md:gap-5 max-md:p-5">
@@ -645,6 +652,15 @@ export function VoiceSettingsSheet({
             </Button>
           </section>
         </div>
+    </>
+  )
+
+  if (embedded) return content
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="gap-0" data-testid="voice-settings-sheet">
+        {content}
       </SheetContent>
     </Sheet>
   )

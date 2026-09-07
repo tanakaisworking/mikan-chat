@@ -17,7 +17,7 @@ export function TechDocsScreen({ onBack, onTryDemo }: { onBack: () => void; onTr
   )
 
   return (
-    <main className="grid h-screen grid-rows-[80px_minmax(0,1fr)] overflow-hidden bg-background max-md:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="tech-docs-screen">
+    <main className="grid h-full grid-rows-[80px_minmax(0,1fr)] overflow-hidden bg-background max-md:h-full max-md:grid-rows-[64px_minmax(0,1fr)]" data-testid="tech-docs-screen">
       <AppHeader
         title="技術ドキュメント"
         status="Chat Pack v0.1"

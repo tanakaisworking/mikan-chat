@@ -3,13 +3,15 @@ import path from "node:path"
 import { zipSync, strToU8 } from "fflate"
 import { describe, expect, it, vi } from "vitest"
 
-import { ChatPackError, loadChatPack } from "@/lib/chat-pack"
+import { ChatPackError, loadChatPack, revokeChatPackAssets } from "@/lib/chat-pack"
 
 const webp = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
   0x56, 0x50, 0x38, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ])
 const wav = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45])
+const mp4 = new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d])
+const m4a = new Uint8Array([0, 0, 0, 32, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32, 0, 0, 0, 0, 0x4d, 0x34, 0x41, 0x20])
 
 function createPackFile(pack: Record<string, unknown>, extraFiles: Record<string, Uint8Array> = {}) {
   return new File([
@@ -91,6 +93,57 @@ describe("Chat Pack loader", () => {
 
     expect(loaded.pack.plot.characters[0].voice?.referenceAudio?.asset).toBe("assets/reference.wav")
     expect(loaded.assets["assets/reference.wav"]).toMatch(/^data:audio\/wav;base64,/)
+  })
+
+  it("キャラクターの待機モーション動画を読み込む", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:idle-video") })
+    const base = readFixture("valid/minimal-text-only.json")
+    const plot = base.plot as Record<string, unknown>
+    const character = (plot.characters as Array<Record<string, unknown>>)[0]
+    character.extensions = { "mikan.motion": { idleVideo: "assets/idle.mp4" } }
+
+    const loaded = await loadChatPack(createPackFile(base, { "assets/idle.mp4": mp4 }))
+
+    expect(loaded.assets["assets/idle.mp4"]).toBe("blob:idle-video")
+  })
+
+  it("パック同梱のBGM用m4a音源を読み込む", async () => {
+    const base = readFixture("valid/minimal-text-only.json") as Record<string, unknown>
+    base.extensions = { "mikan.bgm": { audio: "assets/bgm.m4a", loop: true } }
+
+    const loaded = await loadChatPack(createPackFile(base, { "assets/bgm.m4a": m4a }))
+
+    expect(loaded.assets["assets/bgm.m4a"]).toMatch(/^data:audio\/mp4;base64,/)
+  })
+
+  it("参照したBGM音源が無いパックを拒否する", async () => {
+    const base = readFixture("valid/minimal-text-only.json") as Record<string, unknown>
+    base.extensions = { "mikan.bgm": { audio: "assets/bgm.m4a", loop: true } }
+
+    await expect(loadChatPack(createPackFile(base))).rejects.toEqual(
+      expect.objectContaining<Partial<ChatPackError>>({ message: "参照ファイルが見つかりません: assets/bgm.m4a" }),
+    )
+  })
+
+  it("破棄するパックの動画Blobだけを解放する", () => {
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+    const loaded = { assets: { image: "data:image/webp;base64,AA==", video: "blob:idle-video" } } as never
+
+    revokeChatPackAssets(loaded)
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledOnce()
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:idle-video")
+  })
+
+  it("全アセットの検証前には動画Blobを生成しない", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:idle-video") })
+    const base = readFixture("valid/minimal-text-only.json")
+    const plot = base.plot as Record<string, unknown>
+    const character = (plot.characters as Array<Record<string, unknown>>)[0]
+    character.extensions = { "mikan.motion": { idleVideo: "assets/idle.mp4" } }
+
+    await expect(loadChatPack(createPackFile(base, { "assets/idle.mp4": mp4, "assets/broken.webp": strToU8("broken") }))).rejects.toThrow("ファイル形式を確認できません")
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
   })
 
   it("偽装した参照音声の拡張子を拒否する", async () => {
@@ -197,7 +250,7 @@ describe("Chat Pack loader", () => {
     }
 
     await expect(loadChatPack(createPackFile({ ...base, plot }))).rejects.toEqual(
-      expect.objectContaining<Partial<ChatPackError>>({ message: "画像が見つかりません: assets/player.webp" }),
+      expect.objectContaining<Partial<ChatPackError>>({ message: "参照ファイルが見つかりません: assets/player.webp" }),
     )
   })
 

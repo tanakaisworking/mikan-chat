@@ -20,6 +20,7 @@ export type Character = {
   lastActive: string
   image?: string
   stageImage?: string
+  idleVideo?: string
   imported?: boolean
   pack?: Record<string, unknown>
   assets?: Record<string, string>

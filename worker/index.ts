@@ -1,5 +1,6 @@
 import validateChatPack from "../src/renderer/lib/generated/chat-pack-validator.js"
 import { getChatPackSemanticIssue } from "../src/renderer/lib/chat-pack-semantics"
+import { resolveAudioComStreamUrl } from "../src/shared/audio-com"
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -47,6 +48,13 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/")) {
+      if (url.pathname === "/api/bgm/audio-com") {
+        if (request.method !== "GET") {
+          return Response.json({ error: "Method not allowed" }, { status: 405, headers: { "Cache-Control": "no-store", Allow: "GET" } })
+        }
+        return resolveAudioComStream(url.searchParams.get("source"))
+      }
+
       return Response.json(
         { error: "Not found" },
         { status: 404, headers: { "Cache-Control": "no-store" } },
@@ -56,6 +64,23 @@ export default {
     return env.ASSETS.fetch(request)
   },
 } satisfies ExportedHandler<Env>
+
+/** Web-only proxy: browsers cannot call api.audio.com directly because it sends no CORS headers. */
+async function resolveAudioComStream(source: string | null): Promise<Response> {
+  const noStore = { "Cache-Control": "no-store" }
+  if (!source) return Response.json({ error: "BGMの指定がありません。" }, { status: 400, headers: noStore })
+
+  try {
+    const resolved = await resolveAudioComStreamUrl(source)
+    // Presigned links last days; cache well inside that window so playback keeps a valid URL.
+    return Response.json(resolved, { headers: { "Cache-Control": "public, max-age=3600" } })
+  } catch (error) {
+    console.error(JSON.stringify({ event: "audio_com_resolve_failed", error: error instanceof Error ? error.message : String(error) }))
+    const message = error instanceof Error ? error.message : "BGMを読み込めませんでした。"
+    const status = message.includes("特定できません") ? 400 : 502
+    return Response.json({ error: message }, { status, headers: noStore })
+  }
+}
 
 type ScenarioRow = {
   id: string

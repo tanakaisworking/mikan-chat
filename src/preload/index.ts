@@ -29,8 +29,12 @@ contextBridge.exposeInMainWorld("mikan", {
   tts: {
     synthesizeLocal: (request: LocalTtsSynthesisRequest) => ipcRenderer.invoke("tts:synthesize-local", request) as Promise<ArrayBuffer>,
     hasReference: (voiceId: string) => ipcRenderer.invoke("tts:has-reference", voiceId) as Promise<boolean>,
+    findReference: (prefix: string) => ipcRenderer.invoke("tts:find-reference", prefix) as Promise<string | null>,
     registerReference: (reference: LocalTtsReference) => ipcRenderer.invoke("tts:register-reference", reference) as Promise<void>,
     cancelLocal: (requestId: string) => ipcRenderer.send("tts:cancel-local", requestId),
+  },
+  bgm: {
+    resolveAudioCom: (source: string) => ipcRenderer.invoke("bgm:resolve-audio-com", source) as Promise<{ streamUrl: string; title: string | null }>,
   },
   irodori: {
     status: () => ipcRenderer.invoke("irodori:status") as Promise<IrodoriRuntimeStatus>,

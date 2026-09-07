@@ -6,20 +6,37 @@ import { DesktopStore } from "./desktop-store"
 import { IrodoriRuntimeManager } from "./irodori-runtime"
 import { LocalAIManager, localAIChatRequestSchema, localAIModelSpecSchema } from "./local-ai"
 import { localTtsReferenceSchema, localTtsSynthesisRequestSchema } from "./local-tts"
+import { resolveAudioComStreamUrl } from "../shared/audio-com"
 import { desktopConversationInputSchema, desktopSettingsInputSchema } from "../shared/desktop-store"
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const shutdownTasks = new Set<() => Promise<void>>()
 let quitAfterCleanup = false
 
-function createWindow() {
+const windowBackground = { light: "#fff9f4", dark: "#171310" } as const
+
+function createDesktopStore() {
+  return new DesktopStore(app.getPath("userData"), {
+    available: () => safeStorage.isEncryptionAvailable(),
+    encrypt: (value) => safeStorage.encryptString(value).toString("base64"),
+    decrypt: (value) => safeStorage.decryptString(Buffer.from(value, "base64")),
+  })
+}
+
+async function createWindow() {
+  const store = createDesktopStore()
+  const theme = await store.loadSettings().then(
+    (loaded) => loaded.settings.appearance.theme,
+    () => "light" as const,
+  )
   const window = new BrowserWindow({
     width: 1440,
     height: 1024,
     minWidth: 1024,
     minHeight: 720,
-    backgroundColor: "#fff9f4",
+    backgroundColor: windowBackground[theme],
     show: false,
+    icon: path.join(currentDirectory, "../../build/icon.png"),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: path.join(currentDirectory, "../preload/index.cjs"),
@@ -33,7 +50,7 @@ function createWindow() {
   window.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
     callback(webContents === window.webContents && permission === "media")
   })
-  registerStoreHandlers(window)
+  registerStoreHandlers(window, store)
   registerLocalAIHandlers(window)
   registerLocalTtsHandlers(window)
   const hayamimiUrl = getHayamimiUrl()
@@ -59,6 +76,8 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   ipcMain.removeHandler("irodori:delete")
   ipcMain.removeHandler("tts:synthesize-local")
   ipcMain.removeHandler("tts:has-reference")
+  ipcMain.removeHandler("tts:find-reference")
+  ipcMain.removeHandler("bgm:resolve-audio-com")
   ipcMain.removeHandler("tts:register-reference")
   ipcMain.removeAllListeners("tts:cancel-local")
   ipcMain.handle("irodori:status", (event) => {
@@ -89,9 +108,18 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
     return manager.hasVoice(localTtsReferenceSchema.shape.voiceId.parse(voiceId))
   })
+  ipcMain.handle("tts:find-reference", (event, prefix) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.findVoice(localTtsReferenceSchema.shape.voiceId.parse(prefix))
+  })
   ipcMain.handle("tts:register-reference", (event, input) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
     return manager.registerVoice(localTtsReferenceSchema.parse(input))
+  })
+  ipcMain.handle("bgm:resolve-audio-com", (event, source) => {
+    if (event.sender !== window.webContents) throw new Error("BGMへアクセスできません。")
+    if (typeof source !== "string" || source.length > 500) throw new Error("BGMの指定が不正です。")
+    return resolveAudioComStreamUrl(source)
   })
   ipcMain.on("tts:cancel-local", (event, requestId) => {
     if (event.sender !== window.webContents || typeof requestId !== "string") return
@@ -134,12 +162,7 @@ function registerLocalAIHandlers(window: BrowserWindow) {
   window.on("closed", () => void manager.dispose())
 }
 
-function registerStoreHandlers(window: BrowserWindow) {
-  const store = new DesktopStore(app.getPath("userData"), {
-    available: () => safeStorage.isEncryptionAvailable(),
-    encrypt: (value) => safeStorage.encryptString(value).toString("base64"),
-    decrypt: (value) => safeStorage.decryptString(Buffer.from(value, "base64")),
-  })
+function registerStoreHandlers(window: BrowserWindow, store: DesktopStore) {
   const assertSender = (sender: Electron.WebContents) => {
     if (sender !== window.webContents) throw new Error("保存データへアクセスできません。")
   }
@@ -155,7 +178,9 @@ function registerStoreHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("store:saveSettings", (event, input) => {
     assertSender(event.sender)
-    return store.saveSettings(desktopSettingsInputSchema.parse(input))
+    const settings = desktopSettingsInputSchema.parse(input)
+    if (!window.isDestroyed()) window.setBackgroundColor(windowBackground[settings.appearance.theme])
+    return store.saveSettings(settings)
   })
   ipcMain.handle("conv:list", (event) => {
     assertSender(event.sender)
@@ -263,9 +288,9 @@ function getHayamimiUrl() {
 }
 
 app.whenReady().then(() => {
-  createWindow()
+  void createWindow()
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow()
   })
 })
 

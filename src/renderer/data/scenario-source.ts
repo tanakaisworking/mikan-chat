@@ -4,7 +4,7 @@ import { readScenarioRecommendation } from "@/lib/scenario-recommendation"
 import { isDesktopApp } from "@/lib/platform"
 
 const bundledPacks = import.meta.glob("../../../examples/*/pack.json", { eager: true, import: "default" }) as Record<string, Record<string, unknown>>
-const bundledAssets = import.meta.glob("../../../examples/*/assets/*.{webp,png,jpg,jpeg,wav,mp3,flac}", { eager: true, query: "?url", import: "default" }) as Record<string, string>
+const bundledAssets = import.meta.glob("../../../examples/*/assets/*.{webp,png,jpg,jpeg,wav,mp3,flac,m4a,mp4}", { eager: true, query: "?url", import: "default" }) as Record<string, string>
 
 export type ScenarioSummary = {
   id: string
@@ -29,6 +29,7 @@ export type ScenarioSummary = {
 }
 
 export function scenarioToCharacter(scenario: ScenarioSummary): Character {
+  const idleVideo = readIdleVideo(scenario.pack)
   return {
     id: scenario.id,
     publicId: scenario.publicId,
@@ -43,6 +44,7 @@ export function scenarioToCharacter(scenario: ScenarioSummary): Character {
     lastActive: scenario.lastActive,
     image: scenario.coverPath ?? undefined,
     stageImage: scenario.coverPath ?? undefined,
+    idleVideo: idleVideo.url,
     opening: scenario.opening?.map((event) => ({ ...event, text: resolveChatPackText(event.text), image: event.image ?? undefined })),
     pack: scenario.pack,
   }
@@ -94,6 +96,7 @@ function toBundledCharacter(directory: string, pack: Record<string, unknown>): C
   })
   const coverPath = Array.isArray(discovery?.covers) ? assetUrl(discovery.covers[0]) : undefined
   const stageImage = assetUrl(primary.image) ?? coverPath
+  const idleVideo = readIdleVideo(pack)
   const assets = Object.fromEntries(Object.entries(bundledAssets).flatMap(([path, url]) => {
     const asset = path.match(new RegExp(`examples/${directory}/(assets/.+)$`))?.[1]
     return asset ? [[asset, url]] : []
@@ -113,10 +116,22 @@ function toBundledCharacter(directory: string, pack: Record<string, unknown>): C
     lastActive: "新着",
     image: coverPath ?? stageImage,
     stageImage,
+    idleVideo: assetUrl(idleVideo.asset) ?? idleVideo.url,
     opening,
     pack,
     assets,
   }]
+}
+
+export function readIdleVideo(pack?: Record<string, unknown>) {
+  const plot = isRecord(pack?.plot) ? pack.plot : null
+  const primary = Array.isArray(plot?.characters) && isRecord(plot.characters[0]) ? plot.characters[0] : null
+  const extensions = isRecord(primary?.extensions) ? primary.extensions : null
+  const motion = isRecord(extensions?.["mikan.motion"]) ? extensions["mikan.motion"] : null
+  return {
+    asset: typeof motion?.idleVideo === "string" ? motion.idleVideo : undefined,
+    url: typeof motion?.idleVideoUrl === "string" && /^\/(?!\/)/.test(motion.idleVideoUrl) ? motion.idleVideoUrl : undefined,
+  }
 }
 
 function isScenarioSummary(value: unknown): value is ScenarioSummary {

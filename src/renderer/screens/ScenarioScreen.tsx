@@ -18,7 +18,7 @@ export function ScenarioScreen({
   const preview = readScenarioContext(character)
 
   return (
-    <main className="grid h-screen grid-rows-[80px_minmax(0,1fr)_auto] overflow-hidden bg-background max-md:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)_auto]" data-testid="scenario-screen">
+    <main className="grid h-full grid-rows-[80px_minmax(0,1fr)_auto] overflow-hidden bg-background max-md:h-full max-md:grid-rows-[64px_minmax(0,1fr)_auto]" data-testid="scenario-screen">
       <ScenarioHeader onBack={onBack} />
 
       <div className="grid min-h-0 grid-cols-[clamp(320px,34vw,440px)_minmax(0,1fr)] overflow-hidden max-md:block max-md:overflow-y-auto" data-testid="scenario-preview-scroll">
@@ -97,7 +97,7 @@ export function ScenarioScreen({
 
 export function ScenarioRouteState({ title, message, onBack }: { title: string; message: string; onBack: () => void }) {
   return (
-    <main className="grid h-screen grid-rows-[80px_minmax(0,1fr)] bg-background max-md:h-dvh max-md:grid-rows-[64px_minmax(0,1fr)]">
+    <main className="grid h-full grid-rows-[80px_minmax(0,1fr)] bg-background max-md:h-full max-md:grid-rows-[64px_minmax(0,1fr)]">
       <ScenarioHeader onBack={onBack} />
       <section className="grid place-items-center px-5 text-center" role="status" aria-live="polite">
         <div>
@@ -112,7 +112,7 @@ export function ScenarioRouteState({ title, message, onBack }: { title: string; 
 
 function ScenarioHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header className="flex h-full items-center border-b border-border/70 bg-background/96 px-6 max-md:px-3">
+    <header className="flex h-full items-center border-b border-border/70 bg-background/96 px-6 [-webkit-app-region:drag] max-md:px-3">
       <IconButton label="戻る" className="shrink-0" onClick={onBack}><ArrowLeft /></IconButton>
       <Brand compact className="ml-3 max-md:[&_span]:text-lg" />
     </header>
