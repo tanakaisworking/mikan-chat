@@ -1,257 +1,174 @@
-import { mkdir, rm, stat } from "node:fs/promises"
-import { createHash } from "node:crypto"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 import type { BrowserWindow } from "electron"
-import type { Llama, LlamaContext, LlamaContextSequence, LlamaModel } from "node-llama-cpp"
-import { z } from "zod"
 
 import {
   DEFAULT_BUILTIN_MODEL,
-  DEFAULT_BUILTIN_MODEL_SOURCE,
-  BUILTIN_MODEL_ID,
   localAIModelSpec,
   type LocalAIChatRequest,
   type LocalAIModelSpec,
   type LocalAIStatus,
 } from "../shared/local-ai"
+import {
+  baseStatus,
+  type WorkerHandle,
+  type WorkerInMessage,
+  type WorkerOutMessage,
+} from "./local-ai-core"
 
-const DEFAULT_MODEL_FILE = "qwen3-1.7b-q8_0.gguf"
+export { localAIChatRequestSchema, localAIModelSpecSchema } from "./local-ai-core"
 
-export const localAIModelSpecSchema = z.object({
-  source: z.string().min(1).max(500),
-  label: z.string().max(100),
-}).transform(localAIModelSpec)
+const workerPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "local-ai-worker.js")
 
-export const localAIChatRequestSchema = z.object({
-  requestId: z.string().uuid(),
-  modelSource: z.string().min(1).max(500).transform((source) => localAIModelSpec({ source, label: "" }).source),
-  systemPrompt: z.string().min(1).max(30_000),
-  messages: z.array(z.object({
-    role: z.enum(["user", "assistant"]),
-    content: z.string().max(20_000),
-  })).min(1).max(30),
-})
+type PendingCall = {
+  kind: "status" | "call"
+  resolve: (value: unknown) => void
+  reject: (error: Error) => void
+}
 
 export class LocalAIManager {
-  private statusValue: LocalAIStatus = baseStatus(DEFAULT_BUILTIN_MODEL, "missing")
-  private downloadController: AbortController | null = null
-  private generationController: AbortController | null = null
-  private llama: Llama | null = null
-  private model: LlamaModel | null = null
-  private context: LlamaContext | null = null
-  private sequence: LlamaContextSequence | null = null
-  private runtimeSource: string | null = null
-  private generationQueue: Promise<void> = Promise.resolve()
-  private readonly requestControllers = new Map<string, AbortController>()
+  private worker: WorkerHandle | null = null
+  private exiting = false
+  private nextCallId = 1
+  private lastSpec: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL
+  private readonly pendingCalls = new Map<number, PendingCall>()
+  private readonly pendingChats = new Map<string, { resolve: (result: string) => void; reject: (error: Error) => void }>()
 
   constructor(
     private readonly modelsDirectory: string,
     private readonly window: BrowserWindow,
-    private readonly loadRuntime = () => import("node-llama-cpp"),
+    private readonly spawn: () => Promise<WorkerHandle> = spawnUtilityWorker,
   ) {}
 
   async status(input: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL) {
     const spec = localAIModelSpec(input)
-    if (this.statusValue.source !== spec.source) this.statusValue = baseStatus(spec, "missing")
-    if (this.statusValue.state === "downloading" || this.statusValue.state === "loading") return this.statusValue
-    if (this.statusValue.state === "error") return this.statusValue
-    const modelPath = this.getModelPath(spec)
-    try {
-      const file = await stat(modelPath)
-      this.statusValue = { ...baseStatus(spec, "ready"), downloadedBytes: file.size, totalBytes: file.size }
-    } catch {
-      try {
-        const partial = await stat(`${modelPath}.ipull`)
-        this.statusValue = {
-          ...baseStatus(spec, "error"),
-          downloadedBytes: partial.size,
-          error: "途中までダウンロードしたモデルがあります。再開するか削除してください。",
-        }
-      } catch {
-        this.statusValue = baseStatus(spec, "missing")
-      }
-    }
-    return this.statusValue
+    this.lastSpec = spec
+    const child = await this.ensureWorker()
+    const id = this.nextCallId++
+    return new Promise<LocalAIStatus>((resolve, reject) => {
+      this.pendingCalls.set(id, { kind: "status", resolve: (value) => resolve(value as LocalAIStatus), reject })
+      child.send({ type: "status", id, spec })
+    })
   }
 
   async download(input: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL) {
-    if (this.downloadController) return
     const spec = localAIModelSpec(input)
-    const modelPath = this.getModelPath(spec)
-    if (this.runtimeSource && this.runtimeSource !== spec.source) await this.disposeRuntime()
-    if (this.statusValue.source !== spec.source) this.statusValue = baseStatus(spec, "missing")
-    const replaceExisting = this.statusValue.state === "error"
-    const controller = new AbortController()
-    this.downloadController = controller
-    this.publish(baseStatus(spec, "downloading"))
-    try {
-      await mkdir(this.modelsDirectory, { recursive: true })
-      if (replaceExisting) await Promise.all([
-        rm(modelPath, { force: true }),
-        rm(`${modelPath}.ipull`, { force: true }),
-      ])
-      const { resolveModelFile } = await this.loadRuntime()
-      await resolveModelFile(spec.source, {
-        directory: this.modelsDirectory,
-        fileName: path.basename(modelPath),
-        verify: true,
-        cli: false,
-        signal: controller.signal,
-        onProgress: ({ downloadedSize, totalSize }) => this.publish({
-          ...baseStatus(spec, "downloading"),
-          downloadedBytes: downloadedSize,
-          totalBytes: totalSize,
-        }),
-      })
-      const file = await stat(modelPath)
-      this.publish({ ...baseStatus(spec, "ready"), downloadedBytes: file.size, totalBytes: file.size })
-    } catch (error) {
-      this.publish({ ...baseStatus(spec, "error"), error: messageFrom(error, "モデルをダウンロードできませんでした。") })
-      throw error
-    } finally {
-      if (this.downloadController === controller) this.downloadController = null
-    }
+    this.lastSpec = spec
+    const child = await this.ensureWorker()
+    const id = this.nextCallId++
+    await this.call(child, id, { type: "download", id, spec })
   }
 
   async delete(input: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL) {
     const spec = localAIModelSpec(input)
-    const modelPath = this.getModelPath(spec)
-    this.downloadController?.abort()
-    this.abortRequests()
-    await this.generationQueue
-    await this.disposeRuntime()
-    await Promise.all([
-      rm(modelPath, { force: true }),
-      rm(`${modelPath}.ipull`, { force: true }),
-    ])
-    this.publish(baseStatus(spec, "missing"))
+    this.lastSpec = spec
+    const child = await this.ensureWorker()
+    const id = this.nextCallId++
+    await this.call(child, id, { type: "delete", id, spec })
+  }
+
+  chat(request: LocalAIChatRequest) {
+    return this.ensureWorker().then((child) => new Promise<string>((resolve, reject) => {
+      this.pendingChats.set(request.requestId, { resolve, reject })
+      child.send({ type: "chat", request })
+    }))
   }
 
   cancel(requestId: string) {
-    this.requestControllers.get(requestId)?.abort()
-  }
-
-  private activeRequestId: string | null = null
-
-  async chat(request: LocalAIChatRequest) {
-    this.generationController?.abort()
-    const controller = new AbortController()
-    this.requestControllers.set(request.requestId, controller)
-    const queued = this.generationQueue.then(() => this.runChat(request, controller))
-    const run = queued.finally(() => {
-      if (this.requestControllers.get(request.requestId) === controller) this.requestControllers.delete(request.requestId)
-    })
-    this.generationQueue = run.then(() => undefined, () => undefined)
-    return run
-  }
-
-  private async runChat(request: LocalAIChatRequest, controller: AbortController) {
-    controller.signal.throwIfAborted()
-    const spec = localAIModelSpec({ source: request.modelSource, label: this.statusValue.source === request.modelSource ? this.statusValue.label : "" })
-    if ((await this.status(spec)).state !== "ready") throw new Error("内蔵AIのモデルを先にダウンロードしてください。")
-    this.generationController = controller
-    this.activeRequestId = request.requestId
-
-    try {
-      await this.ensureRuntime(spec)
-      controller.signal.throwIfAborted()
-      const { LlamaChatSession, Gemma4ChatWrapper } = await this.loadRuntime()
-      const session = new LlamaChatSession({
-        contextSequence: this.sequence!,
-        systemPrompt: request.systemPrompt,
-        ...(/gemma[-_]?4/i.test(spec.source) ? { chatWrapper: new Gemma4ChatWrapper({ reasoning: false }) } : {}),
-      })
-      try {
-        const history = request.messages.slice(0, -1).map((message) => message.role === "user"
-          ? { type: "user" as const, text: message.content }
-          : { type: "model" as const, response: [message.content] })
-        session.setChatHistory([...session.getChatHistory(), ...history])
-        let text = ""
-        const prompt = `${/qwen/i.test(spec.source) ? "/no_think\n" : ""}ユーザーの発言: ${request.messages.at(-1)!.content}\n指定された形式だけで、短く自然に返答してください。`
-        const result = await session.prompt(prompt, {
-          maxTokens: 600,
-          temperature: 0.65,
-          topP: 0.9,
-          repeatPenalty: { penalty: 1.15, frequencyPenalty: 0.05 },
-          signal: controller.signal,
-          onTextChunk: (chunk) => {
-            text += chunk
-            this.window.webContents.send("local-ai:chunk", request.requestId, text)
-          },
-        })
-        if (!result.trim()) throw new Error("内蔵AIから返答がありませんでした。")
-        return result
-      } finally {
-        session.dispose()
-      }
-    } finally {
-      if (this.generationController === controller) this.generationController = null
-      if (this.activeRequestId === request.requestId) this.activeRequestId = null
-      if (this.statusValue.state !== "error") await this.status(spec)
-    }
+    this.worker?.send({ type: "cancel", requestId })
   }
 
   async dispose() {
-    this.downloadController?.abort()
-    this.abortRequests()
-    await this.generationQueue
-    await this.disposeRuntime()
+    const child = this.worker
+    if (!child) return
+    this.exiting = true
+    child.send({ type: "dispose", id: 0 })
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        child.kill()
+        resolve()
+      }, 5_000)
+      child.onExit(() => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+    this.worker = null
   }
 
-  private abortRequests() {
-    for (const controller of this.requestControllers.values()) controller.abort()
+  private async ensureWorker() {
+    if (this.worker) return this.worker
+    this.exiting = false
+    const child = await this.spawn()
+    child.onMessage((message) => this.onWorkerMessage(message as WorkerOutMessage))
+    child.onExit((exitCode) => this.onWorkerExit(exitCode))
+    child.send({ type: "init", modelsDirectory: this.modelsDirectory })
+    this.worker = child
+    return child
   }
 
-  private async ensureRuntime(spec: LocalAIModelSpec) {
-    if (this.context && this.runtimeSource === spec.source) return
-    if (this.context) await this.disposeRuntime()
-    this.publish({ ...this.statusValue, state: "loading" })
-    try {
-      const { getLlama } = await this.loadRuntime()
-      this.llama = await getLlama()
-      this.model = await this.llama.loadModel({ modelPath: this.getModelPath(spec) })
-      this.context = await this.model.createContext({ contextSize: 4096 })
-      this.sequence = this.context.getSequence()
-      this.runtimeSource = spec.source
-      this.publish({ ...this.statusValue, state: "ready" })
-    } catch (error) {
-      await this.disposeRuntime()
-      this.publish({ ...baseStatus(spec, "error"), error: messageFrom(error, "内蔵AIを起動できませんでした。メモリ容量も確認してください。") })
-      throw error
+  private call(child: WorkerHandle, id: number, message: WorkerInMessage) {
+    return new Promise<void>((resolve, reject) => {
+      this.pendingCalls.set(id, { kind: "call", resolve: () => resolve(), reject })
+      child.send(message)
+    })
+  }
+
+  private onWorkerMessage(message: WorkerOutMessage) {
+    if (message.type === "chunk") {
+      this.send("local-ai:chunk", message.requestId, message.text)
+      return
     }
+    if (message.type === "chat-result" || message.type === "chat-error") {
+      const pending = this.pendingChats.get(message.requestId)
+      if (!pending) return
+      this.pendingChats.delete(message.requestId)
+      if (message.type === "chat-result") pending.resolve(message.result)
+      else pending.reject(new Error(message.message))
+      return
+    }
+    if (message.type === "status") {
+      this.send("local-ai:status", message.status)
+      if (message.id === undefined) return
+      const pending = this.pendingCalls.get(message.id)
+      if (pending?.kind !== "status") return
+      this.pendingCalls.delete(message.id)
+      pending.resolve(message.status)
+      return
+    }
+    const pending = this.pendingCalls.get(message.id)
+    if (!pending) return
+    this.pendingCalls.delete(message.id)
+    if (message.error) pending.reject(new Error(message.error))
+    else pending.resolve(undefined)
   }
 
-  private async disposeRuntime() {
-    const context = this.context
-    const model = this.model
-    const llama = this.llama
-    this.context = null
-    this.sequence = null
-    this.model = null
-    this.llama = null
-    this.runtimeSource = null
-    await context?.dispose()
-    await model?.dispose()
-    await llama?.dispose()
+  private onWorkerExit(exitCode: number) {
+    this.worker = null
+    if (this.exiting) return
+    const error = new Error(exitCode === 0
+      ? "内蔵AIプロセスが終了しました。もう一度お試しください。"
+      : "内蔵AIプロセスが異常終了しました。もう一度お試しください。")
+    for (const pending of this.pendingCalls.values()) pending.reject(error)
+    this.pendingCalls.clear()
+    for (const pending of this.pendingChats.values()) pending.reject(error)
+    this.pendingChats.clear()
+    this.send("local-ai:status", { ...baseStatus(this.lastSpec, "error"), error: error.message })
   }
 
-  private publish(status: LocalAIStatus) {
-    this.statusValue = status
-    if (!this.window.isDestroyed()) this.window.webContents.send("local-ai:status", status)
-  }
-
-  private getModelPath(spec: LocalAIModelSpec) {
-    if (spec.source === DEFAULT_BUILTIN_MODEL_SOURCE) return path.join(this.modelsDirectory, DEFAULT_MODEL_FILE)
-    const id = createHash("sha256").update(spec.source).digest("hex").slice(0, 20)
-    return path.join(this.modelsDirectory, `${id}.gguf`)
+  private send(channel: string, ...args: unknown[]) {
+    if (!this.window.isDestroyed()) this.window.webContents.send(channel, ...args)
   }
 }
 
-function baseStatus(spec: LocalAIModelSpec, state: LocalAIStatus["state"]): LocalAIStatus {
-  return { state, modelId: spec.source === DEFAULT_BUILTIN_MODEL_SOURCE ? BUILTIN_MODEL_ID : spec.source, label: spec.label, source: spec.source, downloadedBytes: 0, totalBytes: 0 }
-}
-
-function messageFrom(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback
+async function spawnUtilityWorker(): Promise<WorkerHandle> {
+  const { utilityProcess } = await import("electron")
+  const child = utilityProcess.fork(workerPath, [], { serviceName: "mikan-local-ai" })
+  return {
+    send: (message) => child.postMessage(message),
+    onMessage: (listener) => child.on("message", (message) => listener(message as WorkerOutMessage)),
+    onExit: (listener) => child.on("exit", (exitCode) => listener(exitCode)),
+    kill: () => child.kill(),
+  }
 }

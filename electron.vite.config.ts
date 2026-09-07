@@ -9,6 +9,14 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: path.resolve(projectRoot, "src/main/index.ts"),
+          "local-ai-worker": path.resolve(projectRoot, "src/main/local-ai-worker.ts"),
+        },
+      },
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
