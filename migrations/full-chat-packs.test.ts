@@ -32,6 +32,7 @@ const recommendationMetadataMigration = readFileSync(path.join(process.cwd(), "m
 const recommendationVersionMigration = readFileSync(path.join(process.cwd(), "migrations/0025_bump_recommendation_pack_versions.sql"), "utf8")
 const shizukuIdleMotionMigration = readFileSync(path.join(process.cwd(), "migrations/0027_add_young_character_idle_motion.sql"), "utf8")
 const shizukuBundledBgmMigration = readFileSync(path.join(process.cwd(), "migrations/0029_add_shizuku_bundled_bgm.sql"), "utf8")
+const voiceProfileGenderMigration = readFileSync(path.join(process.cwd(), "migrations/0030_add_voice_profile_gender.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -65,6 +66,7 @@ describe("full chat pack migration", () => {
     db.exec(recommendationVersionMigration)
     db.exec(shizukuIdleMotionMigration)
     db.exec(shizukuBundledBgmMigration)
+    db.exec(voiceProfileGenderMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -167,6 +169,16 @@ describe("full chat pack migration", () => {
     expect(JSON.parse(seeded.find((row) => row.id === "mia")!.pack_json).id).toBe("b1aa0948-3062-4f41-90c5-7fa451dec95f")
     expect(JSON.parse(seeded.find((row) => row.id === "rin")!.pack_json).id).toBe("69ad7d2d-c129-4cfe-a4b2-692a17fdc9bf")
     expect(JSON.parse(seeded.find((row) => row.id === "koharu")!.pack_json).id).toBe("cc1374b1-3147-4790-9e51-a0a3b4d01019")
+    // voice.profile.gender は配信パック全件に付与される（ルシアンは男性）
+    expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).plot.characters[0].voice.profile.gender).toBe("male")
+    for (const row of seeded) {
+      const characters = (JSON.parse(row.pack_json) as { plot: { characters: Array<{ id: string; voice?: { profile?: Record<string, unknown> } }> } }).plot.characters
+      for (const character of characters) {
+        if (character.voice?.profile) {
+          expect(["male", "female"]).toContain(character.voice.profile.gender)
+        }
+      }
+    }
     expect(() => db.prepare(
       "INSERT INTO scenarios (id, slug, title, character_name, summary, status, pack_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
     ).run("duplicate-public-id", "duplicate-public-id", "重複", "重複", "重複", "published", seeded[0].pack_json)).toThrow(/UNIQUE/)

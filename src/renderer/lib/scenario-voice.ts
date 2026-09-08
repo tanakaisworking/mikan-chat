@@ -162,7 +162,7 @@ export async function recoverScenarioVoice(
   const voiceId = createScenarioVoiceId(character, design.characterId)
   const found = await findReference(voiceId)
   if (!found) return null
-  return { characterId: design.characterId, voiceId: found, caption: design.caption, seed: design.seeds[0], scenarioVersion: scenarioVersion(character) }
+  return { characterId: design.characterId, voiceId: found, caption: design.caption, seed: design.seeds[0], scenarioVersion: scenarioVersion(character), gender: design.gender }
 }
 
 function stableSeed(value: string) {

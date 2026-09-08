@@ -16,7 +16,7 @@ import { TextField } from "@/components/ui/text-field"
 import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type SpeechInputStatus } from "@/lib/speech-input"
 import { isDesktopApp } from "@/lib/platform"
 import type { Character } from "@/data/characters"
-import { createScenarioVoiceId, getScenarioVoiceDesign, hasScenarioReferenceAudio, scenarioVersion, type ScenarioVoiceDesign, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
+import { applyVoiceGender, createScenarioVoiceId, getScenarioVoiceDesign, hasScenarioReferenceAudio, scenarioVersion, type ScenarioVoiceDesign, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
 import { createTtsDriver, deleteIrodoriVoiceCandidate, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS_SETTINGS, generateIrodoriVoiceCandidate, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isIrodoriTtsSettings, isKokoroModelDownloaded, KOKORO_TTS_SETTINGS, OPENAI_COMPATIBLE_TTS_SETTINGS, saveIrodoriVoiceCandidate, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
 
 export function VoiceSettingsSheet({
@@ -202,7 +202,7 @@ export function VoiceSettingsSheet({
     stopPreview()
     const run = previewRun.current
     try {
-      const audio = await generateIrodoriVoiceCandidate(ttsSettings, voiceDesign.sampleText, voiceDesign.caption, seed)
+      const audio = await generateIrodoriVoiceCandidate(ttsSettings, voiceDesign.sampleText, applyVoiceGender(voiceDesign.caption, voiceDesign.gender) ?? voiceDesign.caption, seed)
       if (run !== previewRun.current || !open) return
       const url = URL.createObjectURL(new Blob([audio], { type: "audio/wav" }))
       previewUrl.current = url
@@ -223,7 +223,7 @@ export function VoiceSettingsSheet({
     try {
       const voiceId = createScenarioVoiceId(character, voiceDesign.characterId)
       await saveIrodoriVoiceCandidate(voiceId, candidate.audio)
-      onVoiceConfirmed?.({ characterId: voiceDesign.characterId, voiceId, caption: voiceDesign.caption, seed: candidate.seed, scenarioVersion: scenarioVersion(character) })
+      onVoiceConfirmed?.({ characterId: voiceDesign.characterId, voiceId, caption: voiceDesign.caption, seed: candidate.seed, scenarioVersion: scenarioVersion(character), gender: voiceDesign.gender })
     } catch (error) {
       setTtsError(error instanceof Error ? error.message : "この声を保存できませんでした。")
     } finally {

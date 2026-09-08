@@ -31,6 +31,7 @@ const settings = {
       caption: "落ち着いた声",
       seed: 42,
       scenarioVersion: "1.0.0",
+      gender: "male" as const,
     },
   },
 }

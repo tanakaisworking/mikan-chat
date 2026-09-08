@@ -66,6 +66,24 @@ describe("resolveScenarioVoice", () => {
     expect(getScenarioVoiceDesign(character)).toMatchObject({ caption: "低い声", characterId: "aoi" })
   })
 
+  it("性別のない保存済み選択でもパックの性別で男性の声にする（ルシアンの事例）", () => {
+    const character = {
+      id: "scenario",
+      name: "ルシアン・ヴァレール",
+      description: "test",
+      lastMessage: "test",
+      lastActive: "test",
+      pack: { id: "pack", version: "1.0.1", plot: { characters: [{ id: "lucien", name: "ルシアン・ヴァレール", profile: "test", voice: { profile: { traits: ["adult", "restrained", "formal", "honest-under-pressure"], gender: "male" } } }] } },
+    }
+    const selection = { characterId: "lucien", voiceId: "saved-lucien", caption: "声の特徴: adult、restrained、formal、honest-under-pressure", seed: 5, scenarioVersion: "1.0.1" }
+
+    expect(resolveScenarioVoice(character, "ルシアン・ヴァレール", selection)).toEqual({
+      voiceId: "saved-lucien",
+      caption: "男性の声。声の特徴: adult、restrained、formal、honest-under-pressure",
+      seed: 5,
+    })
+  })
+
   it("保存した参照音声がIrodoriに残っている場合だけ確定済みとみなす", async () => {
     const character = {
       id: "scenario",
@@ -113,6 +131,7 @@ describe("resolveScenarioVoice", () => {
     await expect(recoverScenarioVoice(character, design, findReference)).resolves.toMatchObject({
       characterId: "shizuku",
       voiceId: "mikan-user-pack-shizuku-1-0-1",
+      gender: null,
     })
     await expect(recoverScenarioVoice(character, design, async () => null)).resolves.toBeNull()
   })
