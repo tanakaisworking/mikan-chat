@@ -17,7 +17,7 @@ import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type Speec
 import { isDesktopApp } from "@/lib/platform"
 import type { Character } from "@/data/characters"
 import { createScenarioVoiceId, getScenarioVoiceDesign, hasScenarioReferenceAudio, scenarioVersion, type ScenarioVoiceDesign, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
-import { createTtsDriver, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS_SETTINGS, generateIrodoriVoiceCandidate, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isIrodoriTtsSettings, isKokoroModelDownloaded, KOKORO_TTS_SETTINGS, OPENAI_COMPATIBLE_TTS_SETTINGS, saveIrodoriVoiceCandidate, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
+import { createTtsDriver, deleteIrodoriVoiceCandidate, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS_SETTINGS, generateIrodoriVoiceCandidate, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isIrodoriTtsSettings, isKokoroModelDownloaded, KOKORO_TTS_SETTINGS, OPENAI_COMPATIBLE_TTS_SETTINGS, saveIrodoriVoiceCandidate, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
 
 export function VoiceSettingsSheet({
   open,
@@ -32,6 +32,7 @@ export function VoiceSettingsSheet({
   onReadAloudChange,
   onTtsSettingsChange,
   onVoiceConfirmed,
+  onVoiceReset,
   onOpenChange,
 }: {
   open: boolean
@@ -46,6 +47,7 @@ export function VoiceSettingsSheet({
   onReadAloudChange: (checked: boolean) => void
   onTtsSettingsChange: (settings: TtsSettings) => void
   onVoiceConfirmed?: (selection: ScenarioVoiceSelection) => void
+  onVoiceReset?: () => void
   onOpenChange: (open: boolean) => void
 }) {
   const [micStatus, setMicStatus] = useState<SpeechInputStatus>("idle")
@@ -53,6 +55,7 @@ export function VoiceSettingsSheet({
   const [micError, setMicError] = useState<string | null>(null)
   const [ttsError, setTtsError] = useState<string | null>(null)
   const [testingVoice, setTestingVoice] = useState(false)
+  const [resettingVoice, setResettingVoice] = useState(false)
   const [choosingVoice, setChoosingVoice] = useState(voiceSetupRequired)
   const [candidate, setCandidate] = useState<{ seed: number; audio: ArrayBuffer } | null>(null)
   const [candidateLoading, setCandidateLoading] = useState<number | null>(null)
@@ -228,6 +231,22 @@ export function VoiceSettingsSheet({
     }
   }
 
+  const resetCharacterVoice = async () => {
+    if (!character || !voiceDesign || resettingVoice) return
+    setTtsError(null)
+    setResettingVoice(true)
+    try {
+      stopPreview()
+      setCandidate(null)
+      await deleteIrodoriVoiceCandidate(createScenarioVoiceId(character, voiceDesign.characterId))
+      onVoiceReset?.()
+    } catch (error) {
+      setTtsError(error instanceof Error ? error.message : "声をリセットできませんでした。")
+    } finally {
+      setResettingVoice(false)
+    }
+  }
+
   const characterVoicePanel = isIrodori && voiceDesign && irodoriReady ? (
     <div className="grid gap-4 rounded-lg border border-primary/30 bg-surface p-4">
       <div className="flex items-start gap-3">
@@ -242,9 +261,14 @@ export function VoiceSettingsSheet({
       {packagedVoice ? (
         <p className="flex items-center gap-2 text-sm font-medium text-success"><CheckCircle2 className="size-4" aria-hidden="true" />シナリオ指定の参照音声を使用します</p>
       ) : voiceSelection && !choosingVoice ? (
-        <div className="flex items-center justify-between gap-3 max-sm:items-start">
-          <p className="flex items-center gap-2 text-sm font-medium text-success"><CheckCircle2 className="size-4" aria-hidden="true" />このキャラクターの声は設定済みです</p>
-          <Button variant="outline" size="sm" onClick={() => setChoosingVoice(true)}>選び直す</Button>
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between gap-3 max-sm:items-start">
+            <p className="flex items-center gap-2 text-sm font-medium text-success"><CheckCircle2 className="size-4" aria-hidden="true" />このキャラクターの声は設定済みです</p>
+            <Button variant="outline" size="sm" onClick={() => setChoosingVoice(true)}>選び直す</Button>
+          </div>
+          <Button variant="ghost" size="sm" className="justify-start text-muted-foreground hover:text-destructive" disabled={resettingVoice} onClick={() => void resetCharacterVoice()}>
+            <Trash2 />{resettingVoice ? "削除中…" : "この声をリセット"}
+          </Button>
         </div>
       ) : (
         <div className="grid gap-3">

@@ -762,6 +762,14 @@ export function AppContent() {
           setScenarioVoiceSelections(next)
           checkedVoiceGate.current = ""
         }}
+        onVoiceReset={() => {
+          if (!activeVoiceDesign) return
+          const next = { ...scenarioVoiceSelections }
+          delete next[voiceSelectionKey(activeCharacter.id, activeVoiceDesign.characterId)]
+          persistScenarioVoiceSelections(next)
+          setScenarioVoiceSelections(next)
+          checkedVoiceGate.current = ""
+        }}
       />
       <ImportChatPackDialog
         open={overlay === "import"}

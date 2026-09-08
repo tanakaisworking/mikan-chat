@@ -28,6 +28,7 @@ type ChatSettingsDialogProps = {
   onReadAloudChange: (checked: boolean) => void
   onTtsSettingsChange: (settings: TtsSettings) => void
   onVoiceConfirmed?: (selection: ScenarioVoiceSelection) => void
+  onVoiceReset?: () => void
 }
 
 export function ChatSettingsDialog({
@@ -47,6 +48,7 @@ export function ChatSettingsDialog({
   onReadAloudChange,
   onTtsSettingsChange,
   onVoiceConfirmed,
+  onVoiceReset,
 }: ChatSettingsDialogProps) {
   const title = section === "connection"
     ? "会話AIの設定"
@@ -128,6 +130,7 @@ export function ChatSettingsDialog({
             onReadAloudChange={onReadAloudChange}
             onTtsSettingsChange={onTtsSettingsChange}
             onVoiceConfirmed={onVoiceConfirmed}
+            onVoiceReset={onVoiceReset}
             onOpenChange={onOpenChange}
           />
         </div>

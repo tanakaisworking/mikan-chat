@@ -303,6 +303,19 @@ export class IrodoriRuntimeManager {
     }
   }
 
+  async deleteVoice(prefix: string) {
+    const voicesDirectory = path.join(this.serverDirectory, "voices")
+    try {
+      const names = await readdir(voicesDirectory)
+      for (const name of names.filter((item) => item.endsWith(".wav") && item.slice(0, -4).startsWith(prefix))) {
+        await rm(path.join(voicesDirectory, name), { force: true })
+      }
+    } catch {
+      // No voices directory means nothing to delete.
+    }
+    await rm(this.audioCacheDirectory, { recursive: true, force: true })
+  }
+
   async registerVoice(reference: LocalTtsReference) {
     await this.ensureRunning()
     await registerLocalTtsReference(this.endpoint!, this.token!, reference, this.dependencies.fetcher, undefined, true)

@@ -77,6 +77,7 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   ipcMain.removeHandler("tts:synthesize-local")
   ipcMain.removeHandler("tts:has-reference")
   ipcMain.removeHandler("tts:find-reference")
+  ipcMain.removeHandler("tts:delete-reference")
   ipcMain.removeHandler("bgm:resolve-audio-com")
   ipcMain.removeHandler("tts:register-reference")
   ipcMain.removeAllListeners("tts:cancel-local")
@@ -111,6 +112,10 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   ipcMain.handle("tts:find-reference", (event, prefix) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
     return manager.findVoice(localTtsReferenceSchema.shape.voiceId.parse(prefix))
+  })
+  ipcMain.handle("tts:delete-reference", (event, voiceId) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    return manager.deleteVoice(localTtsReferenceSchema.shape.voiceId.parse(voiceId))
   })
   ipcMain.handle("tts:register-reference", (event, input) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")

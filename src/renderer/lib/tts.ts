@@ -324,6 +324,12 @@ export async function saveIrodoriVoiceCandidate(voiceId: string, audio: ArrayBuf
   await register({ voiceId, fileName: `${voiceId}.wav`, mimeType: "audio/wav", data: audio })
 }
 
+export async function deleteIrodoriVoiceCandidate(voiceId: string) {
+  const remove = window.mikan?.tts?.deleteReference
+  if (!remove) throw new Error("アプリを再起動してから、もう一度お試しください。")
+  await remove(voiceId)
+}
+
 async function prepareReferenceAudio(reference: TtsSpeakOptions["referenceAudio"]) {
   if (!reference) return undefined
   const response = await fetch(reference.source)

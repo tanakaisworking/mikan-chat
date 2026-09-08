@@ -57,6 +57,7 @@ declare global {
         synthesizeLocal: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer>
         hasReference?: (voiceId: string) => Promise<boolean>
         findReference?: (prefix: string) => Promise<string | null>
+        deleteReference?: (voiceId: string) => Promise<void>
         registerReference?: (reference: LocalTtsReference) => Promise<void>
         cancelLocal: (requestId: string) => void
       }
