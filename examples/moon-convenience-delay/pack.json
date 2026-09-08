@@ -54,7 +54,8 @@
               "wistful"
             ],
             "speed": 1.01,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

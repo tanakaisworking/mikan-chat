@@ -54,7 +54,8 @@
               "practical"
             ],
             "speed": 0.95,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

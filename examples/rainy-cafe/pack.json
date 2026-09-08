@@ -54,7 +54,8 @@
               "bittersweet"
             ],
             "speed": 0.94,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

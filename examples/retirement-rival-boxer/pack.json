@@ -54,7 +54,8 @@
               "dry-humor"
             ],
             "speed": 1.01,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "female"
           }
         }
       }

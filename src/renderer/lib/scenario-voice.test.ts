@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createScenarioVoiceId, getScenarioVoiceDesign, getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, resolveScenarioVoice, scenarioVersion } from "@/lib/scenario-voice"
+import { applyVoiceGender, createScenarioVoiceId, getScenarioVoiceDesign, getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, resolveScenarioVoice, scenarioVersion } from "@/lib/scenario-voice"
 
 describe("resolveScenarioVoice", () => {
+  it("性別情報から声のキャプションへ性別を前置きする", () => {
+    expect(applyVoiceGender("落ち着いた声", "male")).toBe("男性の声。落ち着いた声")
+    expect(applyVoiceGender("落ち着いた声", "female")).toBe("女性の声。落ち着いた声")
+    expect(applyVoiceGender("若い女性の声", "male")).toBe("若い女性の声")
+    expect(applyVoiceGender("落ち着いた声", null)).toBe("落ち着いた声")
+  })
+
   it("Irodoriの推奨値と参照音声をキャラクターから解決する", () => {
     const voice = resolveScenarioVoice({
       id: "scenario",

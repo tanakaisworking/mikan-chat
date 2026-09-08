@@ -80,6 +80,8 @@ export const desktopConversationSchema = z.object({
   title: z.string().min(1),
   updatedAt: z.string().datetime(),
   messages: z.array(desktopMessageSchema).max(200),
+  summary: z.string().max(8000).optional(),
+  summaryThroughId: z.string().min(1).optional(),
 })
 
 export const desktopConversationInputSchema = desktopConversationSchema.extend({

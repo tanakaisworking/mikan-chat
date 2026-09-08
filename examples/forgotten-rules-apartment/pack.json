@@ -54,7 +54,8 @@
               "responsible"
             ],
             "speed": 0.97,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

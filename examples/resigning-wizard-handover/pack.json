@@ -54,7 +54,8 @@
               "gentle"
             ],
             "speed": 0.94,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

@@ -54,7 +54,8 @@
               "tired-but-clear"
             ],
             "speed": 0.96,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

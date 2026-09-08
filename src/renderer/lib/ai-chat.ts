@@ -1,4 +1,4 @@
-import { APICallError, streamText } from "ai"
+import { APICallError, generateText, streamText } from "ai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { z } from "zod"
 
@@ -11,6 +11,7 @@ import { DEFAULT_BUILTIN_MODEL, localAIModelSpec } from "../../shared/local-ai"
 type StreamReplyOptions = {
   connection: ConnectionSettings
   character: Character
+  summary?: string
   messages: ChatMessageData[]
   signal: AbortSignal
   onText: (text: string) => void
@@ -32,13 +33,14 @@ export function isGoogleAIStudioEndpoint(endpoint: string) {
 export async function streamCharacterReply({
   connection,
   character,
+  summary,
   messages,
   signal,
   onText,
 }: StreamReplyOptions) {
   assertConnection(connection)
   if (connection.type === "builtin") {
-    return streamBuiltinReply({ connection, character, messages, signal, onText })
+    return streamBuiltinReply({ connection, character, summary, messages, signal, onText })
   }
   const provider = createOpenAICompatible({
     name: "mikan-chat",
@@ -49,7 +51,7 @@ export async function streamCharacterReply({
   let lastError: unknown
   for (const [index, model] of modelCandidates.entries()) {
     try {
-      return await streamModelReply({ provider, model, character, messages, signal, onText })
+      return await streamModelReply({ provider, model, character, summary, messages, signal, onText })
     } catch (error) {
       lastError = error
       if (signal.aborted || index === modelCandidates.length - 1 || !shouldFallback(error)) throw error
@@ -100,6 +102,7 @@ async function streamModelReply({
   provider,
   model,
   character,
+  summary,
   messages,
   signal,
   onText,
@@ -109,16 +112,8 @@ async function streamModelReply({
 }) {
   const result = streamText({
     model: provider(model),
-    system: buildSystemPrompt(character),
-    messages: messages.slice(-30)
-      .map((message) => ({
-        role: message.role === "user" ? "user" as const : "assistant" as const,
-        content: message.role === "narration"
-          ? `>: ${message.text}`
-          : message.role === "character"
-            ? `${message.speakerName ?? character.name}: ${message.text}`
-            : message.text,
-      })),
+    system: buildSystemPrompt(character, summary),
+    messages: formatConversationMessages(character, messages),
     maxOutputTokens: 600,
     maxRetries: 0,
     abortSignal: signal,
@@ -221,7 +216,7 @@ function normalizeBaseUrl(endpoint: string) {
   return endpoint.trim().replace(/\/+$/, "")
 }
 
-async function streamBuiltinReply({ connection, character, messages, signal, onText }: StreamReplyOptions) {
+async function streamBuiltinReply({ connection, character, summary, messages, signal, onText }: StreamReplyOptions) {
   const bridge = getDesktopBridge()?.localAI
   if (!bridge) throw new Error("内蔵AIはデスクトップアプリで利用できます。")
   const requestId = crypto.randomUUID()
@@ -234,21 +229,62 @@ async function streamBuiltinReply({ connection, character, messages, signal, onT
     return await bridge.chat({
       requestId,
       modelSource: builtinSpec(connection.model).source,
-      systemPrompt: buildSystemPrompt(character),
-      messages: messages.slice(-30).map((message) => ({
-        role: message.role === "user" ? "user" : "assistant",
-        content: message.role === "narration"
-          ? `>: ${message.text}`
-          : message.role === "character"
-            ? `${message.speakerName ?? character.name}: ${message.text}`
-            : message.text,
-      })),
+      systemPrompt: buildSystemPrompt(character, summary),
+      messages: formatConversationMessages(character, messages),
     })
   } finally {
     signal.removeEventListener("abort", cancel)
     unsubscribe()
   }
 }
+
+function formatConversationMessages(character: Character, messages: ChatMessageData[]) {
+  return messages.slice(-30).map((message) => ({
+    role: message.role === "user" ? "user" as const : "assistant" as const,
+    content: message.role === "narration"
+      ? `>: ${message.text}`
+      : message.role === "character"
+        ? `${message.speakerName ?? character.name}: ${message.text}`
+        : message.text,
+  }))
+}
+
+export async function summarizeConversation({ connection, character, messages, signal }: Omit<StreamReplyOptions, "onText" | "summary">) {
+  try {
+    if (connection.type === "builtin") {
+      const bridge = getDesktopBridge()?.localAI
+      if (!bridge) return null
+      const requestId = crypto.randomUUID()
+      return await bridge.chat({
+        requestId,
+        modelSource: builtinSpec(connection.model).source,
+        systemPrompt: SUMMARY_SYSTEM_PROMPT,
+        messages: formatConversationMessages(character, messages),
+      })
+    }
+    const provider = createOpenAICompatible({
+      name: "mikan-chat",
+      baseURL: normalizeBaseUrl(connection.endpoint),
+      apiKey: normalizeApiKey(connection.apiKey) || undefined,
+    })
+    const result = await generateText({
+      model: provider(getModelCandidates(connection)[0]),
+      system: SUMMARY_SYSTEM_PROMPT,
+      messages: formatConversationMessages(character, messages),
+      maxOutputTokens: 300,
+      maxRetries: 0,
+      abortSignal: signal,
+    })
+    return result.text
+  } catch {
+    return null
+  }
+}
+
+const SUMMARY_SYSTEM_PROMPT = [
+  "あなたは会話の書記です。これまでの会話の流れを、登場人物名と出来事を残して簡潔な日本語の箇条書きで要約してください。",
+  "決定や約束、感情の変化は必ず残してください。要約本文だけを出力し、挨拶や補足は書かないでください。",
+].join("\n")
 
 function builtinSpec(source: string) {
   return localAIModelSpec({ source: source || DEFAULT_BUILTIN_MODEL.source, label: "" })
@@ -259,7 +295,7 @@ export function normalizeApiKey(apiKey: string) {
   return /^(['"]).*\1$/.test(compact) ? compact.slice(1, -1) : compact
 }
 
-function buildSystemPrompt(character: Character) {
+function buildSystemPrompt(character: Character, summary?: string) {
   const pack = character.pack
   const plot = isRecord(pack?.plot) ? pack.plot : null
   const characters = Array.isArray(plot?.characters)
@@ -276,6 +312,17 @@ function buildSystemPrompt(character: Character) {
   const player = playerProfiles.find((item) => item.id === defaultPlayerId) ?? playerProfiles[0]
   const premise = typeof plot?.premise === "string" ? plot.premise : character.description
   const instructions = typeof plot?.instructions === "string" ? plot.instructions : ""
+  const guides: string[] = []
+  if (typeof plot?.situationGuide === "string" && plot.situationGuide.trim()) {
+    guides.push(`会話の指針（シチュエーション）: ${plot.situationGuide.trim()}`)
+  }
+  if (Array.isArray(plot?.characters)) {
+    const records = plot.characters.filter(isRecord)
+    const mainCharacter = records.find((item) => item.name === character.name) ?? records[0]
+    if (mainCharacter && typeof mainCharacter.characterGuide === "string" && mainCharacter.characterGuide.trim()) {
+      guides.push(`キャラの指針（性格・行動原理）: ${mainCharacter.characterGuide.trim()}`)
+    }
+  }
   const style = isRecord(plot?.style) ? JSON.stringify(plot.style) : ""
 
   return [
@@ -289,6 +336,8 @@ function buildSystemPrompt(character: Character) {
     player ? `ユーザーの役: ${player.name}\n${player.description}` : "",
     `登場人物:\n${characters.join("\n")}`,
     instructions ? `追加指示: ${instructions}` : "",
+    guides.length ? guides.join("\n") : "",
+    summary?.trim() ? `ここまでのあらまし:\n${summary.trim()}` : "",
     style ? `文体設定: ${style}` : "",
   ].filter(Boolean).join("\n\n")
 }

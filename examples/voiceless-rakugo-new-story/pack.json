@@ -54,7 +54,8 @@
               "quiet"
             ],
             "speed": 0.86,
-            "pitch": -2
+            "pitch": -2,
+            "gender": "male"
           }
         }
       }

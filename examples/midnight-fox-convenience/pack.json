@@ -54,7 +54,8 @@
               "secretly-tender"
             ],
             "speed": 1.03,
-            "pitch": 1
+            "pitch": 1,
+            "gender": "female"
           }
         }
       }

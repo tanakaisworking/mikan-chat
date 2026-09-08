@@ -10,6 +10,7 @@ import {
   listAIModels,
   parseAssistantResponse,
   streamCharacterReply,
+  summarizeConversation,
   testAIConnection,
 } from "@/lib/ai-chat"
 
@@ -17,6 +18,84 @@ describe("AI chat transport", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     delete window.mikan
+  })
+
+  it("内蔵AIに指針と要約をシステムプロンプトへ渡す", async () => {
+    const chat = vi.fn(async () => "葵: うん。")
+    window.mikan = {
+      platform: "darwin",
+      localAI: {
+        status: vi.fn(async () => ({ state: "ready", modelId: "qwen3-1.7b", label: "Qwen3 1.7B", source: "hf:Qwen/Qwen3-1.7B-GGUF:Q8_0", downloadedBytes: 1, totalBytes: 1 } as const)),
+        download: vi.fn(),
+        delete: vi.fn(),
+        chat,
+        cancel: vi.fn(),
+        onStatus: vi.fn(() => () => undefined),
+        onChunk: vi.fn(() => () => undefined),
+      },
+    }
+
+    await streamCharacterReply({
+      connection: { type: "builtin", endpoint: "", apiKey: "", model: "qwen3-1.7b" },
+      character: {
+        id: "aoi",
+        name: "葵",
+        description: "幼なじみ",
+        lastMessage: "",
+        lastActive: "",
+        pack: {
+          plot: {
+            situationGuide: "放課後の教室で二人きり。静かな時間を大切にする。",
+            characters: [{ id: "aoi", name: "葵", profile: "幼なじみ", characterGuide: "人見知りだが、心を開いた相手には素直。" }],
+            playerProfiles: [{ id: "senpai", name: "先輩", description: "静かな同級生" }],
+            defaultPlayerProfile: "senpai",
+          },
+        },
+      },
+      messages: [{ id: "user", role: "user", text: "ただいま", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: () => undefined,
+      summary: "・帰宅時に教室で再会した",
+    })
+
+    const request = (chat.mock.calls[0] as unknown as [{ systemPrompt: string }])[0]
+    expect(request.systemPrompt).toContain("会話の指針（シチュエーション）: 放課後の教室で二人きり")
+    expect(request.systemPrompt).toContain("キャラの指針（性格・行動原理）: 人見知りだが")
+    expect(request.systemPrompt).toContain("ここまでのあらまし:\n・帰宅時に教室で再会した")
+  })
+
+  it("内蔵AIの要約生成は書記プロンプトで全文を渡して返す", async () => {
+    const chat = vi.fn(async () => "・駅で別れた")
+    window.mikan = {
+      platform: "darwin",
+      localAI: {
+        status: vi.fn(async () => ({ state: "ready", modelId: "qwen3-1.7b", label: "Qwen3 1.7B", source: "hf:Qwen/Qwen3-1.7B-GGUF:Q8_0", downloadedBytes: 1, totalBytes: 1 } as const)),
+        download: vi.fn(),
+        delete: vi.fn(),
+        chat,
+        cancel: vi.fn(),
+        onStatus: vi.fn(() => () => undefined),
+        onChunk: vi.fn(() => () => undefined),
+      },
+    }
+
+    const summary = await summarizeConversation({
+      connection: { type: "builtin", endpoint: "", apiKey: "", model: "qwen3-1.7b" },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [
+        { id: "u", role: "user", text: "ただいま", time: "12:00" },
+        { id: "c", role: "character", speakerName: "葵", text: "おかえり", time: "12:01" },
+      ],
+      signal: new AbortController().signal,
+    })
+
+    expect(summary).toBe("・駅で別れた")
+    const request = (chat.mock.calls[0] as unknown as [{ systemPrompt: string; messages: Array<{ role: string; content: string }> }])[0]
+    expect(request.systemPrompt).toContain("登場人物名と出来事を残して")
+    expect(request.messages).toEqual([
+      { role: "user", content: "ただいま" },
+      { role: "assistant", content: "葵: おかえり" },
+    ])
   })
 
   it("Electron内蔵AIへ会話を渡し、返答を順次更新する", async () => {

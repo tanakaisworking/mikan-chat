@@ -67,7 +67,8 @@
               "soft"
             ],
             "speed": 0.9,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           },
           "preferred": [
             {

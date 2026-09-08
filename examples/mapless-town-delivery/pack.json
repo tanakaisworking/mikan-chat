@@ -54,7 +54,8 @@
               "upbeat"
             ],
             "speed": 1.02,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

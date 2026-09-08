@@ -54,7 +54,8 @@
               "earnest"
             ],
             "speed": 1.05,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

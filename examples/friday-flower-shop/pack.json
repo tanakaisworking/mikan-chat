@@ -54,7 +54,8 @@
               "reserved"
             ],
             "speed": 0.96,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "male"
           }
         }
       }

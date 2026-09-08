@@ -54,7 +54,8 @@
               "fair"
             ],
             "speed": 0.97,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "female"
           }
         }
       }

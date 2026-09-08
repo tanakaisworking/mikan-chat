@@ -54,7 +54,8 @@
               "calm"
             ],
             "speed": 0.89,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

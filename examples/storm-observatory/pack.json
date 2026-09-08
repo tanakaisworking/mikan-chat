@@ -54,7 +54,8 @@
               "reserved"
             ],
             "speed": 0.9,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       },
@@ -73,7 +74,8 @@
               "tense"
             ],
             "speed": 1.02,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "male"
           }
         }
       }

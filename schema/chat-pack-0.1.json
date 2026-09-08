@@ -78,6 +78,7 @@
       "properties": {
         "premise": { "$ref": "#/$defs/nonEmptyString" },
         "instructions": { "$ref": "#/$defs/nonEmptyString" },
+        "situationGuide": { "$ref": "#/$defs/nonEmptyString" },
         "characters": {
           "type": "array",
           "minItems": 1,
@@ -130,6 +131,7 @@
         "id": { "$ref": "#/$defs/localId" },
         "name": { "$ref": "#/$defs/nonEmptyString" },
         "profile": { "$ref": "#/$defs/nonEmptyString" },
+        "characterGuide": { "$ref": "#/$defs/nonEmptyString" },
         "image": { "$ref": "#/$defs/assetPath" },
         "voice": { "$ref": "#/$defs/voice" },
         "extensions": { "$ref": "#/$defs/extensions" }
@@ -206,6 +208,7 @@
           "type": "object",
           "properties": {
             "language": { "type": "string" },
+            "gender": { "type": "string", "enum": ["male", "female"] },
             "description": { "$ref": "#/$defs/nonEmptyString" },
             "traits": {
               "type": "array",

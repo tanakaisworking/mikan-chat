@@ -11,7 +11,7 @@ import { AppHeader } from "@/components/ui/app-header"
 import { IconButton } from "@/components/ui/icon-button"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
-import { isConnectionReady, parseAssistantResponse, streamCharacterReply } from "@/lib/ai-chat"
+import { isConnectionReady, parseAssistantResponse, streamCharacterReply, summarizeConversation } from "@/lib/ai-chat"
 import { DEFAULT_BUILTIN_MODEL, localAIModelSpec } from "../../shared/local-ai"
 import { getDesktopBridge } from "@/lib/platform"
 import { createTtsDriver, DEFAULT_TTS_SETTINGS, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
@@ -139,12 +139,15 @@ export function TalkScreen({
 }: TalkScreenProps) {
   const [messageStore, setMessageStore] = useState<Record<string, ChatMessageData[]>>(() => getSeededConversations(character))
   const [isGenerating, setIsGenerating] = useState(false)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summaryThroughId, setSummaryThroughId] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
   const [isIntroPlaying, setIsIntroPlaying] = useState(() => Boolean(isNewStory && character.opening?.length))
   const [conversationLoaded, setConversationLoaded] = useState(!getDesktopBridge()?.conversations)
   const [builtinAvailable, setBuiltinAvailable] = useState(connection.type !== "builtin")
   const generationController = useRef<AbortController | null>(null)
+  const summarizeController = useRef<AbortController | null>(null)
   const streamingSpeechCancel = useRef<(() => void) | null>(null)
   const timelineEnd = useRef<HTMLDivElement>(null)
   useSyncExternalStore(subscribeKokoroModel, getKokoroModelSnapshot)
@@ -190,6 +193,8 @@ export function TalkScreen({
       if (!active) return
       const stored = items.find((item) => item.id === `${scenarioId}:${conversationId}`)
       const seeded = getSeededConversations(character)[conversationId] ?? []
+      setSummary(stored?.summary ?? null)
+      setSummaryThroughId(stored?.summaryThroughId ?? null)
       setMessageStore((current) => ({ ...current, [conversationId]: stored?.messages ?? seeded }))
     }).catch((error) => console.error("Failed to load conversation", error)).finally(() => {
       if (active) setConversationLoaded(true)
@@ -206,10 +211,32 @@ export function TalkScreen({
         scenarioId,
         updatedAt: new Date().toISOString(),
         messages,
+        summary: summary ?? undefined,
+        summaryThroughId: summaryThroughId ?? undefined,
       }).catch((error) => console.error("Failed to save conversation", error))
     }, 500)
     return () => window.clearTimeout(timer)
-  }, [conversationId, conversationLoaded, messages, scenarioId])
+  }, [conversationId, conversationLoaded, messages, scenarioId, summary, summaryThroughId])
+
+  useEffect(() => {
+    if (isGenerating || summarizeController.current) return
+    if (messages.length <= 40) return
+    const throughIndex = summaryThroughId ? messages.findIndex((message) => message.id === summaryThroughId) : -1
+    if (throughIndex >= 0 && messages.length - throughIndex < 10) return
+    const cut = messages.length - 20
+    if (cut <= Math.max(throughIndex, 0)) return
+    const target = messages.slice(0, cut)
+    const controller = new AbortController()
+    summarizeController.current = controller
+    void summarizeConversation({ connection, character, messages: target, signal: controller.signal }).then((result) => {
+      if (result?.trim()) {
+        setSummary(result.trim())
+        setSummaryThroughId(target[target.length - 1]?.id ?? null)
+      }
+    }).finally(() => {
+      if (summarizeController.current === controller) summarizeController.current = null
+    })
+  }, [character, connection, isGenerating, messages, summaryThroughId])
 
   useEffect(() => {
     if (messages.length > initialMessageCount.current || isGenerating) {
@@ -218,6 +245,7 @@ export function TalkScreen({
   }, [messages, isGenerating])
 
   useEffect(() => () => generationController.current?.abort(), [])
+  useEffect(() => () => summarizeController.current?.abort(), [])
   useEffect(() => () => {
     streamingSpeechCancel.current?.()
     tts.stop()
@@ -263,6 +291,8 @@ export function TalkScreen({
     const replyId = crypto.randomUUID()
     const replyTime = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
     const promptMessages = [...messages, userMessage]
+    const throughIndex = summaryThroughId ? promptMessages.findIndex((message) => message.id === summaryThroughId) : -1
+    const contextMessages = summary && throughIndex >= 0 ? promptMessages.slice(throughIndex + 1) : promptMessages
     setMessageStore((current) => ({
       ...current,
       [targetConversationId]: [
@@ -330,7 +360,8 @@ export function TalkScreen({
       const replyText = await streamCharacterReply({
         connection,
         character,
-        messages: promptMessages,
+        summary: summary ?? undefined,
+        messages: contextMessages,
         signal: controller.signal,
         onText: (reply) => {
           updateReply(reply)

@@ -54,7 +54,8 @@
               "steady"
             ],
             "speed": 0.93,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "female"
           }
         }
       }

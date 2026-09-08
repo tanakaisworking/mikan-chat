@@ -54,7 +54,8 @@
               "respectful"
             ],
             "speed": 0.9,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

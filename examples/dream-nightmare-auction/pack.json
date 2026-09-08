@@ -54,7 +54,8 @@
               "accountable"
             ],
             "speed": 0.88,
-            "pitch": -2
+            "pitch": -2,
+            "gender": "male"
           }
         }
       }

@@ -54,7 +54,8 @@
               "ethical"
             ],
             "speed": 0.98,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

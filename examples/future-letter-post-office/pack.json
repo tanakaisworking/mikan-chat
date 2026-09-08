@@ -54,7 +54,8 @@
               "precise"
             ],
             "speed": 0.92,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }

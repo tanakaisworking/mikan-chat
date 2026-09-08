@@ -54,7 +54,8 @@
               "guilt-ridden"
             ],
             "speed": 0.93,
-            "pitch": -2
+            "pitch": -2,
+            "gender": "male"
           }
         }
       }

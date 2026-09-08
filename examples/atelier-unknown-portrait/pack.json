@@ -54,7 +54,8 @@
               "warm"
             ],
             "speed": 1.04,
-            "pitch": 1
+            "pitch": 1,
+            "gender": "female"
           }
         }
       }

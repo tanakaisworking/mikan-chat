@@ -54,7 +54,8 @@
               "vulnerable"
             ],
             "speed": 1.03,
-            "pitch": 0
+            "pitch": 0,
+            "gender": "female"
           }
         }
       }

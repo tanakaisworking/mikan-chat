@@ -54,7 +54,8 @@
               "quietly-trusting"
             ],
             "speed": 0.91,
-            "pitch": -1
+            "pitch": -1,
+            "gender": "male"
           }
         }
       }
