@@ -368,6 +368,32 @@ export async function saveIrodoriVoiceCandidate(voiceId: string, audio: ArrayBuf
   await register({ voiceId, fileName: `${voiceId}.wav`, mimeType: "audio/wav", data: audio })
 }
 
+export async function seedIrodoriVoiceCache(
+  settings: TtsSettings,
+  voice: { voiceId: string; text: string; caption?: string; seed?: number },
+  audio: ArrayBuffer,
+) {
+  // 声決め時に生成した候補音声を、会話再生時と同じキーで保存する。
+  // 初回セリフの再生成とモデルロードを省く。保存できなくても false を返すだけ。
+  const seedCached = window.mikan?.tts?.seedCachedAudio
+  if (!seedCached) return false
+  try {
+    return await seedCached({
+      requestId: crypto.randomUUID(),
+      endpoint: settings.endpoint.trim().replace(/\/+$/, ""),
+      model: settings.model,
+      voice: voice.voiceId,
+      apiKey: settings.apiKey,
+      text: voice.text,
+      ...(voice.caption ? { caption: voice.caption } : {}),
+      ...(voice.seed !== undefined ? { seed: voice.seed } : {}),
+      numSteps: IRODORI_STEPS[settings.irodoriQuality ?? "balanced"],
+    }, audio)
+  } catch {
+    return false
+  }
+}
+
 export async function deleteIrodoriVoiceCandidate(voiceId: string) {
   const remove = window.mikan?.tts?.deleteReference
   if (!remove) throw new Error("アプリを再起動してから、もう一度お試しください。")

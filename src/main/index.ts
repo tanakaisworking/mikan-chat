@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import { DesktopStore } from "./desktop-store"
 import { IrodoriRuntimeManager } from "./irodori-runtime"
 import { LocalAIManager, localAIChatRequestSchema, localAIModelSpecSchema } from "./local-ai"
-import { localTtsReferenceSchema, localTtsSynthesisRequestSchema } from "./local-tts"
+import { localTtsReferenceSchema, localTtsSynthesisRequestSchema, seedCachedAudioSchema } from "./local-tts"
 import { resolveAudioComStreamUrl } from "../shared/audio-com"
 import { desktopConversationInputSchema, desktopSettingsInputSchema } from "../shared/desktop-store"
 
@@ -130,6 +130,7 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   ipcMain.removeHandler("tts:synthesize-local")
   ipcMain.removeHandler("tts:has-cached-audio")
   ipcMain.removeHandler("tts:read-cached-audio")
+  ipcMain.removeHandler("tts:seed-cached-audio")
   ipcMain.removeHandler("tts:has-reference")
   ipcMain.removeHandler("tts:find-reference")
   ipcMain.removeHandler("tts:delete-reference")
@@ -178,6 +179,13 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
     const parsed = localTtsSynthesisRequestSchema.safeParse(input)
     if (!parsed.success) return null
     return manager.readCachedAudioOnly(parsed.data)
+  })
+  ipcMain.handle("tts:seed-cached-audio", (event, input) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    // 声決め時の候補音声を会話再生キーで保存するだけなので延命しない。不正な入力では false を返す。
+    const parsed = seedCachedAudioSchema.safeParse(input)
+    if (!parsed.success) return false
+    return manager.seedCachedAudio(parsed.data.request, parsed.data.audio)
   })
   ipcMain.handle("tts:has-reference", (event, voiceId) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")

@@ -17,7 +17,7 @@ import { createSpeechInput, isSpeechInputSupported, type SpeechInput, type Speec
 import { isDesktopApp } from "@/lib/platform"
 import type { Character } from "@/data/characters"
 import { applyVoiceGender, createScenarioVoiceId, getScenarioVoiceDesign, hasScenarioReferenceAudio, scenarioVersion, type ScenarioVoiceDesign, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
-import { createTtsDriver, deleteIrodoriVoiceCandidate, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS_SETTINGS, generateIrodoriVoiceCandidate, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isIrodoriTtsSettings, isKokoroModelDownloaded, KOKORO_TTS_SETTINGS, OPENAI_COMPATIBLE_TTS_SETTINGS, saveIrodoriVoiceCandidate, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
+import { createTtsDriver, deleteIrodoriVoiceCandidate, deleteKokoroModel, downloadKokoroModel, ELEVENLABS_TTS_SETTINGS, generateIrodoriVoiceCandidate, getIrodoriRuntimeSnapshot, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isIrodoriTtsSettings, isKokoroModelDownloaded, KOKORO_TTS_SETTINGS, OPENAI_COMPATIBLE_TTS_SETTINGS, saveIrodoriVoiceCandidate, seedIrodoriVoiceCache, subscribeIrodoriRuntime, subscribeKokoroModel, type TtsSettings } from "@/lib/tts"
 
 export function VoiceSettingsSheet({
   open,
@@ -223,6 +223,9 @@ export function VoiceSettingsSheet({
     try {
       const voiceId = createScenarioVoiceId(character, voiceDesign.characterId)
       await saveIrodoriVoiceCandidate(voiceId, candidate.audio)
+      const caption = applyVoiceGender(voiceDesign.caption, voiceDesign.gender) ?? voiceDesign.caption
+      // 候補生成時の音声を初回セリフ再生用に保存し、会話側の再生成を省く。失敗しても確定は続ける。
+      await seedIrodoriVoiceCache(ttsSettings, { voiceId, text: voiceDesign.sampleText, caption, seed: candidate.seed }, candidate.audio)
       onVoiceConfirmed?.({ characterId: voiceDesign.characterId, voiceId, caption: voiceDesign.caption, seed: candidate.seed, scenarioVersion: scenarioVersion(character), gender: voiceDesign.gender })
     } catch (error) {
       setTtsError(error instanceof Error ? error.message : "この声を保存できませんでした。")

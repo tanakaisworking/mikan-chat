@@ -303,6 +303,8 @@ export function TalkScreen({
     setPlayingMessageId(messageId)
     void tts.playCached(message.text, resolveScenarioVoice(character, message.speakerName, voiceSelections)).then((blob) => {
       if (!blob || typeof Audio === "undefined") {
+        // ファイルが後から消えていた場合はボタンを出さない状態へ戻す。
+        setCachedAudioMap((map) => (map[messageId] === false ? map : { ...map, [messageId]: false }))
         setPlayingMessageId((current) => (current === messageId ? null : current))
         return
       }
@@ -325,8 +327,10 @@ export function TalkScreen({
     })
   }
 
+  // オン→オフ遷移のときだけ停止する。tts作り直しのたびに止めると、
+  // 起動中タスクを中断して声ゲートのリトライと起動停止フラップを起こす。
   useEffect(() => {
-    if (!readAloud) {
+    if (prevReadAloud.current && !readAloud) {
       streamingSpeechCancel.current?.()
       streamingSpeechCancel.current = null
       tts.stop()

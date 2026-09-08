@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import type { LocalTtsReference, LocalTtsSynthesisRequest } from "../shared/local-tts"
 
-const MAX_AUDIO_BYTES = 50 * 1024 * 1024
+export const MAX_AUDIO_BYTES = 50 * 1024 * 1024
 
 export const localTtsReferenceSchema = z.object({
   voiceId: z.string().regex(/^[A-Za-z0-9_-]+$/).max(200),
@@ -22,6 +22,11 @@ export const localTtsSynthesisRequestSchema = z.object({
   seed: z.number().int().min(0).max(2_147_483_647).optional(),
   numSteps: z.union([z.literal(24), z.literal(32), z.literal(40)]).optional(),
   referenceAudio: localTtsReferenceSchema.optional(),
+})
+
+export const seedCachedAudioSchema = z.object({
+  request: localTtsSynthesisRequestSchema,
+  audio: z.instanceof(ArrayBuffer).refine((data) => data.byteLength > 0 && data.byteLength <= MAX_AUDIO_BYTES),
 })
 
 export async function synthesizeLocalTts(request: LocalTtsSynthesisRequest, fetcher: typeof fetch = fetch, signal?: AbortSignal) {

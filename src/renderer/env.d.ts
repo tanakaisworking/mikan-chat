@@ -57,6 +57,7 @@ declare global {
         synthesizeLocal: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer>
         hasCachedAudio?: (request: LocalTtsSynthesisRequest) => Promise<boolean>
         readCachedAudio?: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer | null>
+        seedCachedAudio?: (request: LocalTtsSynthesisRequest, audio: ArrayBuffer) => Promise<boolean>
         hasReference?: (voiceId: string) => Promise<boolean>
         findReference?: (prefix: string) => Promise<string | null>
         deleteReference?: (voiceId: string) => Promise<void>

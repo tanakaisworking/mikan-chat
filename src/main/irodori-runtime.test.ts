@@ -399,6 +399,129 @@ describe("IrodoriRuntimeManager", () => {
     expect(await manager.hasCachedAudio(request)).toBe(false)
     expect(spawnServer).not.toHaveBeenCalled()
   })
+
+  it("seedCachedAudioは声決め時の音声を会話再生キーで保存する", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    await writeFile(path.join(root, "installed.json"), JSON.stringify({
+      uvVersion: "0.11.33",
+      serverRevision: "841fb7c6ec57729c56b9b75c0ef2562249b13a10",
+      modelRevision: "4c92c7ee2bb15c19a97cf4e86d24fd6bf33b0135",
+      codecRevision: "47376ee24834d7a05a48ebabfe3cde29b3c5e214",
+    }))
+    const spawnServer = vi.fn(() => { throw new Error("モデル起動してはいけない") })
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: spawnServer as never,
+    })
+    const request = {
+      requestId: "66666666-6666-4666-8666-666666666666",
+      endpoint: "http://127.0.0.1:8088/v1",
+      model: "irodori-tts",
+      voice: "mikan-user-pack-lucien",
+      apiKey: "",
+      text: "質問は一つだけ答えよう。",
+      caption: "男性の声。声の特徴: adult",
+      seed: 7,
+      numSteps: 32 as const,
+    }
+    const audio = new Uint8Array([9, 8, 7, 6]).buffer as ArrayBuffer
+
+    expect(await manager.seedCachedAudio(request, audio)).toBe(true)
+    expect(await manager.hasCachedAudio(request)).toBe(true)
+    expect(new Uint8Array(await manager.readCachedAudioOnly(request) ?? new ArrayBuffer(0))).toEqual(new Uint8Array([9, 8, 7, 6]))
+    // 空音声は保存しない
+    expect(await manager.seedCachedAudio(request, new ArrayBuffer(0))).toBe(false)
+    expect(spawnServer).not.toHaveBeenCalled()
+  })
+
+  it("声の確定とリセットで生成済み音声を消さない", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    await writeFile(path.join(root, "installed.json"), JSON.stringify({
+      uvVersion: "0.11.33",
+      serverRevision: "841fb7c6ec57729c56b9b75c0ef2562249b13a10",
+      modelRevision: "4c92c7ee2bb15c19a97cf4e86d24fd6bf33b0135",
+      codecRevision: "47376ee24834d7a05a48ebabfe3cde29b3c5e214",
+    }))
+    const child = new EventEmitter() as EventEmitter & { stdout: PassThrough; stderr: PassThrough; kill: ReturnType<typeof vi.fn> }
+    child.stdout = new PassThrough()
+    child.stderr = new PassThrough()
+    child.kill = vi.fn(() => {
+      queueMicrotask(() => child.emit("exit", 0))
+      return true
+    })
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: vi.fn(() => child) as never,
+      getFreePort: vi.fn(async () => 39123),
+      fetcher: vi.fn(async (input) => String(input).includes("/audio/voices/") && !String(input).endsWith("/audio/voices")
+        ? new Response("not found", { status: 404 })
+        : new Response("ok")) as never,
+    })
+    const request = {
+      requestId: "77777777-7777-4777-8777-777777777777",
+      endpoint: "http://127.0.0.1:8088/v1",
+      model: "irodori-tts",
+      voice: "mikan-user-pack-x",
+      apiKey: "",
+      text: "残しておきたいセリフ。",
+    }
+    expect(await manager.seedCachedAudio(request, new Uint8Array([1, 2, 3]).buffer as ArrayBuffer)).toBe(true)
+
+    await manager.registerVoice({ voiceId: "mikan-user-pack-x", fileName: "mikan-user-pack-x.wav", mimeType: "audio/wav", data: new Uint8Array([4, 5, 6]).buffer as ArrayBuffer })
+    expect(await manager.hasCachedAudio(request)).toBe(true)
+
+    const voicesDir = path.join(root, "server", "voices")
+    await mkdir(voicesDir, { recursive: true })
+    await writeFile(path.join(voicesDir, "mikan-user-pack-x.wav"), "voice")
+    await manager.deleteVoice("mikan-user-pack-x")
+    expect(await manager.hasCachedAudio(request)).toBe(true)
+    await manager.delete()
+  })
+
+  it("声の削除で別キャラの参照音声を巻き込まない", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    const spawnServer = vi.fn(() => { throw new Error("モデル起動してはいけない") })
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: spawnServer as never,
+    })
+    const voicesDir = path.join(root, "server", "voices")
+    await mkdir(voicesDir, { recursive: true })
+    await writeFile(path.join(voicesDir, "mikan-user-pack-ao.wav"), "ao")
+    await writeFile(path.join(voicesDir, "mikan-user-pack-ao-1-0-0.wav"), "ao-old")
+    await writeFile(path.join(voicesDir, "mikan-user-pack-aoi.wav"), "aoi")
+
+    await manager.deleteVoice("mikan-user-pack-ao")
+
+    const remaining = await readdir(voicesDir)
+    expect(remaining.sort()).toEqual(["mikan-user-pack-aoi.wav"])
+    expect(spawnServer).not.toHaveBeenCalled()
+  })
+
+  it("参照音声の有無確認ではモデルを起動しない", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    const spawnServer = vi.fn(() => { throw new Error("モデル起動してはいけない") })
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: spawnServer as never,
+    })
+    expect(await manager.hasVoice("mikan-user-pack-x")).toBe(false)
+
+    const voicesDir = path.join(root, "server", "voices")
+    await mkdir(voicesDir, { recursive: true })
+    await writeFile(path.join(voicesDir, "mikan-user-pack-x.wav"), "voice")
+    expect(await manager.hasVoice("mikan-user-pack-x")).toBe(true)
+    expect(await manager.hasVoice("mikan-user-pack-y")).toBe(false)
+    expect(spawnServer).not.toHaveBeenCalled()
+  })
 })
 
 function fakeWindow(send = vi.fn()) {

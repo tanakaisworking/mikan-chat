@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { chooseKokoroBackend, createKokoroTtsDriver, createTtsDriver, deleteKokoroModel, downloadKokoroModel, getKokoroAssetsUrl, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isKokoroModelDownloaded, subscribeKokoroModel } from "@/lib/tts"
+import { chooseKokoroBackend, createKokoroTtsDriver, createTtsDriver, deleteKokoroModel, downloadKokoroModel, getKokoroAssetsUrl, getKokoroModelSnapshot, getTtsSettingsError, IRODORI_TTS_SETTINGS, isKokoroModelDownloaded, seedIrodoriVoiceCache, subscribeKokoroModel } from "@/lib/tts"
 
 describe("TTS driver", () => {
   afterEach(() => {
@@ -476,6 +476,37 @@ describe("TTS driver", () => {
 
     expect(driver.supported).toBe(false)
     expect(driver.unavailableReason).toBe("セットアップが必要です")
+  })
+
+  it("声決め時の候補音声を会話再生キーで保存する", async () => {
+    const seedCachedAudio = vi.fn().mockResolvedValue(true)
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal: vi.fn(), cancelLocal: vi.fn(), seedCachedAudio } }
+    const audio = new Uint8Array([1, 2, 3]).buffer
+
+    await expect(seedIrodoriVoiceCache(
+      IRODORI_TTS_SETTINGS,
+      { voiceId: "mikan-user-pack-lucien", text: "質問は一つだけ答えよう。", caption: "男性の声。声の特徴: adult", seed: 7 },
+      audio,
+    )).resolves.toBe(true)
+    expect(seedCachedAudio).toHaveBeenCalledOnce()
+    expect(seedCachedAudio).toHaveBeenCalledWith(expect.objectContaining({
+      voice: "mikan-user-pack-lucien",
+      model: "irodori-tts",
+      text: "質問は一つだけ答えよう。",
+      caption: "男性の声。声の特徴: adult",
+      seed: 7,
+      numSteps: 32,
+    }), audio)
+  })
+
+  it("保存ブリッジがなければ声決め時の音声保存を諦める", async () => {
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal: vi.fn(), cancelLocal: vi.fn() } }
+
+    await expect(seedIrodoriVoiceCache(
+      IRODORI_TTS_SETTINGS,
+      { voiceId: "mikan-user-pack-lucien", text: "質問は一つだけ答えよう。" },
+      new Uint8Array([1]).buffer,
+    )).resolves.toBe(false)
   })
 
   it("新しい読み上げ開始後に古い応答が到着しても再生を上書きしない", async () => {

@@ -8,6 +8,7 @@ import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
 import type { Character } from "@/data/characters"
 import { readScenarioContext } from "@/lib/scenario-context"
 import { getCharacterSpeechChunks, TalkScreen } from "@/screens/TalkScreen"
+import type { IrodoriRuntimeStatus } from "../../shared/local-tts"
 
 describe("TalkScreenの物語導入", () => {
   afterEach(() => {
@@ -417,6 +418,59 @@ describe("TalkScreenの物語導入", () => {
     )
 
     expect(screen.queryByRole("button", { name: "音声を再生" })).not.toBeInTheDocument()
+  })
+
+  it("読み上げオフ継続ではサーバー停止を繰り返さない", async () => {
+    let pushStatus!: (status: IrodoriRuntimeStatus) => void
+    const start = vi.fn()
+    const stop = vi.fn()
+    window.mikan = {
+      platform: "darwin",
+      tts: { synthesizeLocal: vi.fn(), hasCachedAudio: vi.fn(async () => false), readCachedAudio: vi.fn(async () => null), cancelLocal: vi.fn() },
+      irodori: {
+        status: vi.fn(async (): Promise<IrodoriRuntimeStatus> => ({ supported: true, state: "ready", progress: 100, stage: "セットアップ済み" })),
+        start, stop, install: vi.fn(), delete: vi.fn(),
+        onStatus: vi.fn((callback: (status: IrodoriRuntimeStatus) => void) => {
+          pushStatus = callback
+          return () => undefined
+        }),
+      },
+    }
+    const screenProps = (readAloud: boolean) => (
+      <TalkScreen
+        character={createCharacter()}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        ttsSettings={{ provider: "irodori", apiKey: "", endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none", irodoriQuality: "balanced" }}
+        ttsVoiceReady
+        readAloud={readAloud}
+        onReadAloudChange={() => undefined}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />
+    )
+    const { rerender } = render(screenProps(false))
+    await act(() => Promise.resolve())
+    expect(stop).not.toHaveBeenCalled()
+
+    // 状態通知でドライバーが作り直されてもオフ継続では止めない
+    await act(async () => {
+      pushStatus({ supported: true, state: "running", progress: 100, stage: "利用できます" })
+    })
+    expect(stop).not.toHaveBeenCalled()
+
+    rerender(screenProps(true))
+    expect(start).toHaveBeenCalledTimes(1)
+    rerender(screenProps(false))
+    expect(stop).toHaveBeenCalledTimes(1)
+
+    // オフ後の状態通知でも追加で止めない
+    await act(async () => {
+      pushStatus({ supported: true, state: "ready", progress: 100, stage: "セットアップ済み" })
+    })
+    expect(stop).toHaveBeenCalledTimes(1)
   })
 
   it("発言者と情景描写を吹き出しに頼らず区別する", () => {

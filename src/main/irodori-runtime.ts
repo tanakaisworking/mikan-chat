@@ -332,15 +332,32 @@ export class IrodoriRuntimeManager {
     return this.readCachedAudio(cachePath)
   }
 
+  async seedCachedAudio(request: LocalTtsSynthesisRequest, audio: ArrayBuffer) {
+    // 声決め時に生成した候補音声を、会話再生時と同じキーで保存する。
+    // 初回セリフの再生成とモデルロードを省く。保存できなくても呼び出し側は続行する。
+    if (!audio.byteLength) return false
+    const cachePath = path.join(this.audioCacheDirectory, `${audioCacheKey(request)}.wav`)
+    const temporaryPath = `${cachePath}.seed.tmp`
+    try {
+      await mkdir(this.audioCacheDirectory, { recursive: true })
+      await writeFile(temporaryPath, Buffer.from(audio))
+      await rename(temporaryPath, cachePath)
+      return true
+    } catch {
+      await rm(temporaryPath, { force: true }).catch(() => undefined)
+      return false
+    }
+  }
+
   async hasVoice(voiceId: string) {
-    await this.ensureRunning()
-    const response = await this.dependencies.fetcher(`${this.endpoint}/audio/voices/${encodeURIComponent(voiceId)}`, {
-      headers: { Authorization: `Bearer ${this.token}` },
-      redirect: "error",
-    })
-    if (response.status === 404) return false
-    if (!response.ok) throw new Error(`Irodori TTSの参照音声を確認できませんでした（${response.status}）`)
-    return true
+    // 参照音声ファイルの有無だけをローカルで確認する。ensureRunning は呼ばない。
+    // 起動直後の声ゲート確認で6GBモデルを起こさないようにする。
+    try {
+      await stat(path.join(this.serverDirectory, "voices", `${voiceId}.wav`))
+      return true
+    } catch {
+      return false
+    }
   }
 
   async findVoice(prefix: string) {
@@ -358,19 +375,23 @@ export class IrodoriRuntimeManager {
     const voicesDirectory = path.join(this.serverDirectory, "voices")
     try {
       const names = await readdir(voicesDirectory)
-      for (const name of names.filter((item) => item.endsWith(".wav") && item.slice(0, -4).startsWith(prefix))) {
+      // 前方一致だと別キャラの声（例: ao と aoi）を巻き込むため、完全一致か - 区切りの派生だけ消す。
+      const owned = (name: string) => name.endsWith(".wav")
+        && (name.slice(0, -4) === prefix || name.slice(0, -4).startsWith(`${prefix}-`))
+      for (const name of names.filter(owned)) {
         await rm(path.join(voicesDirectory, name), { force: true })
       }
     } catch {
       // No voices directory means nothing to delete.
     }
-    await rm(this.audioCacheDirectory, { recursive: true, force: true })
+    // 生成済み音声は消さない。キャッシュキーが声IDと参照音声を含むため、
+    // 声の変更後に古いファイルが誤再生されることはなく、TTL整理で消える。
   }
 
   async registerVoice(reference: LocalTtsReference) {
     await this.ensureRunning()
     await registerLocalTtsReference(this.endpoint!, this.token!, reference, this.dependencies.fetcher, undefined, true)
-    await rm(this.audioCacheDirectory, { recursive: true, force: true })
+    // 生成済み音声は消さない（deleteVoice と同じ理由）。声の確定で会話履歴の再生が壊れないようにする。
   }
 
   private async readCachedAudio(filePath: string) {
