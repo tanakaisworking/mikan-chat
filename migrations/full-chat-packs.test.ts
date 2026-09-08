@@ -33,6 +33,7 @@ const recommendationVersionMigration = readFileSync(path.join(process.cwd(), "mi
 const shizukuIdleMotionMigration = readFileSync(path.join(process.cwd(), "migrations/0027_add_young_character_idle_motion.sql"), "utf8")
 const shizukuBundledBgmMigration = readFileSync(path.join(process.cwd(), "migrations/0029_add_shizuku_bundled_bgm.sql"), "utf8")
 const voiceProfileGenderMigration = readFileSync(path.join(process.cwd(), "migrations/0030_add_voice_profile_gender.sql"), "utf8")
+const voiceGenderFixMigration = readFileSync(path.join(process.cwd(), "migrations/0031_fix_two_voice_genders.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -67,6 +68,7 @@ describe("full chat pack migration", () => {
     db.exec(shizukuIdleMotionMigration)
     db.exec(shizukuBundledBgmMigration)
     db.exec(voiceProfileGenderMigration)
+    db.exec(voiceGenderFixMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -171,6 +173,9 @@ describe("full chat pack migration", () => {
     expect(JSON.parse(seeded.find((row) => row.id === "koharu")!.pack_json).id).toBe("cc1374b1-3147-4790-9e51-a0a3b4d01019")
     // voice.profile.gender は配信パック全件に付与される（ルシアンは男性）
     expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).plot.characters[0].voice.profile.gender).toBe("male")
+    // 冬木千冬と黒瀬凪は女性に訂正されている
+    expect(JSON.parse(seeded.find((row) => row.id === "chifuyu-last-match")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
+    expect(JSON.parse(seeded.find((row) => row.id === "nagi-radio")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
     for (const row of seeded) {
       const characters = (JSON.parse(row.pack_json) as { plot: { characters: Array<{ id: string; voice?: { profile?: Record<string, unknown> } }> } }).plot.characters
       for (const character of characters) {
