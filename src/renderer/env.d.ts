@@ -55,6 +55,8 @@ declare global {
       }
       tts?: {
         synthesizeLocal: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer>
+        hasCachedAudio?: (request: LocalTtsSynthesisRequest) => Promise<boolean>
+        readCachedAudio?: (request: LocalTtsSynthesisRequest) => Promise<ArrayBuffer | null>
         hasReference?: (voiceId: string) => Promise<boolean>
         findReference?: (prefix: string) => Promise<string | null>
         deleteReference?: (voiceId: string) => Promise<void>

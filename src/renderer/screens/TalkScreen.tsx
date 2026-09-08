@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { History, Settings2 } from "lucide-react"
+import { CircleHelp, History, Settings2, Volume2, VolumeX } from "lucide-react"
 
 import { ChatComposer } from "@/components/chat/chat-composer"
 import { CharacterStage } from "@/components/chat/character-stage"
@@ -27,6 +27,7 @@ type TalkScreenProps = {
   voiceSelections?: ScenarioVoiceSelection[]
   ttsVoiceReady?: boolean
   readAloud: boolean
+  onReadAloudChange?: (value: boolean) => void
   isNewStory?: boolean
   onBack: () => void
   onOpenConnection: () => void
@@ -132,6 +133,7 @@ export function TalkScreen({
   voiceSelections,
   ttsVoiceReady = true,
   readAloud,
+  onReadAloudChange,
   isNewStory = false,
   onBack,
   onOpenConnection,
@@ -143,13 +145,24 @@ export function TalkScreen({
   const [summaryThroughId, setSummaryThroughId] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
+  const [cachedAudioMap, setCachedAudioMap] = useState<Record<string, boolean>>({})
   const [isIntroPlaying, setIsIntroPlaying] = useState(() => Boolean(isNewStory && character.opening?.length))
   const [conversationLoaded, setConversationLoaded] = useState(!getDesktopBridge()?.conversations)
   const [builtinAvailable, setBuiltinAvailable] = useState(connection.type !== "builtin")
+  const [readAloudHelpOpen, setReadAloudHelpOpen] = useState(false)
   const generationController = useRef<AbortController | null>(null)
   const summarizeController = useRef<AbortController | null>(null)
   const streamingSpeechCancel = useRef<(() => void) | null>(null)
+  const prevReadAloud = useRef(readAloud)
   const timelineEnd = useRef<HTMLDivElement>(null)
+  // 読み上げオフ時の生成済み音声再生用。ドライバー外で直接 Audio を扱う。
+  const cachedAudioRef = useRef<{ audio: HTMLAudioElement; url: string } | null>(null)
+
+  const stopCachedAudio = () => {
+    cachedAudioRef.current?.audio.pause()
+    if (cachedAudioRef.current) URL.revokeObjectURL(cachedAudioRef.current.url)
+    cachedAudioRef.current = null
+  }
   useSyncExternalStore(subscribeKokoroModel, getKokoroModelSnapshot)
   const irodoriRuntime = useSyncExternalStore(subscribeIrodoriRuntime, getIrodoriRuntimeSnapshot)
   const tts = useMemo(() => createTtsDriver(ttsSettings, irodoriRuntime), [irodoriRuntime, ttsSettings])
@@ -249,9 +262,12 @@ export function TalkScreen({
   useEffect(() => () => {
     streamingSpeechCancel.current?.()
     tts.stop()
+    cachedAudioRef.current?.audio.pause()
+    if (cachedAudioRef.current) URL.revokeObjectURL(cachedAudioRef.current.url)
+    cachedAudioRef.current = null
   }, [tts])
 
-  const speak = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
+  const playMessage = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
     if (!tts.supported || !ttsVoiceReady) return
     setPlayingMessageId(messageId ?? null)
     tts.speak(text, { onEnd: () => {
@@ -260,17 +276,87 @@ export function TalkScreen({
     } }, resolveScenarioVoice(character, speakerName, voiceSelections))
   }
 
+  const speak = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
+    if (!readAloud) return
+    playMessage(text, messageId, speakerName, onEnd)
+  }
+
   const toggleMessageAudio = (messageId: string) => {
     streamingSpeechCancel.current?.()
     streamingSpeechCancel.current = null
     if (playingMessageId === messageId) {
       tts.stop()
+      stopCachedAudio()
       setPlayingMessageId(null)
       return
     }
     const message = messages.find((item) => item.id === messageId)
-    if (message?.role === "character") speak(message.text, messageId, message.speakerName)
+    if (message?.role !== "character") return
+    if (readAloud) {
+      speak(message.text, messageId, message.speakerName)
+      return
+    }
+    // 読み上げオフ時はキャッシュ済み音声のみ、モデルをロードせずに再生する。
+    const cached = message.audio === true || cachedAudioMap[messageId] === true
+    if (!cached) return
+    if (!tts.playCached) return
+    setPlayingMessageId(messageId)
+    void tts.playCached(message.text, resolveScenarioVoice(character, message.speakerName, voiceSelections)).then((blob) => {
+      if (!blob || typeof Audio === "undefined") {
+        setPlayingMessageId((current) => (current === messageId ? null : current))
+        return
+      }
+      stopCachedAudio()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      cachedAudioRef.current = { audio, url }
+      audio.onended = () => {
+        stopCachedAudio()
+        setPlayingMessageId((current) => (current === messageId ? null : current))
+      }
+      audio.onerror = () => {
+        stopCachedAudio()
+        setPlayingMessageId((current) => (current === messageId ? null : current))
+      }
+      void audio.play().catch(() => {
+        stopCachedAudio()
+        setPlayingMessageId((current) => (current === messageId ? null : current))
+      })
+    })
   }
+
+  useEffect(() => {
+    if (!readAloud) {
+      streamingSpeechCancel.current?.()
+      streamingSpeechCancel.current = null
+      tts.stop()
+      stopCachedAudio()
+      setPlayingMessageId(null)
+      setReadAloudHelpOpen(false)
+      if (ttsSettings.provider === "irodori") void window.mikan?.irodori?.stop()
+    }
+  }, [readAloud, tts, ttsSettings.provider])
+
+  useEffect(() => {
+    if (prevReadAloud.current === readAloud) return
+    prevReadAloud.current = readAloud
+    if (ttsSettings.provider !== "irodori") return
+    if (readAloud) void window.mikan?.irodori?.start()
+  }, [readAloud, tts, ttsSettings.provider])
+
+  useEffect(() => {
+    if (readAloud || !tts.hasCached) return
+    let cancelled = false
+    for (const message of messages) {
+      if (message.role !== "character") continue
+      if (message.audio === true || cachedAudioMap[message.id] !== undefined) continue
+      void tts.hasCached(message.text, resolveScenarioVoice(character, message.speakerName, voiceSelections)).then((hasCached) => {
+        if (cancelled) return
+        setCachedAudioMap((map) => (map[message.id] === hasCached ? map : { ...map, [message.id]: hasCached }))
+      })
+    }
+    return () => { cancelled = true }
+  }, [readAloud, tts, messages, character, voiceSelections, cachedAudioMap])
 
   const sendMessage = (text: string) => {
     if (!isConnectionReady(connection) || !builtinAvailable) {
@@ -411,6 +497,47 @@ export function TalkScreen({
         className="col-span-2 max-md:col-span-1"
         actions={
           <>
+            {onReadAloudChange ? (
+              <IconButton
+                label={readAloud ? "セリフ読み上げをオフにする" : "セリフ読み上げをオンにする"}
+                aria-pressed={readAloud}
+                className={readAloud ? "text-primary" : undefined}
+                onClick={() => onReadAloudChange(!readAloud)}
+              >
+                {readAloud ? <Volume2 /> : <VolumeX />}
+              </IconButton>
+            ) : null}
+            {onReadAloudChange ? (
+              <span className="relative">
+                <IconButton
+                  label="セリフ読み上げとは？"
+                  aria-expanded={readAloudHelpOpen}
+                  onClick={() => setReadAloudHelpOpen((open) => !open)}
+                >
+                  <CircleHelp />
+                </IconButton>
+                {readAloudHelpOpen ? (
+                  <div
+                    role="dialog"
+                    aria-label="セリフ読み上げとは？"
+                    className="absolute right-0 top-full z-30 mt-2 w-72 rounded-lg border border-border bg-popover p-4 text-sm leading-relaxed text-foreground shadow-lg max-md:w-64"
+                  >
+                    <p className="font-semibold">セリフ読み上げモード</p>
+                    <p className="mt-2 text-muted-foreground">オンにすると、キャラクターの返答を自動で読み上げます。</p>
+                    <p className="mt-2 text-muted-foreground">
+                      オフにすると読み上げモデルをロードしません。生成済みの音声はモデルなしで再生できます。Irodori TTS使用時は約7GBのメモリプレッシャーを削減できます。OS標準音声ではメモリをほとんど使いません。
+                    </p>
+                    <button
+                      type="button"
+                      className="mt-3 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => setReadAloudHelpOpen(false)}
+                    >
+                      閉じる
+                    </button>
+                  </div>
+                ) : null}
+              </span>
+            ) : null}
             <IconButton label="会話履歴" onClick={onOpenHistory}>
               <History />
             </IconButton>
@@ -444,7 +571,9 @@ export function TalkScreen({
           messages={messages}
           isGenerating={isGenerating}
           error={generationError}
-          canPlayAudio={tts.supported && ttsVoiceReady}
+          canPlayAudio={(message) => readAloud
+            ? tts.supported && ttsVoiceReady
+            : message.audio === true || cachedAudioMap[message.id] === true}
           playingMessageId={playingMessageId}
           onToggleAudio={toggleMessageAudio}
           endRef={timelineEnd}

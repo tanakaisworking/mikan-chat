@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from "node:crypto"
 import { createReadStream } from "node:fs"
-import { chmod, mkdir, open, readFile, readdir, rename, rm, stat, statfs, utimes, writeFile } from "node:fs/promises"
+import { chmod, link, mkdir, open, readFile, readdir, readlink, rename, rm, stat, statfs, utimes, writeFile } from "node:fs/promises"
 import net from "node:net"
 import path from "node:path"
 import { spawn, type ChildProcess } from "node:child_process"
+
 
 import type { BrowserWindow } from "electron"
 
@@ -29,6 +30,23 @@ const STOP_TIMEOUT_MS = 5 * 1000
 const KILL_TIMEOUT_MS = 2 * 1000
 const AUDIO_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const AUDIO_CACHE_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+export function audioCacheKey(request: LocalTtsSynthesisRequest) {
+  const hash = createHash("sha256")
+  hash.update(JSON.stringify({
+    modelRevision: MODEL_REVISION,
+    model: request.model,
+    voice: request.referenceAudio?.voiceId ?? request.voice,
+    text: request.text,
+    caption: request.caption ?? null,
+    seed: request.seed ?? null,
+    numSteps: request.numSteps ?? null,
+    referenceFile: request.referenceAudio?.fileName ?? null,
+    referenceType: request.referenceAudio?.mimeType ?? null,
+  }))
+  if (request.referenceAudio) hash.update(new Uint8Array(request.referenceAudio.data))
+  return hash.digest("hex")
+}
 
 type RuntimeDependencies = {
   platform: NodeJS.Platform
@@ -201,7 +219,13 @@ export class IrodoriRuntimeManager {
       const endpoint = `http://127.0.0.1:${port}/v1`
       this.stopping = false
       this.serverOutput = ""
-      const child = this.dependencies.spawnServer(this.uvPath, ["run", "--no-sync", "python", "-m", "irodori_openai_tts", "--host", "127.0.0.1", "--port", String(port)], {
+      // Activity Monitor では p_comm（実行ファイル名）が表示されるため、
+      // 実体 python へのハードリンク「Mikan Voice Helper」を exec する。
+      // シンボリックリンクでは p_comm が python3.10 に戻ってしまうことを実機確認済み。
+      const binDir = path.join(this.root, "server", ".venv", "bin")
+      const helperPath = path.join(binDir, "Mikan Voice Helper")
+      const pythonEntry = await this.prepareVoiceHelper(binDir, helperPath).catch(() => "python")
+      const child = this.dependencies.spawnServer(this.uvPath, ["run", "--no-sync", pythonEntry, "-m", "irodori_openai_tts", "--host", "127.0.0.1", "--port", String(port)], {
         cwd: this.serverDirectory,
         env: {
           ...this.runtimeEnvironment(),
@@ -256,9 +280,20 @@ export class IrodoriRuntimeManager {
     }
   }
 
+  private async prepareVoiceHelper(binDir: string, helperPath: string): Promise<string> {
+    // 毎回作り直す。uv の python 差し替えで実体パスが変わっても追従できる。
+    await rm(helperPath, { force: true })
+    const pythonPath = path.join(binDir, "python3.10")
+    const target = await readlink(pythonPath)
+      .then((linkTarget) => path.resolve(binDir, linkTarget))
+      .catch(() => pythonPath)
+    await link(target, helperPath)
+    return "Mikan Voice Helper"
+  }
+
   async synthesize(request: LocalTtsSynthesisRequest) {
     await this.cleanupAudioCache()
-    const cachePath = path.join(this.audioCacheDirectory, `${this.audioCacheKey(request)}.wav`)
+    const cachePath = path.join(this.audioCacheDirectory, `${audioCacheKey(request)}.wav`)
     const cached = await this.readCachedAudio(cachePath)
     if (cached) return cached
     await this.ensureRunning()
@@ -279,6 +314,22 @@ export class IrodoriRuntimeManager {
     } finally {
       this.synthesisControllers.delete(request.requestId)
     }
+  }
+
+  async hasCachedAudio(request: LocalTtsSynthesisRequest) {
+    // Lightweight cache check: must not start the server or load the model.
+    try {
+      const file = await stat(path.join(this.audioCacheDirectory, `${audioCacheKey(request)}.wav`))
+      return Date.now() - file.mtimeMs < AUDIO_CACHE_TTL_MS
+    } catch {
+      return false
+    }
+  }
+
+  async readCachedAudioOnly(request: LocalTtsSynthesisRequest) {
+    // 生成済み音声の再生用。サーバー起動やモデルロードはしない。
+    const cachePath = path.join(this.audioCacheDirectory, `${audioCacheKey(request)}.wav`)
+    return this.readCachedAudio(cachePath)
   }
 
   async hasVoice(voiceId: string) {
@@ -320,23 +371,6 @@ export class IrodoriRuntimeManager {
     await this.ensureRunning()
     await registerLocalTtsReference(this.endpoint!, this.token!, reference, this.dependencies.fetcher, undefined, true)
     await rm(this.audioCacheDirectory, { recursive: true, force: true })
-  }
-
-  private audioCacheKey(request: LocalTtsSynthesisRequest) {
-    const hash = createHash("sha256")
-    hash.update(JSON.stringify({
-      modelRevision: MODEL_REVISION,
-      model: request.model,
-      voice: request.referenceAudio?.voiceId ?? request.voice,
-      text: request.text,
-      caption: request.caption ?? null,
-      seed: request.seed ?? null,
-      numSteps: request.numSteps ?? null,
-      referenceFile: request.referenceAudio?.fileName ?? null,
-      referenceType: request.referenceAudio?.mimeType ?? null,
-    }))
-    if (request.referenceAudio) hash.update(new Uint8Array(request.referenceAudio.data))
-    return hash.digest("hex")
   }
 
   private async readCachedAudio(filePath: string) {

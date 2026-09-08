@@ -15,6 +15,56 @@ let quitAfterCleanup = false
 
 const windowBackground = { light: "#fff9f4", dark: "#171310" } as const
 
+// アイドル時リソース解放（Ready → Waiting）。
+// ponytail: タイムアウト固定 10 分。設定UIが必要になったら desktop-store に項目を追加する。
+const IDLE_RELEASE_TIMEOUT_MS = 10 * 60 * 1000
+let lastResourceActivity = Date.now()
+let resourcesReleased = false
+let idleWatchTimer: NodeJS.Timeout | null = null
+let idleLocalAi: LocalAIManager | null = null
+let idleIrodori: IrodoriRuntimeManager | null = null
+
+function touchResourceActivity() {
+  lastResourceActivity = Date.now()
+  if (resourcesReleased) {
+    resourcesReleased = false
+    console.log("[idle] Ready: 次の利用時にローカルリソースを再読み込みします")
+  }
+}
+
+async function releaseIdleResources() {
+  if (resourcesReleased || Date.now() - lastResourceActivity < IDLE_RELEASE_TIMEOUT_MS) return
+  try {
+    if (idleLocalAi && !idleLocalAi.busy) {
+      await idleLocalAi.dispose()
+      console.log("[idle] Waiting: 内蔵AIワーカーを解放しました（次回チャット時に自動再起動します）")
+    }
+  } catch (error) {
+    console.warn("[idle] 内蔵AIの解放に失敗:", error)
+  }
+  try {
+    if (idleIrodori && (await idleIrodori.status()).state === "running") {
+      await idleIrodori.stop()
+      console.log("[idle] Waiting: Irodori TTSサーバーを停止しました（次回合成時に自動起動します）")
+    }
+  } catch (error) {
+    console.warn("[idle] Irodori TTSの解放に失敗:", error)
+  }
+  resourcesReleased = true
+}
+
+function startIdleWatcher() {
+  if (idleWatchTimer) return
+  idleWatchTimer = setInterval(() => { void releaseIdleResources() }, 60_000)
+  const stopWatcher = () => {
+    if (idleWatchTimer) {
+      clearInterval(idleWatchTimer)
+      idleWatchTimer = null
+    }
+  }
+  shutdownTasks.add(() => Promise.resolve(stopWatcher()))
+}
+
 function createDesktopStore() {
   return new DesktopStore(app.getPath("userData"), {
     available: () => safeStorage.isEncryptionAvailable(),
@@ -53,6 +103,8 @@ async function createWindow() {
   registerStoreHandlers(window, store)
   registerLocalAIHandlers(window)
   registerLocalTtsHandlers(window)
+  window.webContents.on("before-input-event", () => touchResourceActivity())
+  startIdleWatcher()
   const hayamimiUrl = getHayamimiUrl()
   if (hayamimiUrl) registerSpeechHandlers(window, hayamimiUrl)
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -69,12 +121,15 @@ async function createWindow() {
 
 function registerLocalTtsHandlers(window: BrowserWindow) {
   const manager = new IrodoriRuntimeManager(path.join(app.getPath("userData"), "irodori"), window)
+  idleIrodori = manager
   ipcMain.removeHandler("irodori:status")
   ipcMain.removeHandler("irodori:install")
   ipcMain.removeHandler("irodori:start")
   ipcMain.removeHandler("irodori:stop")
   ipcMain.removeHandler("irodori:delete")
   ipcMain.removeHandler("tts:synthesize-local")
+  ipcMain.removeHandler("tts:has-cached-audio")
+  ipcMain.removeHandler("tts:read-cached-audio")
   ipcMain.removeHandler("tts:has-reference")
   ipcMain.removeHandler("tts:find-reference")
   ipcMain.removeHandler("tts:delete-reference")
@@ -87,10 +142,12 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("irodori:install", (event) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    touchResourceActivity()
     return manager.install()
   })
   ipcMain.handle("irodori:start", (event) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    touchResourceActivity()
     return manager.start()
   })
   ipcMain.handle("irodori:stop", (event) => {
@@ -103,7 +160,24 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("tts:synthesize-local", (event, input) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    touchResourceActivity()
     return manager.synthesize(localTtsSynthesisRequestSchema.parse(input))
+  })
+  ipcMain.handle("tts:has-cached-audio", (event, input) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    // キャッシュ確認だけでアイドルタイマーを延命しない（touchResourceActivityを呼ばない）。
+    // 不正な入力では false を返し、ZodError のログ連打を避ける。
+    const parsed = localTtsSynthesisRequestSchema.safeParse(input)
+    if (!parsed.success) return false
+    return manager.hasCachedAudio(parsed.data)
+  })
+  ipcMain.handle("tts:read-cached-audio", (event, input) => {
+    if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    // キャッシュ読み出しだけでアイドルタイマーを延命しない（touchResourceActivityを呼ばない）。
+    // 不正な入力では null を返し、ZodError のログ連打を避ける。
+    const parsed = localTtsSynthesisRequestSchema.safeParse(input)
+    if (!parsed.success) return null
+    return manager.readCachedAudioOnly(parsed.data)
   })
   ipcMain.handle("tts:has-reference", (event, voiceId) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
@@ -119,6 +193,7 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("tts:register-reference", (event, input) => {
     if (event.sender !== window.webContents) throw new Error("Irodori TTSへアクセスできません。")
+    touchResourceActivity()
     return manager.registerVoice(localTtsReferenceSchema.parse(input))
   })
   ipcMain.handle("bgm:resolve-audio-com", (event, source) => {
@@ -137,6 +212,7 @@ function registerLocalTtsHandlers(window: BrowserWindow) {
 
 function registerLocalAIHandlers(window: BrowserWindow) {
   const manager = new LocalAIManager(path.join(app.getPath("userData"), "models"), window)
+  idleLocalAi = manager
   const assertSender = (sender: Electron.WebContents) => {
     if (sender !== window.webContents) throw new Error("内蔵AIへアクセスできません。")
   }
@@ -151,6 +227,7 @@ function registerLocalAIHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("local-ai:download", (event, input) => {
     assertSender(event.sender)
+    touchResourceActivity()
     return manager.download(localAIModelSpecSchema.parse(input))
   })
   ipcMain.handle("local-ai:delete", (event, input) => {
@@ -159,6 +236,7 @@ function registerLocalAIHandlers(window: BrowserWindow) {
   })
   ipcMain.handle("local-ai:chat", (event, input) => {
     assertSender(event.sender)
+    touchResourceActivity()
     return manager.chat(localAIChatRequestSchema.parse(input))
   })
   ipcMain.on("local-ai:cancel", (event, requestId) => {

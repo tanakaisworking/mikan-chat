@@ -111,6 +111,8 @@ export type TtsDriver = {
   unavailableReason: string | null
   speak: (text: string, callbacks?: { onEnd?: () => void; onError?: (message: string) => void }, options?: TtsSpeakOptions) => void
   stop: () => void
+  hasCached?: (text: string, options?: TtsSpeakOptions) => Promise<boolean>
+  playCached?: (text: string, options?: TtsSpeakOptions) => Promise<Blob | null>
 }
 
 export type TtsSpeakOptions = {
@@ -206,6 +208,24 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS, ir
   type Playback = { controller: AbortController; requestId: string; audio: HTMLAudioElement | null; audioUrl: string | null }
   let active: Playback | null = null
 
+  // hasCached / playCached 共通のリクエスト組み立て。キャッシュキーに requestId は含まれない。
+  const buildLocalCacheRequest = async (text: string, options?: TtsSpeakOptions) => {
+    const referenceAudio = await prepareReferenceAudio(options?.referenceAudio)
+    return {
+      // zod の UUID 検証を通すため nil UUID を送る。
+      requestId: "00000000-0000-0000-0000-000000000000",
+      endpoint: (isElevenLabs ? ELEVENLABS_API_ENDPOINT : settings.endpoint).trim().replace(/\/+$/, ""),
+      model: settings.model,
+      voice: options?.voiceId ?? settings.voice,
+      apiKey: settings.apiKey,
+      text,
+      ...(options?.caption ? { caption: options.caption } : {}),
+      ...(options?.seed !== undefined ? { seed: options.seed } : {}),
+      numSteps: IRODORI_STEPS[settings.irodoriQuality ?? "balanced"],
+      ...(referenceAudio ? { referenceAudio } : {}),
+    }
+  }
+
   const cleanup = (playback: Playback) => {
     playback.audio?.pause()
     if (playback.audioUrl) URL.revokeObjectURL(playback.audioUrl)
@@ -225,6 +245,30 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS, ir
     label: isElevenLabs ? "ElevenLabs" : isIrodori ? "Irodori TTS" : "外部TTS",
     supported: !unavailableReason && typeof Audio !== "undefined",
     unavailableReason,
+    hasCached: isIrodori
+      ? async (text, options) => {
+        const localHasCached = window.mikan?.tts?.hasCachedAudio
+        if (!localHasCached) return false
+        try {
+          return localHasCached(await buildLocalCacheRequest(text, options))
+        } catch {
+          return false
+        }
+      }
+      : undefined,
+    // 生成済み音声のみ再生。モデルロードは発生しない。
+    playCached: isIrodori
+      ? async (text, options) => {
+        const localReadCached = window.mikan?.tts?.readCachedAudio
+        if (!localReadCached) return null
+        try {
+          const audio = await localReadCached(await buildLocalCacheRequest(text, options))
+          return audio ? new Blob([audio], { type: "audio/wav" }) : null
+        } catch {
+          return null
+        }
+      }
+      : undefined,
     speak: (text, callbacks = {}, options) => {
       stop()
       if (unavailableReason || typeof Audio === "undefined") {

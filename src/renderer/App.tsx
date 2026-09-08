@@ -452,7 +452,8 @@ export function AppContent() {
       setTtsSettings(settings.tts)
       setOnboardingProfile((current) => settings.profile ?? current)
       setAppearanceSettings((current) => window.localStorage.getItem(APPEARANCE_STORAGE_KEY) ? current : settings.appearance)
-      setReadAloud(settings.readAloud)
+      // 読み上げモードは起動時は常にオフ始まり（前回オンのまま復元しない）
+      setReadAloud(false)
       setScenarioVoiceSelections((current) => settings.scenarioVoices && Object.keys(settings.scenarioVoices).length ? settings.scenarioVoices : current)
     }).catch((error) => {
       console.error("Failed to load desktop settings", error)
@@ -708,6 +709,7 @@ export function AppContent() {
             voiceSelections={activeVoiceSelections}
             ttsVoiceReady={ttsVoiceReady}
             readAloud={readAloud}
+            onReadAloudChange={setReadAloud}
             isNewStory={showStoryIntro}
             onBack={() => navigate(talkBackTo ?? (routePublicId ? scenarioPath(activeCharacter) : "/"))}
             onOpenConnection={() => openConnection()}

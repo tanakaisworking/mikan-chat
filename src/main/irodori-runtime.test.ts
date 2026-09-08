@@ -6,6 +6,7 @@ import { PassThrough } from "node:stream"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { IrodoriRuntimeManager } from "./irodori-runtime"
+import { audioCacheKey } from "./irodori-runtime"
 
 const directories: string[] = []
 
@@ -220,6 +221,9 @@ describe("IrodoriRuntimeManager", () => {
     const stopping = manager.stop()
     const restarting = manager.start()
     expect(spawnServer).toHaveBeenCalledOnce()
+    // 実 fs の server.pid 削除はフェイクタイマーの外で完了するため、
+    // SIGTERM 送信（＝graceful タイマー登録済み）を先に確定させる。
+    await vi.waitFor(() => expect(child.kill).toHaveBeenCalledWith("SIGTERM"))
     await vi.advanceTimersByTimeAsync(5_000)
     await stopping
     await vi.waitFor(() => expect(spawnServer).toHaveBeenCalledTimes(2))
@@ -357,6 +361,43 @@ describe("IrodoriRuntimeManager", () => {
     await manager.synthesize({ ...request, requestId: "44444444-4444-4444-8444-444444444444" })
     expect(generations).toBe(3)
     await manager.delete()
+  })
+
+  it("hasCachedAudioはモデルを起動せずキャッシュの有無だけを返す", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "mikan-irodori-"))
+    directories.push(root)
+    await writeFile(path.join(root, "installed.json"), JSON.stringify({
+      uvVersion: "0.11.33",
+      serverRevision: "841fb7c6ec57729c56b9b75c0ef2562249b13a10",
+      modelRevision: "4c92c7ee2bb15c19a97cf4e86d24fd6bf33b0135",
+      codecRevision: "47376ee24834d7a05a48ebabfe3cde29b3c5e214",
+    }))
+    const spawnServer = vi.fn(() => { throw new Error("モデル起動してはいけない") })
+    const manager = new IrodoriRuntimeManager(root, fakeWindow(), {
+      platform: "darwin",
+      arch: "arm64",
+      spawnServer: spawnServer as never,
+    })
+    const request = {
+      requestId: "55555555-5555-4555-8555-555555555555",
+      endpoint: "http://127.0.0.1:8088/v1",
+      model: "irodori-tts",
+      voice: "voice-a",
+      apiKey: "",
+      text: "キャッシュ確認です。",
+    }
+
+    expect(await manager.hasCachedAudio(request)).toBe(false)
+
+    const cachePath = path.join(root, "cache", "audio", `${audioCacheKey(request)}.wav`)
+    await mkdir(path.dirname(cachePath), { recursive: true })
+    await writeFile(cachePath, "wav")
+    expect(await manager.hasCachedAudio(request)).toBe(true)
+
+    const expired = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000)
+    await utimes(cachePath, expired, expired)
+    expect(await manager.hasCachedAudio(request)).toBe(false)
+    expect(spawnServer).not.toHaveBeenCalled()
   })
 })
 

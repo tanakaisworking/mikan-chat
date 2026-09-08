@@ -20,7 +20,7 @@ export function ChatMessage({
 }: {
   message: ChatMessageData
   isPlaying: boolean
-  canPlayAudio: boolean
+  canPlayAudio: (message: ChatMessageData) => boolean
   onToggleAudio: () => void
 }) {
   if (message.role === "narration") {
@@ -61,7 +61,7 @@ export function ChatMessage({
         </div>
         <div className="flex items-start gap-3 text-[18px] leading-8 text-foreground max-[1100px]:text-[17px] max-md:text-[15px] max-md:leading-7 max-md:text-white max-md:drop-shadow-md">
           <p className="min-w-0 flex-1">{message.text}</p>
-          {message.audio || canPlayAudio ? (
+          {message.audio || canPlayAudio(message) ? (
             <IconButton
               label={isPlaying ? "音声を停止" : "音声を再生"}
               className="mt-0.5 shrink-0 bg-surface text-primary hover:bg-surface-accent max-md:size-11 max-md:drop-shadow-md"

@@ -1104,7 +1104,8 @@ describe("mikan chat UI flow", () => {
     expect(await screen.findByRole("heading", { name: "キャラクターの声を決める" }, { timeout: 8_000 })).toBeInTheDocument()
     expect(hasReference.mock.calls.length).toBeGreaterThanOrEqual(4)
     expect(screen.getByRole("switch", { name: "返答を読み上げる" })).not.toBeChecked()
-    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: true }))
+    // 保存値がオンでも起動時はオフ始まりになる
+    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: false }))
   }, 10_000)
 
   it("Web版はブラウザ標準TTSで返答を読み上げる", async () => {

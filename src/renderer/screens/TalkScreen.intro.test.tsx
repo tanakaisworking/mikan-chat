@@ -382,7 +382,7 @@ describe("TalkScreenの物語導入", () => {
       animateIntro: true,
       sequenceKey: "tavern:today",
       isGenerating: false,
-      canPlayAudio: false,
+      canPlayAudio: () => false,
       playingMessageId: null,
       onToggleAudio: () => undefined,
       endRef,
@@ -432,7 +432,7 @@ describe("TalkScreenの物語導入", () => {
         sequenceKey="tavern:today"
         messages={messages}
         isGenerating={false}
-        canPlayAudio
+        canPlayAudio={() => true}
         playingMessageId={null}
         onToggleAudio={() => undefined}
         endRef={createRef<HTMLDivElement>()}

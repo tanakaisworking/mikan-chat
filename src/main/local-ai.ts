@@ -31,6 +31,7 @@ export class LocalAIManager {
   private worker: WorkerHandle | null = null
   private exiting = false
   private nextCallId = 1
+  private activeDownloads = 0
   private lastSpec: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL
   private readonly pendingCalls = new Map<number, PendingCall>()
   private readonly pendingChats = new Map<string, { resolve: (result: string) => void; reject: (error: Error) => void }>()
@@ -40,6 +41,11 @@ export class LocalAIManager {
     private readonly window: BrowserWindow,
     private readonly spawn: () => Promise<WorkerHandle> = spawnUtilityWorker,
   ) {}
+
+  /** アイドル解放用: ダウンロード中やチャット応答中はリソースを解放しない */
+  get busy() {
+    return this.activeDownloads > 0 || this.pendingChats.size > 0
+  }
 
   async status(input: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL) {
     const spec = localAIModelSpec(input)
@@ -57,7 +63,12 @@ export class LocalAIManager {
     this.lastSpec = spec
     const child = await this.ensureWorker()
     const id = this.nextCallId++
-    await this.call(child, id, { type: "download", id, spec })
+    this.activeDownloads++
+    try {
+      await this.call(child, id, { type: "download", id, spec })
+    } finally {
+      this.activeDownloads--
+    }
   }
 
   async delete(input: LocalAIModelSpec = DEFAULT_BUILTIN_MODEL) {

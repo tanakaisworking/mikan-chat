@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld("mikan", {
   },
   tts: {
     synthesizeLocal: (request: LocalTtsSynthesisRequest) => ipcRenderer.invoke("tts:synthesize-local", request) as Promise<ArrayBuffer>,
+    hasCachedAudio: (request: LocalTtsSynthesisRequest) => ipcRenderer.invoke("tts:has-cached-audio", request) as Promise<boolean>,
+    readCachedAudio: (request: LocalTtsSynthesisRequest) => ipcRenderer.invoke("tts:read-cached-audio", request) as Promise<ArrayBuffer | null>,
     hasReference: (voiceId: string) => ipcRenderer.invoke("tts:has-reference", voiceId) as Promise<boolean>,
     findReference: (prefix: string) => ipcRenderer.invoke("tts:find-reference", prefix) as Promise<string | null>,
     deleteReference: (voiceId: string) => ipcRenderer.invoke("tts:delete-reference", voiceId) as Promise<void>,

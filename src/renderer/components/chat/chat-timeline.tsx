@@ -28,7 +28,7 @@ export function ChatTimeline({
   messages: ChatMessageData[]
   isGenerating: boolean
   error?: string | null
-  canPlayAudio: boolean
+  canPlayAudio: (message: ChatMessageData) => boolean
   playingMessageId: string | null
   onToggleAudio: (messageId: string) => void
   endRef: RefObject<HTMLDivElement | null>
