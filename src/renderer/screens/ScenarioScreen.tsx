@@ -112,7 +112,7 @@ export function ScenarioRouteState({ title, message, onBack }: { title: string; 
 
 function ScenarioHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header className="flex h-full items-center border-b border-border/70 bg-background/96 px-6 [-webkit-app-region:drag] max-md:px-3">
+    <header className="flex h-full items-center border-b border-border/70 bg-background/96 px-6 max-md:px-3">
       <IconButton label="戻る" className="shrink-0" onClick={onBack}><ArrowLeft /></IconButton>
       <Brand compact className="ml-3 max-md:[&_span]:text-lg" />
     </header>
