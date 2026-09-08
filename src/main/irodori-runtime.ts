@@ -361,7 +361,8 @@ export class IrodoriRuntimeManager {
   }
 
   async findVoice(prefix: string) {
-    await this.ensureRunning()
+    // ローカルの参照音声ディレクトリだけを見る。ensureRunning は呼ばない。
+    // hasVoice と同じく、声ゲートの復元確認でモデルを起こさないようにする。
     try {
       const names = await readdir(path.join(this.serverDirectory, "voices"))
       const match = names.filter((name) => name.endsWith(".wav") && name.slice(0, -4).startsWith(prefix)).sort().at(-1)

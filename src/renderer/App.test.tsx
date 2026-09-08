@@ -1100,12 +1100,15 @@ describe("mikan chat UI flow", () => {
     fireEvent.click(await screen.findByRole("button", { name: "デモを読み込む" }))
     await screen.findByRole("heading", { name: "雨の夜、閉店後の喫茶店で" })
     fireEvent.click(screen.getByRole("button", { name: "追加して話す" }))
+    // 声ゲートは読み上げONまで実行しない
+    expect(screen.queryByRole("heading", { name: "キャラクターの声を決める" })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole("button", { name: "セリフ読み上げをオンにする" }))
 
     expect(await screen.findByRole("heading", { name: "キャラクターの声を決める" }, { timeout: 8_000 })).toBeInTheDocument()
     expect(hasReference.mock.calls.length).toBeGreaterThanOrEqual(4)
     expect(screen.getByRole("switch", { name: "返答を読み上げる" })).not.toBeChecked()
-    // 保存値がオンでも起動時はオフ始まりになる
-    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: false }))
+    // 保存値がオンでも起動時はオフ始まり（スイッチがオフ）。切り替え後はオンで保存される
+    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({ readAloud: true }))
   }, 10_000)
 
   it("Web版はブラウザ標準TTSで返答を読み上げる", async () => {

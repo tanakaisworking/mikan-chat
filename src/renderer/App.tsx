@@ -347,12 +347,8 @@ export function AppContent() {
       void bridge.stop().catch(() => undefined)
       return
     }
-    let active = true
-    void bridge.status().then((runtime) => {
-      if (!active) return
-      if (runtime.state === "ready" || runtime.state === "running" || runtime.state === "starting") return bridge.start()
-    }).catch(() => undefined)
-    return () => { active = false }
+    // 選択時も自動予熱はしない。起動直後の6GBロードを避ける。
+    // 読み上げON・声プレビュー・初回合成はいずれも ensureRunning 経由で必要時に起動する。
   }, [desktopReady, irodoriSelected])
 
   useEffect(() => {
@@ -364,6 +360,14 @@ export function AppContent() {
       return
     }
     if (!irodoriSelected) {
+      checkedVoiceGate.current = ""
+      voiceGatePrompted.current = false
+      setVoiceSetupRequired(false)
+      setConfirmedVoiceGateKey("")
+      return
+    }
+    // 声ゲートは読み上げONまで実行しない。OFFのまま使う分には声の確認もモデルも不要。
+    if (!readAloud) {
       checkedVoiceGate.current = ""
       voiceGatePrompted.current = false
       setVoiceSetupRequired(false)
@@ -439,7 +443,7 @@ export function AppContent() {
       active = false
       if (retryTimer !== undefined) window.clearTimeout(retryTimer)
     }
-  }, [activeCharacter, desktopReady, irodoriRuntime, irodoriSelected, scenarioVoiceSelections, screen, voiceGateRetry])
+  }, [activeCharacter, desktopReady, irodoriRuntime, irodoriSelected, readAloud, scenarioVoiceSelections, screen, voiceGateRetry])
 
   useEffect(() => {
     const store = getDesktopBridge()?.store

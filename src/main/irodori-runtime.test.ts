@@ -520,6 +520,8 @@ describe("IrodoriRuntimeManager", () => {
     await writeFile(path.join(voicesDir, "mikan-user-pack-x.wav"), "voice")
     expect(await manager.hasVoice("mikan-user-pack-x")).toBe(true)
     expect(await manager.hasVoice("mikan-user-pack-y")).toBe(false)
+    expect(await manager.findVoice("mikan-user-pack-x")).toBe("mikan-user-pack-x")
+    expect(await manager.findVoice("mikan-user-pack-y")).toBeNull()
     expect(spawnServer).not.toHaveBeenCalled()
   })
 })
