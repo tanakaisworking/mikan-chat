@@ -4,6 +4,7 @@ import { BrowserRouter, HashRouter, useLocation, useMatch, useNavigate } from "r
 
 import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
 import { ImportChatPackDialog } from "@/components/library/import-chat-pack-dialog"
+import { DesktopSidebar, MobileHeader, MobileNavigation } from "@/components/navigation/app-navigation"
 import { type ConnectionSettings, type ConnectionType } from "@/components/settings/ai-connection-dialog"
 import { ChatSettingsDialog } from "@/components/settings/chat-settings-dialog"
 import { DesktopTitleBar } from "@/components/ui/desktop-title-bar"
@@ -21,12 +22,13 @@ import { DEFAULT_TTS_SETTINGS, getIrodoriRuntimeSnapshot, isIrodoriTtsSettings, 
 import { DEFAULT_BUILTIN_MODEL_SOURCE } from "../shared/local-ai"
 import { HomeScreen, type HomeTab } from "@/screens/HomeScreen"
 import { OnboardingScreen, type OnboardingGender, type OnboardingProfile } from "@/screens/OnboardingScreen"
+import { PackAuthoringScreen } from "@/screens/PackAuthoringScreen"
 import { SetupScreen, type AppearanceSettings } from "@/screens/SetupScreen"
 import { ScenarioRouteState, ScenarioScreen } from "@/screens/ScenarioScreen"
 import { TalkScreen } from "@/screens/TalkScreen"
 import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
-type Screen = "settings" | "home" | "scenario" | "talk" | "docs" | "not-found"
+type Screen = "settings" | "home" | "scenario" | "talk" | "docs" | "create" | "not-found"
 type Overlay = "connection" | "import" | "voice" | "history" | null
 const CONNECTION_STORAGE_KEY = "mikan-chat.connection.v1"
 const ONBOARDING_STORAGE_KEY = "mikan-chat.onboarding.v1"
@@ -238,6 +240,7 @@ export function AppContent() {
   const scenarioMatch = useMatch("/scenarios/:publicId")
   const talkMatch = useMatch("/scenarios/:publicId/chat")
   const docsMatch = useMatch("/docs")
+  const createMatch = useMatch("/create")
   const setupMatch = useMatch("/setup")
   const settingsMatch = useMatch("/settings")
   const chatsMatch = useMatch("/chats")
@@ -247,6 +250,8 @@ export function AppContent() {
     ? "talk"
     : scenarioMatch
       ? "scenario"
+      : createMatch
+        ? "create"
       : docsMatch || legacyScreen === "docs"
         ? "docs"
           : settingsMatch || setupMatch || legacyScreen === "setup"
@@ -619,7 +624,7 @@ export function AppContent() {
     )
   }
 
-  if (!onboardingProfile && screen !== "docs" && screen !== "scenario" && screen !== "not-found") {
+  if (!onboardingProfile && screen !== "docs" && screen !== "scenario" && screen !== "create" && screen !== "not-found") {
     return (
       <TooltipProvider>
         <AppFrame>
@@ -668,7 +673,7 @@ export function AppContent() {
           characters={conversationLibrary}
           recommendedCharacters={conversationsLoaded ? recommendedLibrary : []}
           activeTab={homeTab}
-          onTabChange={(tab) => navigate(tab === "home" ? "/" : "/chats")}
+          onTabChange={(tab) => navigate(tab === "home" ? "/" : tab === "chat" ? "/chats" : "/create")}
           onSelectCharacter={talkWith}
           onAddPack={() => openOverlay("import")}
           onOpenDocs={() => showScreen("docs")}
@@ -727,6 +732,27 @@ export function AppContent() {
           onBack={() => showScreen("home")}
           onTryDemo={() => openOverlay("import")}
         />
+      ) : null}
+
+      {screen === "create" ? (
+        <main className="grid h-full grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background max-md:block max-md:h-full max-md:overflow-y-auto max-md:pb-[calc(148px+env(safe-area-inset-bottom))]" data-testid="create-screen">
+          <DesktopSidebar
+            activePage="create"
+            onPageChange={(page) => navigate(page === "home" ? "/" : page === "chat" ? "/chats" : "/create")}
+            onAddPack={() => openOverlay("import")}
+            onOpenDocs={() => showScreen("docs")}
+            onOpenSettings={() => showScreen("settings")}
+          />
+          <MobileHeader onOpenDocs={() => showScreen("docs")} onOpenSettings={() => showScreen("settings")} />
+          <section className="min-w-0 overflow-y-auto max-md:overflow-visible">
+            <PackAuthoringScreen onBack={() => navigate("/")} onImportAndTalk={importAndTalk} />
+          </section>
+          <MobileNavigation
+            activePage="create"
+            onPageChange={(page) => navigate(page === "home" ? "/" : page === "chat" ? "/chats" : "/create")}
+            onAddPack={() => openOverlay("import")}
+          />
+        </main>
       ) : null}
 
       {screen === "not-found" ? (

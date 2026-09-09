@@ -41,3 +41,28 @@ export async function resolveAudioComStream(source: string, signal?: AbortSignal
   if (typeof payload.streamUrl !== "string") throw new Error("BGMを読み込めませんでした。")
   return { streamUrl: payload.streamUrl, title: typeof payload.title === "string" ? payload.title : null }
 }
+
+const DEFAULT_BGM_VOLUME = 20
+
+export type BgmPreference = {
+  customUrl: string | null
+  volume: number
+  enabled: boolean
+  customFile?: { name: string; dataUrl: string } | null
+}
+
+/** シナリオごとのBGM設定を読む。作成画面のエクスポートと再生側で共有する。 */
+export function readBgmPreference(scenarioId: string): BgmPreference {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(`mikan.bgm.${scenarioId}`) ?? "null") as Partial<BgmPreference> | null
+    const customFile = value?.customFile
+    return {
+      customUrl: typeof value?.customUrl === "string" ? value.customUrl : null,
+      volume: typeof value?.volume === "number" ? Math.min(100, Math.max(0, value.volume)) : DEFAULT_BGM_VOLUME,
+      enabled: value?.enabled === undefined ? true : value.enabled !== false,
+      customFile: customFile && typeof customFile.name === "string" && typeof customFile.dataUrl === "string" ? customFile : null,
+    }
+  } catch {
+    return { customUrl: null, volume: DEFAULT_BGM_VOLUME, enabled: true, customFile: null }
+  }
+}

@@ -1,7 +1,7 @@
 import { useId, useState } from "react"
 import { MessageCircleMore } from "lucide-react"
 
-import { DesktopSidebar, MobileHeader, MobileNavigation } from "@/components/navigation/app-navigation"
+import { DesktopSidebar, MobileHeader, MobileNavigation, type Page } from "@/components/navigation/app-navigation"
 import { SectionHeading } from "@/components/ui/section-heading"
 import type { Character } from "@/data/characters"
 
@@ -10,7 +10,7 @@ type HomeScreenProps = {
   characters: Character[]
   recommendedCharacters: Character[]
   activeTab: HomeTab
-  onTabChange: (tab: HomeTab) => void
+  onTabChange: (tab: Page) => void
   onAddPack: () => void
   onOpenDocs: () => void
   onOpenSettings: () => void

@@ -1,4 +1,4 @@
-import { BookOpenText, House, Menu, MessagesSquare, Plus, Settings } from "lucide-react"
+import { BookOpenText, House, Menu, MessagesSquare, PenLine, Plus, Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Brand } from "@/components/ui/brand"
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-type Page = "home" | "chat"
+export type Page = "home" | "chat" | "create"
 
 type NavigationProps = {
   activePage: Page
@@ -29,6 +29,7 @@ export function DesktopSidebar({ activePage, onPageChange, onAddPack, onOpenDocs
       <nav aria-label="PCメインナビゲーション" className="mt-6 grid gap-1">
         <SidebarLink active={activePage === "home"} label="ホーム" icon={<House />} onClick={() => onPageChange("home")} />
         <SidebarLink active={activePage === "chat"} label="チャット" icon={<MessagesSquare />} onClick={() => onPageChange("chat")} />
+        <SidebarLink active={activePage === "create"} label="つくる" icon={<PenLine />} onClick={() => onPageChange("create")} />
       </nav>
 
       <Button variant="outline" className="mt-4 w-full justify-start px-3 font-medium shadow-none" onClick={onAddPack}>
@@ -109,10 +110,11 @@ export function MobileNavigation({ activePage, onPageChange, onAddPack }: Pick<N
       </div>
       <nav
         aria-label="モバイルメインナビゲーション"
-        className="fixed inset-x-0 bottom-0 z-30 hidden h-[calc(72px+env(safe-area-inset-bottom))] grid-cols-2 border-t border-border/80 bg-surface/96 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_28px_rgb(91_62_40_/_8%)] backdrop-blur-xl max-md:grid"
+        className="fixed inset-x-0 bottom-0 z-30 hidden h-[calc(72px+env(safe-area-inset-bottom))] grid-cols-3 border-t border-border/80 bg-surface/96 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_28px_rgb(91_62_40_/_8%)] backdrop-blur-xl max-md:grid"
       >
         <MobileTabButton active={activePage === "home"} label="ホーム" icon={<House />} onClick={() => onPageChange("home")} />
         <MobileTabButton active={activePage === "chat"} label="チャット" icon={<MessagesSquare />} onClick={() => onPageChange("chat")} />
+        <MobileTabButton active={activePage === "create"} label="つくる" icon={<PenLine />} onClick={() => onPageChange("create")} />
       </nav>
     </>
   )

@@ -2,19 +2,12 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { getAudioComId, getScenarioAudioComSource, resolveAudioComStream } from "@/lib/audio-com"
+import { getAudioComId, getScenarioAudioComSource, readBgmPreference, resolveAudioComStream, type BgmPreference } from "@/lib/audio-com"
 import { BUNDLED_BGM_TRACKS, DEFAULT_BGM_FILE, isBundledBgmFile } from "../../../shared/audio-com"
 
-const DEFAULT_VOLUME = 20
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024
 const PREFERENCE_EVENT = "mikan:bgm-preference"
 
-type BgmPreference = {
-  customUrl: string | null
-  volume: number
-  enabled: boolean
-  customFile?: { name: string; dataUrl: string } | null
-}
 type ScenarioBgmPlayerProps = {
   scenarioId: string
   pack?: Record<string, unknown>
@@ -23,24 +16,9 @@ type ScenarioBgmPlayerProps = {
   bundledAudio?: string | null
 }
 
-function readPreference(scenarioId: string): BgmPreference {
-  try {
-    const value = JSON.parse(window.localStorage.getItem(`mikan.bgm.${scenarioId}`) ?? "null") as Partial<BgmPreference> | null
-    const customFile = value?.customFile
-    return {
-      customUrl: typeof value?.customUrl === "string" ? value.customUrl : null,
-      volume: typeof value?.volume === "number" ? Math.min(100, Math.max(0, value.volume)) : DEFAULT_VOLUME,
-      enabled: value?.enabled === undefined ? true : value.enabled !== false,
-      customFile: customFile && typeof customFile.name === "string" && typeof customFile.dataUrl === "string" ? customFile : null,
-    }
-  } catch {
-    return { customUrl: null, volume: DEFAULT_VOLUME, enabled: true, customFile: null }
-  }
-}
-
 export function ScenarioBgmPlayer({ scenarioId, pack, title, mode = "player", bundledAudio = null }: ScenarioBgmPlayerProps) {
   const scenarioSource = getScenarioAudioComSource(pack)
-  const [preference, setPreference] = useState(() => readPreference(scenarioId))
+  const [preference, setPreference] = useState(() => readBgmPreference(scenarioId))
   const [draftUrl, setDraftUrl] = useState(preference.customUrl ?? scenarioSource ?? "")
   const [error, setError] = useState("")
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
