@@ -6,7 +6,7 @@ import { getAudioComId, getScenarioAudioComSource, readBgmPreference, resolveAud
 import { BUNDLED_BGM_TRACKS, DEFAULT_BGM_FILE, isBundledBgmFile } from "../../../shared/audio-com"
 
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024
-const PREFERENCE_EVENT = "mikan:bgm-preference"
+export const PREFERENCE_EVENT = "mikan:bgm-preference"
 
 type ScenarioBgmPlayerProps = {
   scenarioId: string

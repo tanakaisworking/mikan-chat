@@ -609,11 +609,36 @@ describe("TalkScreenの物語導入", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "BGM" }))
     expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.getByRole("dialog", { name: "BGM設定" })).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "BGM" }))
     expect(screen.getByRole("dialog", { name: "BGM設定" })).toBeInTheDocument()
     fireEvent.pointerDown(document.body)
     expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
+  })
+
+  it("BGMボタンは再生ONのときにオレンジ表示になる", () => {
+    render(
+      <TalkScreen
+        character={createCharacter()}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        readAloud={false}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />,
+    )
+
+    // 既定で再生ONのためオレンジ
+    expect(screen.getByRole("button", { name: "BGM" })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    fireEvent.click(screen.getByRole("switch", { name: "BGMを再生する" }))
+    expect(screen.getByRole("button", { name: "BGM" })).toHaveAttribute("aria-pressed", "false")
   })
   it("macOSでは履歴シートが信号機と被らない位置に開く", () => {
     window.mikan = { platform: "darwin" }

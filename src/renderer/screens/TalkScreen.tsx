@@ -5,8 +5,8 @@ import { ChatComposer } from "@/components/chat/chat-composer"
 import { CharacterStage } from "@/components/chat/character-stage"
 import type { ChatMessageData } from "@/components/chat/chat-message"
 import { ChatTimeline } from "@/components/chat/chat-timeline"
-import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
-import { getScenarioBgmAudioPath } from "@/lib/audio-com"
+import { PREFERENCE_EVENT, ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
+import { getScenarioBgmAudioPath, readBgmPreference } from "@/lib/audio-com"
 import { AppHeader } from "@/components/ui/app-header"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
@@ -150,6 +150,18 @@ export function TalkScreen({
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
   const [bgmOpen, setBgmOpen] = useState(false)
   const bgmPanelRef = useRef<HTMLSpanElement>(null)
+  const [bgmEnabled, setBgmEnabled] = useState(() => readBgmPreference(character.id).enabled)
+
+  useEffect(() => {
+    setBgmEnabled(readBgmPreference(character.id).enabled)
+    const update = (event: Event) => {
+      const detail = (event as CustomEvent<{ scenarioId: string; preference: { enabled: boolean } }>).detail
+      if (detail?.scenarioId !== character.id) return
+      setBgmEnabled(detail.preference.enabled)
+    }
+    window.addEventListener(PREFERENCE_EVENT, update)
+    return () => window.removeEventListener(PREFERENCE_EVENT, update)
+  }, [character.id])
 
   useEffect(() => {
     if (!bgmOpen) return
@@ -579,7 +591,8 @@ export function TalkScreen({
               <IconButton
                 label="BGM"
                 aria-expanded={bgmOpen}
-                className={bgmOpen ? "text-primary" : undefined}
+                aria-pressed={bgmEnabled}
+                className={bgmEnabled ? "text-primary" : undefined}
                 onClick={() => setBgmOpen((open) => !open)}
               >
                 <Music />
