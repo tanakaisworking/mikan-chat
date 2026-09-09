@@ -60,17 +60,14 @@ export function DraftBasics({
         <TextField label="作者名" required value={draft.authorName} maxLength={80} onChange={(event) => onChange({ authorName: event.target.value })} />
         <TextField label="作者URL" value={draft.authorUrl} inputMode="url" placeholder="https://…" onChange={(event) => onChange({ authorUrl: event.target.value })} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="ライセンス" value={draft.license} maxLength={80} description="例： All-Rights-Reserved" onChange={(event) => onChange({ license: event.target.value })} />
-        <div className="grid gap-2">
-          <span className="text-sm font-medium text-foreground">対象年齢</span>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="対象年齢">
-            {(["all", "r15", "r18"] as const).map((rating) => (
-              <SegmentedOption key={rating} selected={draft.rating === rating} onClick={() => onChange({ rating })}>
-                {rating === "all" ? "全年齢" : rating.toUpperCase()}
-              </SegmentedOption>
-            ))}
-          </div>
+      <div className="grid gap-2">
+        <span className="text-sm font-medium text-foreground">対象年齢</span>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="対象年齢">
+          {(["all", "r15", "r18"] as const).map((rating) => (
+            <SegmentedOption key={rating} selected={draft.rating === rating} onClick={() => onChange({ rating })}>
+              {rating === "all" ? "全年齢" : rating.toUpperCase()}
+            </SegmentedOption>
+          ))}
         </div>
       </div>
       <TextField

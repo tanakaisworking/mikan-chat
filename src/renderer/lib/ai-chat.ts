@@ -249,6 +249,66 @@ function formatConversationMessages(character: Character, messages: ChatMessageD
   }))
 }
 
+export async function streamInstructionReply({
+  connection,
+  systemPrompt,
+  userPrompt,
+  maxOutputTokens = 4000,
+  signal,
+  onText,
+}: {
+  connection: ConnectionSettings
+  systemPrompt: string
+  userPrompt: string
+  maxOutputTokens?: number
+  signal: AbortSignal
+  onText: (text: string) => void
+}) {
+  assertConnection(connection)
+  if (connection.type === "builtin") {
+    const bridge = getDesktopBridge()?.localAI
+    if (!bridge) throw new Error("内蔵AIはデスクトップアプリで利用できます。")
+    const requestId = crypto.randomUUID()
+    const unsubscribe = bridge.onChunk((id, text) => {
+      if (id === requestId) onText(text)
+    })
+    const cancel = () => bridge.cancel(requestId)
+    signal.addEventListener("abort", cancel, { once: true })
+    try {
+      const text = await bridge.chat({
+        requestId,
+        modelSource: builtinSpec(connection.model).source,
+        systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      })
+      onText(text)
+      return text
+    } finally {
+      signal.removeEventListener("abort", cancel)
+      unsubscribe()
+    }
+  }
+  const provider = createOpenAICompatible({
+    name: "mikan-chat",
+    baseURL: normalizeBaseUrl(connection.endpoint),
+    apiKey: normalizeApiKey(connection.apiKey) || undefined,
+  })
+  const result = streamText({
+    model: provider(getModelCandidates(connection)[0]),
+    system: systemPrompt,
+    prompt: userPrompt,
+    maxOutputTokens,
+    maxRetries: 0,
+    abortSignal: signal,
+  })
+  let text = ""
+  for await (const delta of result.textStream) {
+    text += delta
+    onText(text)
+  }
+  return text
+}
+
 export async function summarizeConversation({ connection, character, messages, signal }: Omit<StreamReplyOptions, "onText" | "summary">) {
   try {
     if (connection.type === "builtin") {

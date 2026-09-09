@@ -94,6 +94,7 @@ function VoiceFields({
           { value: "", label: "未設定" },
           { value: "female", label: "女性" },
           { value: "male", label: "男性" },
+          { value: "neutral", label: "中性的" },
         ] as const).map((option) => (
           <Button
             key={option.label}

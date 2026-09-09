@@ -15,7 +15,7 @@ import { loadScenarios } from "@/data/scenario-source"
 import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL, getConnectionError } from "@/lib/ai-chat"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import { packToDraft, packToDraftBgm } from "@/lib/pack-authoring/from-pack"
-import { saveAuthoringDraft } from "@/lib/pack-authoring/storage"
+import { createLibraryEntry, loadLibrary, saveLibrary } from "@/lib/pack-authoring/storage"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { rankScenarios, readScenarioRecommendation } from "@/lib/scenario-recommendation"
 import { getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, scenarioVersion, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
@@ -543,8 +543,9 @@ export function AppContent() {
     } catch (cause) {
       throw new Error(cause instanceof Error ? cause.message : "シナリオを読み込めませんでした。")
     }
-    saveAuthoringDraft(draft)
-    navigate("/create")
+    const entry = createLibraryEntry(draft)
+    saveLibrary([entry, ...loadLibrary()])
+    navigate("/create", { state: { editId: entry.id } })
   }
 
   const toCharacter = (loaded: LoadedChatPack): Character => {
@@ -764,7 +765,7 @@ export function AppContent() {
           />
           <MobileHeader onOpenDocs={() => showScreen("docs")} onOpenSettings={() => showScreen("settings")} />
           <section className="min-w-0 overflow-y-auto max-md:overflow-visible">
-            <PackAuthoringScreen onBack={() => navigate("/")} onImportAndTalk={importAndTalk} />
+            <PackAuthoringScreen connection={{ ...connectionSettings, type: connectionType }} onImportAndTalk={importAndTalk} />
           </section>
           <MobileNavigation
             activePage="create"

@@ -4,6 +4,7 @@ import validateSchema from "@/lib/generated/chat-pack-validator.js"
 import { getChatPackSemanticIssue } from "@/lib/chat-pack-semantics"
 import { ChatPackError, loadChatPack, type LoadedChatPack } from "@/lib/chat-pack"
 import { getAudioComId, type BgmPreference } from "@/lib/audio-com"
+import { applyVoiceGender } from "@/lib/scenario-voice"
 import { chatPackSchema, formatPackIssues } from "@/lib/pack-authoring/schemas"
 import type { DraftAsset, PackDraft } from "@/lib/pack-authoring/types"
 
@@ -134,7 +135,8 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
   const characters = draft.characters.map((character) => {
     const voiceTraits = splitList(character.voice.traits)
     const profile: Record<string, unknown> = { language: character.voice.language ?? "ja" }
-    if (character.voice.gender) profile.gender = character.voice.gender
+    // 中性的は仕様の列挙にないためgenderは省き、指示文の接頭辞で表す。
+    if (character.voice.gender === "male" || character.voice.gender === "female") profile.gender = character.voice.gender
     if (character.voice.description.trim()) profile.description = character.voice.description.trim()
     if (voiceTraits.length) profile.traits = voiceTraits
     if (character.voice.speed !== undefined) profile.speed = character.voice.speed
@@ -148,7 +150,8 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
       )
       voice.referenceAudio = { asset: assetPath }
     }
-    const caption = character.voice.caption.trim()
+    const rawCaption = character.voice.caption.trim()
+    const caption = applyVoiceGender(rawCaption || undefined, character.voice.gender || null) ?? rawCaption
     const seed = parseSeed(character.voice.seed)
     if (caption || seed !== undefined) {
       voice.preferred = [{

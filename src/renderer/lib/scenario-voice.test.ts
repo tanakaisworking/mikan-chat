@@ -6,7 +6,9 @@ describe("resolveScenarioVoice", () => {
   it("性別情報から声のキャプションへ性別を前置きする", () => {
     expect(applyVoiceGender("落ち着いた声", "male")).toBe("男性の声。落ち着いた声")
     expect(applyVoiceGender("落ち着いた声", "female")).toBe("女性の声。落ち着いた声")
+    expect(applyVoiceGender("落ち着いた声", "neutral")).toBe("中性的な声。落ち着いた声")
     expect(applyVoiceGender("若い女性の声", "male")).toBe("若い女性の声")
+    expect(applyVoiceGender("中性的な声", "female")).toBe("中性的な声")
     expect(applyVoiceGender("落ち着いた声", null)).toBe("落ち着いた声")
   })
 

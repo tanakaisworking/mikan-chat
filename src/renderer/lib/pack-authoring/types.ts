@@ -9,7 +9,7 @@ export type DraftAsset = {
 export const AUTHORING_DRAFT_SCENARIO_ID = "authoring-draft"
 
 export type DraftVoice = {
-  gender: "" | "male" | "female"
+  gender: "" | "male" | "female" | "neutral"
   description: string
   traits: string
   caption: string

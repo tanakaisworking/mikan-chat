@@ -38,7 +38,7 @@ const scenarioVoiceSelectionSchema = z.object({
   caption: z.string().trim().min(1).max(1_000),
   seed: z.number().int().min(0).max(2_147_483_647),
   scenarioVersion: z.string().min(1).max(100),
-  gender: z.enum(["male", "female"]).nullish(),
+  gender: z.enum(["male", "female", "neutral"]).nullish(),
 })
 
 const scenarioVoicesSchema = z.record(z.string().min(1).max(512), scenarioVoiceSelectionSchema)

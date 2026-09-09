@@ -19,15 +19,16 @@ export type ScenarioVoiceDesign = {
   characterName: string
 }
 
-export type VoiceGender = "female" | "male"
+export type VoiceGender = "female" | "male" | "neutral"
 
 export function readVoiceGender(value: unknown): VoiceGender | null {
   if (value === "male" || value === "男性") return "male"
   if (value === "female" || value === "女性") return "female"
+  if (value === "neutral" || value === "中性的" || value === "中性") return "neutral"
   return null
 }
 
-const genderedCaptionPattern = /男|女|男性|女性/
+const genderedCaptionPattern = /男|女|男性|女性|中性的|中性/
 
 function profileGender(target: Record<string, unknown>) {
   const voice = isRecord(target.voice) ? target.voice : null
@@ -38,7 +39,9 @@ function profileGender(target: Record<string, unknown>) {
 export function applyVoiceGender(caption: string | undefined, gender: VoiceGender | null | undefined) {
   if (!caption || !gender) return caption
   if (genderedCaptionPattern.test(caption)) return caption
-  return gender === "male" ? "男性の声。" + caption : "女性の声。" + caption
+  if (gender === "male") return "男性の声。" + caption
+  if (gender === "female") return "女性の声。" + caption
+  return "中性的な声。" + caption
 }
 
 export function resolveScenarioVoice(character: Character, speakerName?: string, selections?: ScenarioVoiceSelection | ScenarioVoiceSelection[] | null): TtsSpeakOptions | undefined {
