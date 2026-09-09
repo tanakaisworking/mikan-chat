@@ -15,6 +15,7 @@ export function FormTextarea({
   error,
   className,
   rows = 4,
+  required,
   ...props
 }: FormTextareaProps) {
   const fieldId = id ?? props.name
@@ -23,7 +24,7 @@ export function FormTextarea({
 
   return (
     <label className="grid min-w-0 gap-2 text-sm font-medium text-foreground" htmlFor={fieldId}>
-      <span>{label}</span>
+      <span className={required ? "after:ml-1 after:text-danger after:content-['*']" : undefined}>{label}</span>
       <textarea
         id={fieldId}
         rows={rows}
@@ -33,6 +34,7 @@ export function FormTextarea({
           "min-h-24 w-full min-w-0 resize-y rounded-md border border-input bg-surface px-4 py-3 text-base leading-relaxed text-foreground shadow-soft outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 aria-invalid:border-danger",
           className,
         )}
+        required={required}
         {...props}
       />
       {description && !error ? (

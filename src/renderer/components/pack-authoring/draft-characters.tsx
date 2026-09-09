@@ -58,9 +58,9 @@ export function DraftCharacters({
             ) : null}
           </div>
           <div className="grid gap-4">
-            <TextField label="名前" value={character.name} maxLength={60} onChange={(event) => update(character.key, { name: event.target.value })} />
+            <TextField label="名前" required value={character.name} maxLength={60} onChange={(event) => update(character.key, { name: event.target.value })} />
           </div>
-          <FormTextarea label="プロフィール" value={character.profile} rows={3} maxLength={2000} onChange={(event) => update(character.key, { profile: event.target.value })} />
+          <FormTextarea label="プロフィール" required value={character.profile} rows={3} maxLength={2000} onChange={(event) => update(character.key, { profile: event.target.value })} />
           <AssetPicker
             id={`image-${character.key}`}
             label="立ち絵・画像"

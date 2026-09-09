@@ -77,8 +77,9 @@ export function DraftOpening({
             </div>
             {event.type === "dialogue" ? (
               <label className="grid min-w-0 gap-2 text-sm font-medium text-foreground">
-                <span>話者</span>
+                <span className="after:ml-1 after:text-danger after:content-['*']">話者</span>
                 <select
+                  required
                   value={event.speaker}
                   onChange={(e) => update(event.key, { speaker: e.target.value })}
                   className="h-12 w-full min-w-0 rounded-md border border-input bg-surface px-4 text-base text-foreground shadow-soft outline-none focus:border-primary"
@@ -95,6 +96,7 @@ export function DraftOpening({
             ) : null}
             <FormTextarea
               label={event.type === "dialogue" ? "セリフ" : "本文"}
+              required
               value={event.text}
               rows={2}
               maxLength={4096}
@@ -119,7 +121,7 @@ export function DraftGuide({
   return (
     <section className="grid gap-4" aria-label="会話の指針">
       <SectionHeading>会話の指針</SectionHeading>
-      <FormTextarea label="前提" value={premise} rows={4} maxLength={4000} onChange={(event) => onChange({ premise: event.target.value })} />
+      <FormTextarea label="前提" required value={premise} rows={4} maxLength={4000} onChange={(event) => onChange({ premise: event.target.value })} />
       <FormTextarea
         label="振る舞いの指針"
         value={instructions}
