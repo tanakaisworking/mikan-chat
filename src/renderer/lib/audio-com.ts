@@ -66,3 +66,13 @@ export function readBgmPreference(scenarioId: string): BgmPreference {
     return { customUrl: null, volume: DEFAULT_BGM_VOLUME, enabled: true, customFile: null }
   }
 }
+
+/** シナリオごとのBGM設定を書く。容量不足時は false を返す。 */
+export function writeBgmPreference(scenarioId: string, preference: BgmPreference) {
+  try {
+    window.localStorage.setItem(`mikan.bgm.${scenarioId}`, JSON.stringify(preference))
+    return true
+  } catch {
+    return false
+  }
+}

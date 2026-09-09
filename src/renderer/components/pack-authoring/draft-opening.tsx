@@ -17,6 +17,16 @@ export function DraftOpening({
   const update = (key: string, patch: Partial<DraftEvent>) => {
     onChange(opening.map((event) => event.key === key ? { ...event, ...patch } as DraftEvent : event))
   }
+  const named = characters.filter((character) => character.id.trim())
+  const nameCounts = new Map<string, number>()
+  for (const character of named) {
+    const name = character.name.trim() || character.id.trim()
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1)
+  }
+  const speakerLabel = (character: DraftCharacter) => {
+    const name = character.name.trim() || character.id.trim()
+    return (nameCounts.get(name) ?? 0) > 1 ? `${name}（${character.id.trim()}）` : name
+  }
 
   return (
     <section className="grid gap-4" aria-label="導入">
@@ -75,9 +85,9 @@ export function DraftOpening({
                 >
                   <option value="">選択してください</option>
                   <option value="user">あなた（プレイヤー）</option>
-                  {characters.filter((character) => character.id.trim()).map((character) => (
+                  {named.map((character) => (
                     <option key={character.key} value={character.id.trim()}>
-                      {character.name.trim() || character.id.trim()}
+                      {speakerLabel(character)}
                     </option>
                   ))}
                 </select>

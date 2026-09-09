@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { getAudioComId, getScenarioAudioComSource, readBgmPreference, resolveAudioComStream, type BgmPreference } from "@/lib/audio-com"
+import { getAudioComId, getScenarioAudioComSource, readBgmPreference, resolveAudioComStream, writeBgmPreference, type BgmPreference } from "@/lib/audio-com"
 import { BUNDLED_BGM_TRACKS, DEFAULT_BGM_FILE, isBundledBgmFile } from "../../../shared/audio-com"
 
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024
@@ -79,11 +79,7 @@ export function ScenarioBgmPlayer({ scenarioId, pack, title, mode = "player", bu
 
   const savePreference = (next: BgmPreference) => {
     setPreference(next)
-    try {
-      window.localStorage.setItem(`mikan.bgm.${scenarioId}`, JSON.stringify(next))
-    } catch {
-      // Private browsing and full storage must not break the conversation screen.
-    }
+    writeBgmPreference(scenarioId, next)
     window.dispatchEvent(new CustomEvent(PREFERENCE_EVENT, { detail: { scenarioId, preference: next } }))
   }
 

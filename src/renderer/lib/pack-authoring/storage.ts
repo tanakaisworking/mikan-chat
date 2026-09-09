@@ -1,6 +1,34 @@
 import { createEmptyDraft, type PackDraft } from "@/lib/pack-authoring/types"
 
 const DRAFT_STORAGE_KEY = "mikan.pack-authoring.draft.v1"
+const AUTHOR_STORAGE_KEY = "mikan.pack-authoring.author.v1"
+
+export type AuthorMemory = {
+  name: string
+  url: string
+  license: string
+}
+
+export function readAuthorMemory(): AuthorMemory {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(AUTHOR_STORAGE_KEY) ?? "null") as Partial<AuthorMemory> | null
+    return {
+      name: typeof stored?.name === "string" ? stored.name : "",
+      url: typeof stored?.url === "string" ? stored.url : "",
+      license: typeof stored?.license === "string" && stored.license ? stored.license : "All-Rights-Reserved",
+    }
+  } catch {
+    return { name: "", url: "", license: "All-Rights-Reserved" }
+  }
+}
+
+export function saveAuthorMemory(memory: AuthorMemory) {
+  try {
+    window.localStorage.setItem(AUTHOR_STORAGE_KEY, JSON.stringify(memory))
+  } catch {
+    // 作者名の記憶に失敗しても下書きは保持する。
+  }
+}
 
 let memoryDraft: PackDraft | null = null
 

@@ -15,6 +15,10 @@ export type DraftVoice = {
   caption: string
   seed: string
   referenceAudio: DraftAsset | null
+  /** UIなしで引き継ぐ声の数値指定 */
+  speed?: number
+  pitch?: number
+  language?: string
 }
 
 export type DraftCharacter = {
@@ -27,8 +31,19 @@ export type DraftCharacter = {
 }
 
 export type DraftEvent =
-  | { key: string; type: "narration"; text: string }
-  | { key: string; type: "dialogue"; speaker: string; text: string }
+  | { key: string; type: "narration"; text: string; image?: DraftAsset | null }
+  | { key: string; type: "dialogue"; speaker: string; text: string; image?: DraftAsset | null }
+
+/** 編集UIを持たないがフォーク時に維持する原文ブロック */
+export type DraftKept = {
+  licenseNotice?: unknown
+  authorComment?: unknown
+  credits?: unknown
+  playerProfiles?: unknown
+  defaultPlayerProfile?: unknown
+  narrator?: unknown
+  style?: unknown
+}
 
 export type PackDraft = {
   title: string
@@ -45,6 +60,7 @@ export type PackDraft = {
   instructions: string
   characters: DraftCharacter[]
   opening: DraftEvent[]
+  kept?: DraftKept
 }
 
 export function createEmptyCharacter(key: string): DraftCharacter {
@@ -73,7 +89,7 @@ export function createEmptyDraft(): PackDraft {
     premise: "",
     instructions: "",
     characters: [createEmptyCharacter(nextDraftKey())],
-    opening: [],
+    opening: [{ key: nextDraftKey(), type: "dialogue", speaker: "", text: "" }],
   }
 }
 
@@ -82,4 +98,16 @@ let draftKeyCounter = 0
 export function nextDraftKey() {
   draftKeyCounter += 1
   return `draft-${Date.now().toString(36)}-${draftKeyCounter}`
+}
+
+/** 空欄IDに安定した自動IDを振る。削除済みの番号は再利用しない。 */
+export function assignCharacterId(characters: Array<{ id: string }>) {
+  const taken = new Set(characters.map((character) => character.id.trim()).filter(Boolean))
+  let index = 1
+  for (const id of taken) {
+    const match = /^character(\d+)$/.exec(id)
+    if (match) index = Math.max(index, Number(match[1]) + 1)
+  }
+  while (taken.has(`character${index}`)) index += 1
+  return `character${index}`
 }

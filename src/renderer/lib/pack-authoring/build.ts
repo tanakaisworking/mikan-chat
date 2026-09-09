@@ -84,8 +84,8 @@ function splitList(value: string) {
 function parseSeed(value: string) {
   if (!value.trim()) return undefined
   const seed = Number(value.trim())
-  if (!Number.isInteger(seed) || seed < 0 || seed > 2147483647) {
-    throw new PackAuthoringError("シードは0〜2147483647の整数にしてください。")
+  if (!Number.isInteger(seed) || seed < -2147483648 || seed > 2147483647) {
+    throw new PackAuthoringError("シードは-2147483648〜2147483647の整数にしてください。")
   }
   return seed
 }
@@ -133,10 +133,12 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
 
   const characters = draft.characters.map((character) => {
     const voiceTraits = splitList(character.voice.traits)
-    const profile: Record<string, unknown> = { language: "ja" }
+    const profile: Record<string, unknown> = { language: character.voice.language ?? "ja" }
     if (character.voice.gender) profile.gender = character.voice.gender
     if (character.voice.description.trim()) profile.description = character.voice.description.trim()
     if (voiceTraits.length) profile.traits = voiceTraits
+    if (character.voice.speed !== undefined) profile.speed = character.voice.speed
+    if (character.voice.pitch !== undefined) profile.pitch = character.voice.pitch
     const voice: Record<string, unknown> = { profile }
     if (character.voice.referenceAudio) {
       const assetPath = putAsset(
@@ -166,9 +168,15 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
     }
   })
 
-  const opening = draft.opening.map((event) => event.type === "narration"
-    ? { type: "narration" as const, text: event.text.trim() }
-    : { type: "dialogue" as const, speaker: event.speaker.trim(), text: event.text.trim() })
+  const opening = draft.opening.map((event) => {
+    const image = event.image
+      ? putAsset(event.image.fileName, "scene.webp", dataUrlToBytes(event.image.dataUrl))
+      : null
+    const imageEntry = image ? { image } : {}
+    return event.type === "narration"
+      ? { type: "narration" as const, text: event.text.trim(), ...imageEntry }
+      : { type: "dialogue" as const, speaker: event.speaker.trim(), text: event.text.trim(), ...imageEntry }
+  })
 
   const extensions: Record<string, unknown> = {
     "mikan.recommendation": { targetAudiences: [draft.audience] },
@@ -200,17 +208,24 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
       ...(draft.authorUrl.trim() ? { url: draft.authorUrl.trim() } : {}),
     },
     license: draft.license.trim() || "All-Rights-Reserved",
+    ...(draft.kept?.licenseNotice !== undefined ? { licenseNotice: draft.kept.licenseNotice } : {}),
     rating: draft.rating,
     discovery: {
       ...(covers.length ? { covers } : {}),
       ...(splitList(draft.tags).length ? { tags: splitList(draft.tags) } : {}),
       ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
+      ...(draft.kept?.authorComment !== undefined ? { authorComment: draft.kept.authorComment } : {}),
+      ...(draft.kept?.credits !== undefined ? { credits: draft.kept.credits } : {}),
     },
     plot: {
       premise: draft.premise.trim(),
       ...(draft.instructions.trim() ? { instructions: draft.instructions.trim() } : {}),
       characters,
       opening,
+      ...(draft.kept?.playerProfiles !== undefined ? { playerProfiles: draft.kept.playerProfiles } : {}),
+      ...(draft.kept?.defaultPlayerProfile !== undefined ? { defaultPlayerProfile: draft.kept.defaultPlayerProfile } : {}),
+      ...(draft.kept?.narrator !== undefined ? { narrator: draft.kept.narrator } : {}),
+      ...(draft.kept?.style !== undefined ? { style: draft.kept.style } : {}),
     },
     extensions,
   }

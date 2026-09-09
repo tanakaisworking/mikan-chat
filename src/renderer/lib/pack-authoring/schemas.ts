@@ -74,6 +74,7 @@ const discoverySchema = z.object({
   tags: z.array(nonEmptyString("タグ")).max(12, "タグは12個までです").optional(),
   description: z.string().max(2000, "説明が長すぎます").optional(),
   authorComment: z.string().max(2000, "作者コメントが長すぎます").optional(),
+  credits: z.array(z.record(z.string(), z.unknown())).optional(),
 }).passthrough()
 
 const plotSchema = z.object({
@@ -81,6 +82,10 @@ const plotSchema = z.object({
   instructions: z.string().max(8000, "指針が長すぎます").optional(),
   characters: z.array(characterSchema).min(1, "登場人物を1人以上追加してください").max(8, "登場人物は8人までです"),
   opening: z.array(openingEventSchema).min(1, "導入を1件以上追加してください").max(60, "導入は60件までです"),
+  playerProfiles: z.array(z.record(z.string(), z.unknown())).optional(),
+  defaultPlayerProfile: z.string().optional(),
+  narrator: z.record(z.string(), z.unknown()).optional(),
+  style: z.record(z.string(), z.unknown()).optional(),
 }).passthrough().superRefine((plot, context) => {
   const ids = new Set(plot.characters.map((character) => character.id))
   plot.opening.forEach((event, index) => {

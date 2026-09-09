@@ -41,6 +41,21 @@ export function DraftBasics({
       <SectionHeading>基本情報</SectionHeading>
       <TextField label="タイトル" value={draft.title} maxLength={80} onChange={(event) => onChange({ title: event.target.value })} placeholder="「愛さない」契約なのに…" />
       <FormTextarea label="あらすじ" value={draft.summary} rows={3} maxLength={500} onChange={(event) => onChange({ summary: event.target.value })} />
+      {!draft.summary.trim() && draft.premise.trim() ? (
+        <div className="-mt-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const excerpt = draft.premise.trim().slice(0, 120)
+              onChange({ summary: draft.premise.trim().length > 120 ? `${excerpt}…` : excerpt })
+            }}
+          >
+            前提からあらすじを作る
+          </Button>
+        </div>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="作者名" value={draft.authorName} maxLength={80} onChange={(event) => onChange({ authorName: event.target.value })} />
         <TextField label="作者URL" value={draft.authorUrl} inputMode="url" placeholder="https://…" onChange={(event) => onChange({ authorUrl: event.target.value })} />

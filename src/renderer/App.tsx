@@ -14,6 +14,8 @@ import { readIdleVideo } from "@/data/scenario-source"
 import { loadScenarios } from "@/data/scenario-source"
 import { GOOGLE_AI_STUDIO_ENDPOINT, GOOGLE_AI_STUDIO_MODEL, getConnectionError } from "@/lib/ai-chat"
 import type { LoadedChatPack } from "@/lib/chat-pack"
+import { packToDraft, packToDraftBgm } from "@/lib/pack-authoring/from-pack"
+import { saveAuthoringDraft } from "@/lib/pack-authoring/storage"
 import { resolveChatPackText } from "@/lib/chat-pack-template"
 import { rankScenarios, readScenarioRecommendation } from "@/lib/scenario-recommendation"
 import { getScenarioVoiceDesigns, hasScenarioReferenceAudio, isScenarioVoiceConfirmed, recoverScenarioVoice, scenarioVersion, type ScenarioVoiceSelection } from "@/lib/scenario-voice"
@@ -529,6 +531,22 @@ export function AppContent() {
     navigate(`${scenarioPath(character)}/chat`, { state: { backTo: scenarioPath(character) } })
   }
 
+  const editAsNewScenario = async (character: Character) => {
+    if (!character.pack || typeof character.pack !== "object" || Array.isArray(character.pack)) {
+      throw new Error("このシナリオは編集できません。")
+    }
+    const assets = character.assets ?? {}
+    let draft: Awaited<ReturnType<typeof packToDraft>>
+    try {
+      draft = await packToDraft(character.pack, assets)
+      await packToDraftBgm(character.pack, assets)
+    } catch (cause) {
+      throw new Error(cause instanceof Error ? cause.message : "シナリオを読み込めませんでした。")
+    }
+    saveAuthoringDraft(draft)
+    navigate("/create")
+  }
+
   const toCharacter = (loaded: LoadedChatPack): Character => {
     const primary = loaded.pack.plot.characters[0]
     const coverPath = loaded.pack.discovery.covers?.[0]
@@ -690,6 +708,7 @@ export function AppContent() {
             character={routeCharacter}
             onBack={() => navigate("/")}
             onStart={() => startScenario(routeCharacter)}
+            onEdit={() => editAsNewScenario(routeCharacter)}
           />
         ) : (
           <ScenarioRouteState

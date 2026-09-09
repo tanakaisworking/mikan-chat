@@ -5,7 +5,7 @@ import { FormTextarea } from "@/components/ui/form-textarea"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { TextField } from "@/components/ui/text-field"
 import { AssetPicker } from "@/components/pack-authoring/asset-picker"
-import { createEmptyCharacter, nextDraftKey, type DraftCharacter } from "@/lib/pack-authoring/types"
+import { assignCharacterId, createEmptyCharacter, nextDraftKey, type DraftCharacter } from "@/lib/pack-authoring/types"
 import { cn } from "@/lib/utils"
 
 export function DraftCharacters({
@@ -19,6 +19,13 @@ export function DraftCharacters({
     onChange(characters.map((character) => character.key === key ? { ...character, ...patch } : character))
   }
 
+  const addCharacter = () => {
+    if (characters.length >= 8) return
+    const character = createEmptyCharacter(nextDraftKey())
+    character.id = assignCharacterId(characters)
+    onChange([...characters, character])
+  }
+
   return (
     <section className="grid gap-4" aria-label="登場人物">
       <div className="flex items-end justify-between gap-3">
@@ -28,11 +35,12 @@ export function DraftCharacters({
           variant="outline"
           size="sm"
           disabled={characters.length >= 8}
-          onClick={() => onChange([...characters, createEmptyCharacter(nextDraftKey())])}
+          onClick={addCharacter}
         >
           <Plus />追加
         </Button>
       </div>
+      <p className="-mt-2 text-xs text-muted-foreground">IDは自動で付きます。名前だけ付けてください。</p>
       {characters.map((character, index) => (
         <article key={character.key} className="grid gap-4 rounded-xl border border-border bg-surface p-4" aria-label={`登場人物${index + 1}`}>
           <div className="flex items-center justify-between gap-2">
@@ -49,13 +57,7 @@ export function DraftCharacters({
               </Button>
             ) : null}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label="ID"
-              value={character.id}
-              description="半角小文字・数字・-（例：lucien）"
-              onChange={(event) => update(character.key, { id: event.target.value })}
-            />
+          <div className="grid gap-4">
             <TextField label="名前" value={character.name} maxLength={60} onChange={(event) => update(character.key, { name: event.target.value })} />
           </div>
           <FormTextarea label="プロフィール" value={character.profile} rows={3} maxLength={2000} onChange={(event) => update(character.key, { profile: event.target.value })} />

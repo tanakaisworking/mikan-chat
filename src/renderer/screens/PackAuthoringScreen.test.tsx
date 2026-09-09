@@ -19,6 +19,8 @@ describe("PackAuthoringScreen", () => {
     expect(screen.getByLabelText("主人公の名前")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "エクスポート" })).toBeDisabled()
     expect(await screen.findByText(/タイトルを入力してください/, {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getAllByText("登場人物").length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText("カバー画像").length).toBeGreaterThanOrEqual(2)
   })
 
   it("タイトル等を埋めると検証が進み、下書きが保存される", async () => {

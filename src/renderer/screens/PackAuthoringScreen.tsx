@@ -8,7 +8,7 @@ import { DraftBasics } from "@/components/pack-authoring/draft-basics"
 import { DraftCharacters } from "@/components/pack-authoring/draft-characters"
 import { DraftGuide, DraftOpening } from "@/components/pack-authoring/draft-opening"
 import { DraftMedia } from "@/components/pack-authoring/draft-media"
-import { ValidationPanel } from "@/components/pack-authoring/validation-panel"
+import { ValidationPanel, type ValidationCheck } from "@/components/pack-authoring/validation-panel"
 import { readBgmPreference } from "@/lib/audio-com"
 import {
   buildPackFiles,
@@ -18,8 +18,8 @@ import {
   validateBuiltPack,
   type PackValidationIssue,
 } from "@/lib/pack-authoring/build"
-import { loadAuthoringDraft, saveAuthoringDraft } from "@/lib/pack-authoring/storage"
-import { AUTHORING_DRAFT_SCENARIO_ID, type PackDraft } from "@/lib/pack-authoring/types"
+import { loadAuthoringDraft, readAuthorMemory, saveAuthoringDraft, saveAuthorMemory } from "@/lib/pack-authoring/storage"
+import { AUTHORING_DRAFT_SCENARIO_ID, assignCharacterId, type PackDraft } from "@/lib/pack-authoring/types"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 
 export function PackAuthoringScreen({
@@ -29,7 +29,22 @@ export function PackAuthoringScreen({
   onBack: () => void
   onImportAndTalk: (loaded: LoadedChatPack) => string | undefined
 }) {
-  const [draft, setDraft] = useState<PackDraft>(() => loadAuthoringDraft())
+  const [draft, setDraft] = useState<PackDraft>(() => {
+    const loaded = loadAuthoringDraft()
+    const memory = readAuthorMemory()
+    const withAuthor = {
+      ...loaded,
+      authorName: loaded.authorName || memory.name,
+      authorUrl: loaded.authorUrl || memory.url,
+      license: loaded.license === "All-Rights-Reserved" && memory.license !== "All-Rights-Reserved" ? memory.license : loaded.license,
+    }
+    if (!withAuthor.characters.some((character) => !character.id.trim())) return withAuthor
+    const assigned: PackDraft["characters"] = []
+    for (const character of withAuthor.characters) {
+      assigned.push(character.id.trim() ? character : { ...character, id: assignCharacterId(assigned) })
+    }
+    return { ...withAuthor, characters: assigned }
+  })
   const [persisted, setPersisted] = useState(true)
   const [issues, setIssues] = useState<PackValidationIssue[]>([{ path: "(全体)", message: "入力を始めるとここで確認できます。" }])
   const [checking, setChecking] = useState(false)
@@ -41,15 +56,33 @@ export function PackAuthoringScreen({
     setDraft((current) => {
       const next = { ...current, ...patch }
       setPersisted(saveAuthoringDraft(next))
+      saveAuthorMemory({ name: next.authorName, url: next.authorUrl, license: next.license })
       return next
     })
   }
 
-  // 素材のdataUrlは除外する（数MBの文字列化を毎回回さない＋容量変化は検知する）。
   const draftJson = useMemo(
     () => JSON.stringify(draft, (key, value: unknown) => key === "dataUrl" ? undefined : value),
     [draft],
   )
+
+  const checks = useMemo<ValidationCheck[]>(() => {
+    const completeCharacters = draft.characters.filter((character) =>
+      character.id.trim() && character.name.trim() && character.profile.trim())
+    const characterSpeakers = new Set(
+      draft.opening.flatMap((event) => event.type === "dialogue" && event.speaker !== "user" ? [event.speaker.trim()] : []),
+    )
+    return [
+      { section: "基本情報", ok: Boolean(draft.title.trim() && draft.summary.trim() && draft.authorName.trim()) },
+      { section: "会話の指針", ok: Boolean(draft.premise.trim()) },
+      { section: "登場人物", ok: completeCharacters.length > 0 },
+      {
+        section: "導入",
+        ok: draft.opening.length > 0 && completeCharacters.some((character) => characterSpeakers.has(character.id.trim())),
+      },
+      { section: "カバー画像", ok: draft.cover !== null, optional: true },
+    ]
+  }, [draft])
 
   useEffect(() => {
     setChecking(true)
@@ -147,7 +180,7 @@ export function PackAuthoringScreen({
           <DraftMedia />
         </div>
         <div className="grid gap-4 lg:sticky lg:top-4">
-          <ValidationPanel issues={issues} checking={checking} />
+          <ValidationPanel checks={checks} issues={issues} checking={checking} />
         </div>
       </div>
     </main>

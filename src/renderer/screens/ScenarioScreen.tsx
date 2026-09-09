@@ -1,4 +1,5 @@
-import { ArrowLeft, BookOpenText, UserRound, UsersRound } from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, BookOpenText, PenLine, UserRound, UsersRound } from "lucide-react"
 
 import { Brand } from "@/components/ui/brand"
 import { Button } from "@/components/ui/button"
@@ -10,12 +11,16 @@ export function ScenarioScreen({
   character,
   onBack,
   onStart,
+  onEdit,
 }: {
   character: Character
   onBack: () => void
   onStart: () => void
+  onEdit: () => Promise<void>
 }) {
   const preview = readScenarioContext(character)
+  const [editing, setEditing] = useState(false)
+  const [editError, setEditError] = useState("")
 
   return (
     <main className="grid h-full grid-rows-[80px_minmax(0,1fr)_auto] overflow-hidden bg-background max-md:h-full max-md:grid-rows-[64px_minmax(0,1fr)_auto]" data-testid="scenario-screen">
@@ -81,6 +86,25 @@ export function ScenarioScreen({
                 {[preview.author ? `作者: ${preview.author}` : null, preview.rating].filter(Boolean).join(" ・ ")}
               </p>
             ) : null}
+            <div className="mt-2 flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                disabled={editing}
+                onClick={() => {
+                  setEditing(true)
+                  setEditError("")
+                  void onEdit().catch((cause: unknown) => {
+                    setEditError(cause instanceof Error ? cause.message : "編集用に開けませんでした。")
+                  }).finally(() => setEditing(false))
+                }}
+              >
+                <PenLine aria-hidden="true" />
+                {editing ? "開いています…" : "この物語を編集"}
+              </Button>
+            </div>
+            {editError ? <p className="mt-2 text-right text-sm text-danger" role="alert">{editError}</p> : null}
           </div>
         </section>
       </div>
