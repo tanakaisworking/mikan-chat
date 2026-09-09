@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ChatTimeline } from "@/components/chat/chat-timeline"
 import { CharacterStage } from "@/components/chat/character-stage"
+import { ConversationHistorySheet } from "@/components/chat/conversation-history-sheet"
 import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
 import type { Character } from "@/data/characters"
 import { readScenarioContext } from "@/lib/scenario-context"
@@ -471,6 +472,179 @@ describe("TalkScreenの物語導入", () => {
       pushStatus({ supported: true, state: "ready", progress: 100, stage: "セットアップ済み" })
     })
     expect(stop).toHaveBeenCalledTimes(1)
+  })
+
+  it("生成中はスピナーを出し、再生開始で停止ボタンに切り替える", async () => {
+    const playMock = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("Audio", class {
+      onended: (() => void) | null = null
+      onerror: (() => void) | null = null
+      pause = vi.fn()
+      play = playMock
+    })
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:cached") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+    let resolveRead!: (audio: ArrayBuffer) => void
+    window.mikan = {
+      platform: "darwin",
+      tts: {
+        synthesizeLocal: vi.fn(),
+        hasCachedAudio: vi.fn(async () => true),
+        readCachedAudio: vi.fn(() => new Promise<ArrayBuffer>((resolve) => { resolveRead = resolve })),
+        cancelLocal: vi.fn(),
+      },
+      irodori: {
+        status: vi.fn(async (): Promise<IrodoriRuntimeStatus> => ({ supported: true, state: "running", progress: 100, stage: "利用できます" })),
+        start: vi.fn(), stop: vi.fn(), install: vi.fn(), delete: vi.fn(),
+        onStatus: vi.fn(() => () => undefined),
+      },
+    }
+    render(
+      <TalkScreen
+        character={createCharacter()}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        ttsSettings={{ provider: "irodori", apiKey: "", endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none", irodoriQuality: "balanced" }}
+        ttsVoiceReady
+        readAloud={false}
+        onReadAloudChange={() => undefined}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />,
+    )
+
+    const playButtons = await screen.findAllByRole("button", { name: "音声を再生" }, { timeout: 5000 })
+    fireEvent.click(playButtons[0])
+    expect(await screen.findByRole("button", { name: "音声を生成中" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "音声を停止" })).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolveRead(new Uint8Array([1, 2, 3, 4]).buffer)
+    })
+    await waitFor(() => expect(playMock).toHaveBeenCalled())
+    expect(await screen.findByRole("button", { name: "音声を停止" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "音声を生成中" })).not.toBeInTheDocument()
+  })
+
+  it("読み上げON＋モデルロード中も生成済み音声は再生できる", async () => {
+    const playMock = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("Audio", class {
+      onended: (() => void) | null = null
+      onerror: (() => void) | null = null
+      pause = vi.fn()
+      play = playMock
+    })
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:cached") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+    const speak = vi.fn(async () => new Uint8Array([9, 9, 9]).buffer)
+    const hasCachedAudio = vi.fn(async () => true)
+    const readCachedAudio = vi.fn(async () => new Uint8Array([1, 2, 3, 4]).buffer)
+    window.mikan = {
+      platform: "darwin",
+      tts: {
+        synthesizeLocal: speak,
+        hasCachedAudio,
+        readCachedAudio,
+        cancelLocal: vi.fn(),
+      },
+      irodori: {
+        // モデル未ロード状態。ドライバーは supported=false になる。
+        status: vi.fn(async (): Promise<IrodoriRuntimeStatus> => ({ supported: true, state: "starting", progress: 70, stage: "音声モデルを読み込んでいます" })),
+        start: vi.fn(), stop: vi.fn(), install: vi.fn(), delete: vi.fn(),
+        onStatus: vi.fn(() => () => undefined),
+      },
+    }
+    render(
+      <TalkScreen
+        character={createCharacter()}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        ttsSettings={{ provider: "irodori", apiKey: "", endpoint: "http://127.0.0.1:8088/v1", model: "irodori-tts", voice: "none", irodoriQuality: "balanced" }}
+        ttsVoiceReady
+        readAloud
+        onReadAloudChange={() => undefined}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />,
+    )
+
+    // モデル未ロードでも生成済みボタンは隠れない
+    await waitFor(() => expect(hasCachedAudio).toHaveBeenCalled())
+    // 差し替え後の安定したDOMを同期的につかむ（findとclickの間に再レンダー禁止）
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: "音声を再生" }).length).toBeGreaterThan(0))
+    await new Promise((r) => setTimeout(r, 100))
+    fireEvent.click(screen.getAllByRole("button", { name: "音声を再生" })[0])
+
+    // 新規生成ではなくキャッシュ再生になる
+    await waitFor(() => expect(playMock).toHaveBeenCalled())
+    expect(speak).not.toHaveBeenCalled()
+    expect(await screen.findByRole("button", { name: "音声を停止" })).toBeInTheDocument()
+  })
+
+  it("ヘッダーのBGMボタンで設定ポップアップを開閉できる", () => {
+    render(
+      <TalkScreen
+        character={createCharacter()}
+        conversationId="today"
+        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        readAloud={false}
+        onBack={() => undefined}
+        onOpenConnection={() => undefined}
+        onOpenVoice={() => undefined}
+        onOpenHistory={() => undefined}
+      />,
+    )
+
+    expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.getByRole("dialog", { name: "BGM設定" })).toBeInTheDocument()
+    expect(screen.getByText("同梱BGMから選ぶ")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("switch", { name: "BGMを再生する" }))
+    expect(JSON.parse(window.localStorage.getItem("mikan.bgm.tavern") ?? "null")).toMatchObject({ enabled: false })
+
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "BGM" }))
+    expect(screen.getByRole("dialog", { name: "BGM設定" })).toBeInTheDocument()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole("dialog", { name: "BGM設定" })).not.toBeInTheDocument()
+  })
+  it("macOSでは履歴シートが信号機と被らない位置に開く", () => {
+    window.mikan = { platform: "darwin" }
+    render(
+      <ConversationHistorySheet
+        open
+        scenarioId="tavern"
+        characterName="テスト"
+        activeConversationId="today"
+        onOpenChange={() => undefined}
+        onSelectConversation={() => undefined}
+      />,
+    )
+
+    const sheet = screen.getByTestId("conversation-history-sheet")
+    expect(sheet).toHaveStyle({ top: "36px" })
+  })
+
+  it("macOS以外では履歴シートは全高のまま", () => {
+    render(
+      <ConversationHistorySheet
+        open
+        scenarioId="tavern"
+        characterName="テスト"
+        activeConversationId="today"
+        onOpenChange={() => undefined}
+        onSelectConversation={() => undefined}
+      />,
+    )
+
+    expect(screen.getByTestId("conversation-history-sheet")).not.toHaveStyle({ top: "36px" })
   })
 
   it("発言者と情景描写を吹き出しに頼らず区別する", () => {

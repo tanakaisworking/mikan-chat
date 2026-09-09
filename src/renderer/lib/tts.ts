@@ -109,7 +109,7 @@ export type TtsDriver = {
   label: string
   supported: boolean
   unavailableReason: string | null
-  speak: (text: string, callbacks?: { onEnd?: () => void; onError?: (message: string) => void }, options?: TtsSpeakOptions) => void
+  speak: (text: string, callbacks?: { onStart?: () => void; onEnd?: () => void; onError?: (message: string) => void }, options?: TtsSpeakOptions) => void
   stop: () => void
   hasCached?: (text: string, options?: TtsSpeakOptions) => Promise<boolean>
   playCached?: (text: string, options?: TtsSpeakOptions) => Promise<Blob | null>
@@ -284,7 +284,7 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS, ir
         if (active !== playback) return
         cleanup(playback)
         callbacks.onError?.(message)
-        if (!isIrodori && browserTts.supported) browserTts.speak(text, { onEnd: callbacks.onEnd })
+        if (!isIrodori && browserTts.supported) browserTts.speak(text, { onStart: callbacks.onStart, onEnd: callbacks.onEnd })
         else callbacks.onEnd?.()
       }
       const endpoint = (isElevenLabs ? ELEVENLABS_API_ENDPOINT : settings.endpoint).trim().replace(/\/+$/, "")
@@ -331,7 +331,14 @@ export function createTtsDriver(settings: TtsSettings = DEFAULT_TTS_SETTINGS, ir
           callbacks.onEnd?.()
         }
         playback.audio.onerror = () => fallback("受信した音声を再生できませんでした。")
-        void playback.audio.play().catch(() => fallback("外部TTSの再生が制限されたため、ブラウザ標準音声に切り替えました。"))
+        // onStart の例外を再生失敗と誤認しないよう、成功時と失敗時を分けて受ける。
+        void playback.audio.play().then(
+          () => {
+            if (active !== playback) return
+            callbacks.onStart?.()
+          },
+          () => fallback("外部TTSの再生が制限されたため、ブラウザ標準音声に切り替えました。"),
+        )
       }).catch((error: unknown) => {
         if (requestController.signal.aborted) return
         const message = error instanceof TypeError
@@ -787,7 +794,7 @@ export function createKokoroTtsDriver(
         if (error) console.error("Kokoro TTS failed", error)
         cleanup()
         callbacks.onError?.("Kokoroで読み上げられなかったため、ブラウザ標準音声に切り替えました。")
-        if (browserTts.supported) browserTts.speak(text, { onEnd: callbacks.onEnd })
+        if (browserTts.supported) browserTts.speak(text, { onStart: callbacks.onStart, onEnd: callbacks.onEnd })
         else callbacks.onEnd?.()
       }
       const task = load()
@@ -803,7 +810,14 @@ export function createKokoroTtsDriver(
             callbacks.onEnd?.()
           }
           audio.onerror = () => fallback()
-          void audio.play().catch(fallback)
+          // onStart の例外を再生失敗と誤認しないよう、成功時と失敗時を分けて受ける。
+          void audio.play().then(
+            () => {
+              if (currentGeneration !== generation || settled) return
+              callbacks.onStart?.()
+            },
+            fallback,
+          )
         })
         .catch(fallback)
         .finally(() => activeKokoroTasks.delete(task))
@@ -819,11 +833,12 @@ function createBrowserTtsDriver(): TtsDriver {
     label: "ブラウザ標準TTS",
     supported,
     unavailableReason: supported ? null : "この環境では利用できません",
-    speak: (text, { onEnd, onError } = {}) => {
+    speak: (text, { onStart, onEnd, onError } = {}) => {
       if (!supported) return
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = "ja-JP"
+      utterance.onstart = () => onStart?.()
       utterance.onend = () => onEnd?.()
       utterance.onerror = () => {
         onError?.("ブラウザ標準TTSで読み上げられませんでした。")

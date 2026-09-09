@@ -27,7 +27,7 @@ import { TalkScreen } from "@/screens/TalkScreen"
 import { TechDocsScreen } from "@/screens/TechDocsScreen"
 
 type Screen = "settings" | "home" | "scenario" | "talk" | "docs" | "not-found"
-type Overlay = "connection" | "import" | "voice" | "bgm" | "history" | null
+type Overlay = "connection" | "import" | "voice" | "history" | null
 const CONNECTION_STORAGE_KEY = "mikan-chat.connection.v1"
 const ONBOARDING_STORAGE_KEY = "mikan-chat.onboarding.v1"
 const APPEARANCE_STORAGE_KEY = "mikan-chat.appearance.v1"
@@ -212,7 +212,6 @@ function readInitialOverlay(search: string) {
     requestedOverlay === "connection" ||
     requestedOverlay === "import" ||
     requestedOverlay === "voice" ||
-    requestedOverlay === "bgm" ||
     requestedOverlay === "history"
       ? requestedOverlay
       : null
@@ -735,8 +734,8 @@ export function AppContent() {
       ) : null}
 
       <ChatSettingsDialog
-        open={overlay === "connection" || overlay === "voice" || overlay === "bgm"}
-        section={overlay === "voice" ? "voice" : overlay === "bgm" ? "bgm" : "connection"}
+        open={overlay === "connection" || overlay === "voice"}
+        section={overlay === "voice" ? "voice" : "connection"}
         connection={{ ...connectionSettings, type: connectionType }}
         isDesktop={isDesktopApp()}
         readAloud={readAloud}

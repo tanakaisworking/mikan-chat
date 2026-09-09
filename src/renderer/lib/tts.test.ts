@@ -407,6 +407,25 @@ describe("TTS driver", () => {
     expect(cancelLocal).toHaveBeenCalledOnce()
   })
 
+  it("Irodori TTSは再生開始を通知する", async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const synthesizeLocal = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]).buffer)
+    window.mikan = { platform: "darwin", tts: { synthesizeLocal, cancelLocal: vi.fn() } }
+    vi.stubGlobal("Audio", class { onended = null; onerror = null; pause = vi.fn(); play = play })
+    vi.stubGlobal("fetch", vi.fn())
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn().mockReturnValue("blob:irodori") })
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() })
+
+    const onStart = vi.fn()
+    const onEnd = vi.fn()
+    createTtsDriver(IRODORI_TTS_SETTINGS, { supported: true, state: "running", progress: 100, stage: "利用できます" })
+      .speak("こんにちは。", { onStart, onEnd })
+
+    await vi.waitFor(() => expect(play).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(onStart).toHaveBeenCalledOnce())
+    expect(onEnd).not.toHaveBeenCalled()
+  })
+
   it("Irodoriへシナリオの参照音声と推奨値を渡す", async () => {
     const play = vi.fn().mockResolvedValue(undefined)
     const synthesizeLocal = vi.fn().mockResolvedValue(new Uint8Array([1]).buffer)

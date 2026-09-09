@@ -16,6 +16,7 @@ export function ChatTimeline({
   error,
   canPlayAudio,
   playingMessageId,
+  loadingMessageId,
   onToggleAudio,
   endRef,
   className,
@@ -30,6 +31,7 @@ export function ChatTimeline({
   error?: string | null
   canPlayAudio: (message: ChatMessageData) => boolean
   playingMessageId: string | null
+  loadingMessageId?: string | null
   onToggleAudio: (messageId: string) => void
   endRef: RefObject<HTMLDivElement | null>
   className?: string
@@ -84,6 +86,7 @@ export function ChatTimeline({
               key={message.id}
               message={message}
               isPlaying={playingMessageId === message.id}
+              isLoading={loadingMessageId === message.id}
               canPlayAudio={canPlayAudio}
               onToggleAudio={() => onToggleAudio(message.id)}
             />

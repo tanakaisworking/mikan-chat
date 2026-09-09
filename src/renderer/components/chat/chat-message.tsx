@@ -1,4 +1,4 @@
-import { Pause, Play } from "lucide-react"
+import { LoaderCircle, Pause, Play } from "lucide-react"
 
 import { IconButton } from "@/components/ui/icon-button"
 
@@ -15,11 +15,13 @@ export type ChatMessageData = {
 export function ChatMessage({
   message,
   isPlaying,
+  isLoading,
   canPlayAudio,
   onToggleAudio,
 }: {
   message: ChatMessageData
   isPlaying: boolean
+  isLoading: boolean
   canPlayAudio: (message: ChatMessageData) => boolean
   onToggleAudio: () => void
 }) {
@@ -63,11 +65,11 @@ export function ChatMessage({
           <p className="min-w-0 flex-1">{message.text}</p>
           {message.audio || canPlayAudio(message) ? (
             <IconButton
-              label={isPlaying ? "音声を停止" : "音声を再生"}
+              label={isLoading ? "音声を生成中" : isPlaying ? "音声を停止" : "音声を再生"}
               className="mt-0.5 shrink-0 bg-surface text-primary hover:bg-surface-accent max-md:size-11 max-md:drop-shadow-md"
               onClick={onToggleAudio}
             >
-              {isPlaying ? <Pause /> : <Play className="translate-x-px" />}
+              {isLoading ? <LoaderCircle className="animate-spin" /> : isPlaying ? <Pause /> : <Play className="translate-x-px" />}
             </IconButton>
           ) : null}
         </div>

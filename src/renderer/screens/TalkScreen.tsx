@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { CircleHelp, History, Settings2, Volume2, VolumeX } from "lucide-react"
+import { History, Music, Settings2, Volume2, VolumeX } from "lucide-react"
 
 import { ChatComposer } from "@/components/chat/chat-composer"
 import { CharacterStage } from "@/components/chat/character-stage"
@@ -8,7 +8,9 @@ import { ChatTimeline } from "@/components/chat/chat-timeline"
 import { ScenarioBgmPlayer } from "@/components/chat/scenario-bgm-player"
 import { getScenarioBgmAudioPath } from "@/lib/audio-com"
 import { AppHeader } from "@/components/ui/app-header"
+import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { Character } from "@/data/characters"
 import { isConnectionReady, parseAssistantResponse, streamCharacterReply, summarizeConversation } from "@/lib/ai-chat"
@@ -145,11 +147,24 @@ export function TalkScreen({
   const [summaryThroughId, setSummaryThroughId] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
+  const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
+  const [bgmOpen, setBgmOpen] = useState(false)
+  const bgmPanelRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!bgmOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (bgmPanelRef.current && !bgmPanelRef.current.contains(event.target as Node)) {
+        setBgmOpen(false)
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [bgmOpen])
   const [cachedAudioMap, setCachedAudioMap] = useState<Record<string, boolean>>({})
   const [isIntroPlaying, setIsIntroPlaying] = useState(() => Boolean(isNewStory && character.opening?.length))
   const [conversationLoaded, setConversationLoaded] = useState(!getDesktopBridge()?.conversations)
   const [builtinAvailable, setBuiltinAvailable] = useState(connection.type !== "builtin")
-  const [readAloudHelpOpen, setReadAloudHelpOpen] = useState(false)
   const generationController = useRef<AbortController | null>(null)
   const summarizeController = useRef<AbortController | null>(null)
   const streamingSpeechCancel = useRef<(() => void) | null>(null)
@@ -262,6 +277,7 @@ export function TalkScreen({
   useEffect(() => () => {
     streamingSpeechCancel.current?.()
     tts.stop()
+    setLoadingMessageId(null)
     cachedAudioRef.current?.audio.pause()
     if (cachedAudioRef.current) URL.revokeObjectURL(cachedAudioRef.current.url)
     cachedAudioRef.current = null
@@ -269,11 +285,24 @@ export function TalkScreen({
 
   const playMessage = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
     if (!tts.supported || !ttsVoiceReady) return
-    setPlayingMessageId(messageId ?? null)
-    tts.speak(text, { onEnd: () => {
+    if (messageId) {
+      setLoadingMessageId(messageId)
       setPlayingMessageId(null)
-      onEnd?.()
-    } }, resolveScenarioVoice(character, speakerName, voiceSelections))
+    } else {
+      setPlayingMessageId(null)
+    }
+    tts.speak(text, {
+      onStart: () => {
+        if (!messageId) return
+        setLoadingMessageId((current) => (current === messageId ? null : current))
+        setPlayingMessageId(messageId)
+      },
+      onEnd: () => {
+        if (messageId) setLoadingMessageId((current) => (current === messageId ? null : current))
+        setPlayingMessageId(null)
+        onEnd?.()
+      },
+    }, resolveScenarioVoice(character, speakerName, voiceSelections))
   }
 
   const speak = (text: string, messageId?: string, speakerName?: string, onEnd?: () => void) => {
@@ -284,27 +313,32 @@ export function TalkScreen({
   const toggleMessageAudio = (messageId: string) => {
     streamingSpeechCancel.current?.()
     streamingSpeechCancel.current = null
-    if (playingMessageId === messageId) {
+    if (playingMessageId === messageId || loadingMessageId === messageId) {
       tts.stop()
       stopCachedAudio()
       setPlayingMessageId(null)
+      setLoadingMessageId(null)
       return
     }
     const message = messages.find((item) => item.id === messageId)
     if (message?.role !== "character") return
-    if (readAloud) {
+    // モデル利用可能なら新規生成、それ以外は生成済みのみ再生する。
+    // ON＋ロード中も生成済みボタンは押せるようにする。
+    if (readAloud && tts.supported && ttsVoiceReady) {
       speak(message.text, messageId, message.speakerName)
       return
     }
-    // 読み上げオフ時はキャッシュ済み音声のみ、モデルをロードせずに再生する。
+    // 読み上げオフ時やモデル未ロード時はキャッシュ済み音声のみ、モデルをロードせずに再生する。
     const cached = message.audio === true || cachedAudioMap[messageId] === true
     if (!cached) return
     if (!tts.playCached) return
-    setPlayingMessageId(messageId)
+    setLoadingMessageId(messageId)
+    setPlayingMessageId(null)
     void tts.playCached(message.text, resolveScenarioVoice(character, message.speakerName, voiceSelections)).then((blob) => {
       if (!blob || typeof Audio === "undefined") {
         // ファイルが後から消えていた場合はボタンを出さない状態へ戻す。
         setCachedAudioMap((map) => (map[messageId] === false ? map : { ...map, [messageId]: false }))
+        setLoadingMessageId((current) => (current === messageId ? null : current))
         setPlayingMessageId((current) => (current === messageId ? null : current))
         return
       }
@@ -312,18 +346,21 @@ export function TalkScreen({
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       cachedAudioRef.current = { audio, url }
-      audio.onended = () => {
+      const clearPlayback = () => {
         stopCachedAudio()
+        setLoadingMessageId((current) => (current === messageId ? null : current))
         setPlayingMessageId((current) => (current === messageId ? null : current))
       }
-      audio.onerror = () => {
-        stopCachedAudio()
-        setPlayingMessageId((current) => (current === messageId ? null : current))
-      }
-      void audio.play().catch(() => {
-        stopCachedAudio()
-        setPlayingMessageId((current) => (current === messageId ? null : current))
-      })
+      audio.onended = clearPlayback
+      audio.onerror = clearPlayback
+      void audio.play().then(() => {
+        setLoadingMessageId((current) => (current === messageId ? null : current))
+        setPlayingMessageId(messageId)
+      }).catch(clearPlayback)
+    }).catch(() => {
+      // 要求組み立てに失敗した場合はスピナーで固まらないよう戻す。
+      setLoadingMessageId((current) => (current === messageId ? null : current))
+      setPlayingMessageId((current) => (current === messageId ? null : current))
     })
   }
 
@@ -336,7 +373,7 @@ export function TalkScreen({
       tts.stop()
       stopCachedAudio()
       setPlayingMessageId(null)
-      setReadAloudHelpOpen(false)
+      setLoadingMessageId(null)
       if (ttsSettings.provider === "irodori") void window.mikan?.irodori?.stop()
     }
   }, [readAloud, tts, ttsSettings.provider])
@@ -349,7 +386,10 @@ export function TalkScreen({
   }, [readAloud, tts, ttsSettings.provider])
 
   useEffect(() => {
-    if (readAloud || !tts.hasCached) return
+    if (!tts.hasCached) return
+    // 読み上げONかつモデル利用可能ならボタンは常に出るので確認不要。
+    // ON＋ロード中とOFFは生成済み確認を行う。
+    if (readAloud && tts.supported) return
     let cancelled = false
     for (const message of messages) {
       if (message.role !== "character") continue
@@ -490,6 +530,11 @@ export function TalkScreen({
     streamingSpeechCancel.current = null
   }
 
+  const scenarioBgmAudio = (() => {
+    const audioPath = getScenarioBgmAudioPath(character.pack)
+    return audioPath ? character.assets?.[audioPath] ?? null : null
+  })()
+
   return (
     <main
       className="grid h-full grid-cols-[clamp(360px,40vw,560px)_minmax(0,1fr)] grid-rows-[96px_minmax(0,1fr)_auto] overflow-hidden bg-background max-[1100px]:grid-rows-[80px_minmax(0,1fr)_auto] max-md:h-full max-md:grid-cols-1 max-md:grid-rows-[64px_minmax(0,1fr)_auto]"
@@ -502,46 +547,60 @@ export function TalkScreen({
         actions={
           <>
             {onReadAloudChange ? (
-              <IconButton
-                label={readAloud ? "セリフ読み上げをオフにする" : "セリフ読み上げをオンにする"}
-                aria-pressed={readAloud}
-                className={readAloud ? "text-primary" : undefined}
-                onClick={() => onReadAloudChange(!readAloud)}
-              >
-                {readAloud ? <Volume2 /> : <VolumeX />}
-              </IconButton>
-            ) : null}
-            {onReadAloudChange ? (
-              <span className="relative">
-                <IconButton
-                  label="セリフ読み上げとは？"
-                  aria-expanded={readAloudHelpOpen}
-                  onClick={() => setReadAloudHelpOpen((open) => !open)}
-                >
-                  <CircleHelp />
-                </IconButton>
-                {readAloudHelpOpen ? (
-                  <div
-                    role="dialog"
-                    aria-label="セリフ読み上げとは？"
-                    className="absolute right-0 top-full z-30 mt-2 w-72 rounded-lg border border-border bg-popover p-4 text-sm leading-relaxed text-foreground shadow-lg max-md:w-64"
-                  >
-                    <p className="font-semibold">セリフ読み上げモード</p>
-                    <p className="mt-2 text-muted-foreground">オンにすると、キャラクターの返答を自動で読み上げます。</p>
-                    <p className="mt-2 text-muted-foreground">
-                      オフにすると読み上げモデルをロードしません。生成済みの音声はモデルなしで再生できます。Irodori TTS使用時は約7GBのメモリプレッシャーを削減できます。OS標準音声ではメモリをほとんど使いません。
-                    </p>
-                    <button
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
                       type="button"
-                      className="mt-3 text-xs font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={() => setReadAloudHelpOpen(false)}
+                      variant="ghost"
+                      size="icon"
+                      aria-label={readAloud ? "セリフ読み上げをオフにする" : "セリフ読み上げをオンにする"}
+                      aria-pressed={readAloud}
+                      className={readAloud ? "shrink-0 text-primary [-webkit-app-region:no-drag]" : "shrink-0 [-webkit-app-region:no-drag]"}
+                      onClick={() => onReadAloudChange(!readAloud)}
                     >
-                      閉じる
-                    </button>
-                  </div>
-                ) : null}
-              </span>
+                      {readAloud ? <Volume2 /> : <VolumeX />}
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" align="end" className="block w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-4 text-left text-foreground shadow-xl [&_svg]:bg-popover [&_svg]:fill-popover">
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-soft text-primary-bright">
+                      {readAloud ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+                    </span>
+                    <span className="font-semibold">セリフ読み上げモード</span>
+                  </span>
+                  <span className="mt-2 block text-[13px] leading-7 text-muted-foreground">オンにすると、キャラクターの返答を自動で読み上げます。</span>
+                  <span className="mt-1 block text-[13px] leading-7 text-muted-foreground">オフにすると読み上げモデルをロードしません。生成済みの音声はモデルなしで再生できます。Irodori TTS使用時は約7GBのメモリプレッシャーを削減できます。</span>
+                </TooltipContent>
+              </Tooltip>
             ) : null}
+            <span ref={bgmPanelRef} className="relative">
+              <IconButton
+                label="BGM"
+                aria-expanded={bgmOpen}
+                className={bgmOpen ? "text-primary" : undefined}
+                onClick={() => setBgmOpen((open) => !open)}
+              >
+                <Music />
+              </IconButton>
+              {bgmOpen ? (
+                <div
+                  role="dialog"
+                  aria-label="BGM設定"
+                  className="absolute right-0 top-full z-30 mt-2 max-h-[70vh] w-[28rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-border bg-popover p-3 text-foreground shadow-xl"
+                >
+                  <ScenarioBgmPlayer
+                    key={character.id}
+                    scenarioId={character.id}
+                    pack={character.pack}
+                    title={character.packTitle ?? character.name}
+                    bundledAudio={scenarioBgmAudio}
+                    mode="settings"
+                  />
+                </div>
+              ) : null}
+            </span>
             <IconButton label="会話履歴" onClick={onOpenHistory}>
               <History />
             </IconButton>
@@ -560,10 +619,7 @@ export function TalkScreen({
           scenarioId={character.id}
           pack={character.pack}
           title={character.packTitle ?? character.name}
-          bundledAudio={(() => {
-            const audioPath = getScenarioBgmAudioPath(character.pack)
-            return audioPath ? character.assets?.[audioPath] ?? null : null
-          })()}
+          bundledAudio={scenarioBgmAudio}
         />
         <ChatTimeline
           key={`${character.id}:${conversationId}:${intro ? "intro" : "resume"}`}
@@ -575,10 +631,10 @@ export function TalkScreen({
           messages={messages}
           isGenerating={isGenerating}
           error={generationError}
-          canPlayAudio={(message) => readAloud
-            ? tts.supported && ttsVoiceReady
-            : message.audio === true || cachedAudioMap[message.id] === true}
+          canPlayAudio={(message) => (readAloud && tts.supported && ttsVoiceReady)
+            || message.audio === true || cachedAudioMap[message.id] === true}
           playingMessageId={playingMessageId}
+          loadingMessageId={loadingMessageId}
           onToggleAudio={toggleMessageAudio}
           endRef={timelineEnd}
         />

@@ -193,7 +193,7 @@ export function ScenarioBgmPlayer({ scenarioId, pack, title, mode = "player", bu
                   placeholder="https://audio.com/..."
                   aria-label="BGMのURL"
                 />
-                <Button type="button" variant="outline" onClick={() => applySource(draftUrl.trim())}>この音源を使う</Button>
+                <Button type="button" variant="outline" className="shrink-0 whitespace-nowrap" onClick={() => applySource(draftUrl.trim())}>この音源を使う</Button>
               </div>
               <fieldset className="grid gap-2">
                 <legend className="text-sm font-semibold">音声ファイルを読み込む</legend>
