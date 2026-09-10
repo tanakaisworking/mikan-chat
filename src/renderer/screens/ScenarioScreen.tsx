@@ -134,7 +134,7 @@ export function ScenarioRouteState({ title, message, onBack }: { title: string; 
   )
 }
 
-function ScenarioHeader({ onBack }: { onBack: () => void }) {
+export function ScenarioHeader({ onBack }: { onBack: () => void }) {
   return (
     <header className="flex h-full items-center border-b border-border/70 bg-background/96 px-6 max-md:px-3">
       <IconButton label="戻る" className="shrink-0" onClick={onBack}><ArrowLeft /></IconButton>

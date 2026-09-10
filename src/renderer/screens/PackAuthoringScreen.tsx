@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { useLocation } from "react-router"
 
-import { SectionHeading } from "@/components/ui/section-heading"
 import { AiDraftDialog } from "@/components/pack-authoring/ai-draft-dialog"
+import { ScenarioHeader } from "@/screens/ScenarioScreen"
 import { DraftEditor } from "@/components/pack-authoring/draft-editor"
 import { PackLibrary } from "@/components/pack-authoring/pack-library"
 import { readBgmPreference } from "@/lib/audio-com"
@@ -22,10 +22,14 @@ import { AUTHORING_DRAFT_SCENARIO_ID, assignCharacterId, createEmptyDraft, type 
 
 export function PackAuthoringScreen({
   connection,
+  onConnectionConfirm,
   onImportAndTalk,
+  onBack,
 }: {
   connection: ConnectionSettings
+  onConnectionConfirm: (settings: ConnectionSettings) => void
   onImportAndTalk: (loaded: LoadedChatPack) => string | undefined
+  onBack: () => void
 }) {
   const location = useLocation()
   const [entries, setEntries] = useState<DraftEntry[]>(() => loadLibrary())
@@ -143,12 +147,10 @@ export function PackAuthoringScreen({
   })
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-8 max-md:px-4" aria-label="シナリオをつくる">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="grid gap-2">
-          <SectionHeading>シナリオをつくる</SectionHeading>
-        </div>
-      </div>
+    <main className="grid h-full grid-rows-[80px_minmax(0,1fr)] overflow-hidden bg-background max-md:h-full max-md:grid-rows-[64px_minmax(0,1fr)]" aria-label="シナリオをつくる">
+      <ScenarioHeader onBack={onBack} />
+      <div className="min-h-0 overflow-y-auto max-md:overflow-y-auto">
+        <div className="mx-auto grid w-full max-w-6xl content-start gap-8 px-6 py-8 max-md:px-4">
 
       {!persisted ? (
         <p className="rounded-lg border border-border bg-surface p-3 text-sm text-muted-foreground" role="status">
@@ -163,6 +165,7 @@ export function PackAuthoringScreen({
           draft={activeEntry.draft}
           persisted={persisted}
           connection={connection}
+          onConnectionConfirm={onConnectionConfirm}
           onDraftChange={(next) => handleDraftChange(activeEntry.id, next)}
           onExported={() => {
             persist(entries.map((entry) => entry.id === activeEntry.id ? { ...entry, status: "done" as const } : entry))
@@ -170,7 +173,6 @@ export function PackAuthoringScreen({
             setNotice("完成にしました。置き場からいつでも配れます。")
           }}
           onImportAndTalk={onImportAndTalk}
-          onBack={() => setActiveId(null)}
         />
       ) : (
         <PackLibrary
@@ -191,6 +193,8 @@ export function PackAuthoringScreen({
         onOpenChange={setAiDialogOpen}
         onApply={handleAiApply}
       />
+        </div>
+      </div>
     </main>
   )
 }

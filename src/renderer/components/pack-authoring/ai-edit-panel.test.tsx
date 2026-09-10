@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { createRef } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { AiEditPanel } from "@/components/pack-authoring/ai-edit-panel"
@@ -20,6 +21,19 @@ const mockedReady = vi.mocked(isConnectionReady)
 
 const CONNECTION: ConnectionSettings = { type: "online", apiKey: "k", endpoint: "https://example.com/v1", model: "m" }
 
+function renderPanel(onApplyPatch: () => void = () => undefined, onClose: () => void = () => undefined) {
+  render(
+    <AiEditPanel
+      triggerRef={{ current: null }}
+      draft={createEmptyDraft()}
+      connection={CONNECTION}
+      onConnectionConfirm={() => undefined}
+      onApplyPatch={onApplyPatch}
+      onClose={onClose}
+    />,
+  )
+}
+
 describe("AiEditPanel", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -35,8 +49,10 @@ describe("AiEditPanel", () => {
     const onApplyPatch = vi.fn()
     render(
       <AiEditPanel
+        triggerRef={{ current: null }}
         draft={{ ...createEmptyDraft(), title: "元の題" }}
         connection={CONNECTION}
+        onConnectionConfirm={() => undefined}
         onApplyPatch={onApplyPatch}
         onClose={() => undefined}
       />,
@@ -52,16 +68,55 @@ describe("AiEditPanel", () => {
     expect(screen.getByRole("button", { name: "反映済み" })).toBeInTheDocument()
   })
 
-  it("AI未設定では設定誘導になる", () => {
-    mockedReady.mockReturnValue(false)
+  it("外側クリックで閉じ、開閉ボタンでは閉じない", () => {
+    const onClose = vi.fn()
+    const triggerRef = createRef<HTMLSpanElement>()
+    render(
+      <>
+        <span ref={triggerRef}>
+          <button type="button">開閉</button>
+        </span>
+        <AiEditPanel
+          triggerRef={triggerRef}
+          draft={createEmptyDraft()}
+          connection={CONNECTION}
+          onConnectionConfirm={() => undefined}
+          onApplyPatch={() => undefined}
+          onClose={onClose}
+        />
+      </>,
+    )
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "開閉" }))
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.pointerDown(document.body)
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it("利用するAIを開いて確定できる", () => {
+    const onConnectionConfirm = vi.fn()
     render(
       <AiEditPanel
+        triggerRef={{ current: null }}
         draft={createEmptyDraft()}
-        connection={{ type: "online", apiKey: "", endpoint: "", model: "" }}
+        connection={CONNECTION}
+        onConnectionConfirm={onConnectionConfirm}
         onApplyPatch={() => undefined}
         onClose={() => undefined}
       />,
     )
+
+    expect(screen.queryByRole("button", { name: "接続を確認" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /利用するAI/ }))
+    expect(screen.getByRole("button", { name: "接続を確認" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /を使う$/ }))
+    expect(onConnectionConfirm).toHaveBeenCalledOnce()
+  })
+
+  it("AI未設定では設定誘導になる", () => {
+    mockedReady.mockReturnValue(false)
+    renderPanel()
+
     fireEvent.change(screen.getByPlaceholderText("どう直したいですか"), { target: { value: "何かして" } })
     fireEvent.click(screen.getByRole("button", { name: "送信" }))
     expect(screen.getByText("先に会話に使うAIを設定してください。")).toBeInTheDocument()
@@ -70,14 +125,8 @@ describe("AiEditPanel", () => {
 
   it("空の返答では反映できない", async () => {
     mockedStream.mockImplementation(async () => "")
-    render(
-      <AiEditPanel
-        draft={createEmptyDraft()}
-        connection={CONNECTION}
-        onApplyPatch={() => undefined}
-        onClose={() => undefined}
-      />,
-    )
+    renderPanel()
+
     fireEvent.change(screen.getByPlaceholderText("どう直したいですか"), { target: { value: "何かして" } })
     fireEvent.click(screen.getByRole("button", { name: "送信" }))
     await waitFor(() => expect(mockedStream).toHaveBeenCalled())

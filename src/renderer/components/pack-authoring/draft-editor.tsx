@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Download, FlaskConical, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -28,22 +28,23 @@ export function DraftEditor({
   draft,
   persisted,
   connection,
+  onConnectionConfirm,
   onDraftChange,
   onExported,
   onImportAndTalk,
-  onBack,
 }: {
   draft: PackDraft
   persisted: boolean
   connection: ConnectionSettings
+  onConnectionConfirm: (settings: ConnectionSettings) => void
   onDraftChange: (draft: PackDraft) => void
   onExported: () => void
   onImportAndTalk: (loaded: LoadedChatPack) => string | undefined
-  onBack: () => void
 }) {
   const [issues, setIssues] = useState<PackValidationIssue[]>([{ path: "(全体)", message: "入力を始めるとここで確認できます。" }])
   const [checking, setChecking] = useState(false)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const aiToggleWrapRef = useRef<HTMLSpanElement>(null)
   const [working, setWorking] = useState(false)
   const [notice, setNotice] = useState("")
   const [exportError, setExportError] = useState("")
@@ -135,21 +136,8 @@ export function DraftEditor({
 
   return (
     <div className="grid gap-8" aria-label="シナリオの編集">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="grid gap-2">
-          <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={onBack}>
-            置き場に戻る
-          </Button>
-          <SectionHeading>{draft.title.trim() || "無題の物語"}</SectionHeading>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={working || issues.length > 0} onClick={tryExport}>
-            <FlaskConical />取り込んで試す
-          </Button>
-          <Button type="button" disabled={working || issues.length > 0} onClick={downloadExport}>
-            <Download />エクスポート
-          </Button>
-        </div>
+      <div className="grid gap-2">
+        <SectionHeading>{draft.title.trim() || "無題の物語"}</SectionHeading>
       </div>
 
       {!persisted ? (
@@ -170,17 +158,31 @@ export function DraftEditor({
           <DraftGuide premise={draft.premise} instructions={draft.instructions} onChange={update} />
           <DraftMedia />
         </div>
-        <div className="grid gap-4 lg:sticky lg:top-4">
-          <ValidationPanel checks={checks} issues={issues} checking={checking} />
-          <Button type="button" variant="outline" onClick={() => setAiPanelOpen(true)}>
-            <Sparkles />AIに相談する
-          </Button>
+        <div className="grid gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:grid-rows-[minmax(0,1fr)_auto] lg:overflow-hidden">
+          <div className="grid min-h-0 content-start gap-4 overflow-y-auto">
+            <ValidationPanel checks={checks} issues={issues} checking={checking} />
+            <span ref={aiToggleWrapRef} className="contents">
+              <Button type="button" variant="outline" onClick={() => setAiPanelOpen((open) => !open)}>
+                <Sparkles />AIに相談する
+              </Button>
+            </span>
+          </div>
+          <div className="grid gap-2">
+            <Button type="button" disabled={working || issues.length > 0} onClick={downloadExport}>
+              <Download />エクスポート
+            </Button>
+            <Button type="button" variant="outline" disabled={working || issues.length > 0} onClick={tryExport}>
+              <FlaskConical />取り込んで試す
+            </Button>
+          </div>
         </div>
       </div>
       {aiPanelOpen ? (
         <AiEditPanel
           draft={draft}
           connection={connection}
+          triggerRef={aiToggleWrapRef}
+          onConnectionConfirm={onConnectionConfirm}
           onApplyPatch={(next) => onDraftChange(next)}
           onClose={() => setAiPanelOpen(false)}
         />

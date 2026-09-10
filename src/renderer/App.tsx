@@ -764,8 +764,17 @@ export function AppContent() {
             onOpenSettings={() => showScreen("settings")}
           />
           <MobileHeader onOpenDocs={() => showScreen("docs")} onOpenSettings={() => showScreen("settings")} />
-          <section className="min-w-0 overflow-y-auto max-md:overflow-visible">
-            <PackAuthoringScreen connection={{ ...connectionSettings, type: connectionType }} onImportAndTalk={importAndTalk} />
+          <section className="min-h-0 min-w-0 overflow-hidden max-md:overflow-visible">
+            <PackAuthoringScreen
+              connection={{ ...connectionSettings, type: connectionType }}
+              onConnectionConfirm={(settings) => {
+                persistConnection(settings)
+                setConnectionSettings(settings)
+                setConnectionType(settings.type)
+              }}
+              onImportAndTalk={importAndTalk}
+              onBack={() => navigate("/")}
+            />
           </section>
           <MobileNavigation
             activePage="create"

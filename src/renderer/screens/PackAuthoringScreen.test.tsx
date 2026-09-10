@@ -11,7 +11,7 @@ const CONNECTION: ConnectionSettings = { type: "online", apiKey: "", endpoint: "
 function renderScreen() {
   render(
     <MemoryRouter>
-      <PackAuthoringScreen connection={CONNECTION} onImportAndTalk={() => undefined} />
+      <PackAuthoringScreen connection={CONNECTION} onConnectionConfirm={() => undefined} onImportAndTalk={() => undefined} onBack={() => undefined} />
     </MemoryRouter>,
   )
 }
@@ -36,21 +36,24 @@ describe("PackAuthoringScreen", () => {
     expect(await screen.findByText(/タイトルを入力してください/, {}, { timeout: 5000 })).toBeInTheDocument()
   })
 
-  it("置き場に戻ると下書きが残り、削除は二度押しで確定する", async () => {
+  it("置き場の削除は二度押しで確定する", async () => {
+    const { createEmptyDraft } = await import("@/lib/pack-authoring/types")
+    window.localStorage.setItem("mikan.pack-authoring.library.v1", JSON.stringify([{
+      id: "entry-1",
+      updatedAt: new Date().toISOString(),
+      status: "draft",
+      draft: { ...createEmptyDraft(), title: "テストの物語" },
+    }]))
     renderScreen()
-    fireEvent.click(screen.getByRole("button", { name: "新しくつくる" }))
-    fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "テストの物語" } })
-    fireEvent.click(screen.getByRole("button", { name: "置き場に戻る" }))
 
     expect(screen.getByText("テストの物語")).toBeInTheDocument()
-    await waitFor(() => {
-      expect(JSON.parse(window.localStorage.getItem("mikan.pack-authoring.library.v1") ?? "[]")).toHaveLength(1)
-    })
-
     fireEvent.click(screen.getByRole("button", { name: "テストの物語を削除" }))
     expect(screen.getByRole("button", { name: "本当に削除" })).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "本当に削除" }))
     expect(screen.queryByText("テストの物語")).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem("mikan.pack-authoring.library.v1") ?? "[]")).toHaveLength(0)
+    })
   })
 
   it("AIで作るダイアログを開き、結果なしでは適用できない", () => {
