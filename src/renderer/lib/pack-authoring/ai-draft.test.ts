@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { aiDraftToNewDraft, parseAiScenario } from "@/lib/pack-authoring/ai-draft"
+import { aiDraftToNewDraft, applyAiDraftToDraft, parseAiScenario } from "@/lib/pack-authoring/ai-draft"
 import { createEmptyDraft } from "@/lib/pack-authoring/types"
 
 const SAMPLE = [
@@ -90,5 +90,47 @@ describe("aiDraftToNewDraft", () => {
     const parsed = parseAiScenario("## 導入\n- 知らない人: やあ")
     const draft = aiDraftToNewDraft(parsed, createEmptyDraft())
     expect(draft.opening).toEqual([expect.objectContaining({ speaker: "知らない人" })])
+  })
+
+  it("開いている下書きへ空欄以外を反映する", () => {
+    const base = {
+      ...createEmptyDraft(),
+      title: "元の題",
+      summary: "元のあらすじ",
+      characters: [{
+        key: "k1",
+        id: "lucien",
+        name: "ルシアン",
+        profile: "元の紹介",
+        image: null,
+        voice: { gender: "male" as const, description: "", traits: "冷静", caption: "", seed: "", referenceAudio: null },
+      }],
+      opening: [{ key: "e0", type: "narration" as const, text: "元の導入" }],
+    }
+    const parsed = parseAiScenario([
+      "## 前提",
+      "新しい前提",
+      "## 登場人物",
+      "### ルシアン",
+      "- プロフィール: 新しい紹介",
+      "- 声の特徴: 優しい",
+      "### ミア",
+      "- プロフィール: 店主",
+      "## 導入",
+      "- ルシアン: 新しいセリフ",
+    ].join("\n"))
+    const next = applyAiDraftToDraft(parsed, base)
+    expect(next.title).toBe("元の題")
+    expect(next.premise).toBe("新しい前提")
+    expect(next.characters).toHaveLength(2)
+    expect(next.characters[0]).toMatchObject({ id: "lucien", profile: "新しい紹介" })
+    expect(next.characters[0]?.voice).toMatchObject({ gender: "male", traits: "優しい" })
+    expect(next.characters[1]?.id).not.toBe("lucien")
+    expect(next.opening).toEqual([expect.objectContaining({ type: "dialogue", speaker: "lucien", text: "新しいセリフ" })])
+  })
+
+  it("空の改訂案は何も変えない", () => {
+    const base = { ...createEmptyDraft(), title: "元の題" }
+    expect(applyAiDraftToDraft(parseAiScenario(""), base)).toEqual(base)
   })
 })

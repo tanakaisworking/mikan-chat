@@ -1,5 +1,30 @@
 import { assignCharacterId, nextDraftKey, type PackDraft } from "@/lib/pack-authoring/types"
 
+export const AI_EDIT_SYSTEM_PROMPT = [
+  "あなたはチャット小説のシナリオ作家です。ユーザーの指示をもとに、開いているシナリオの改訂案を下の形式どおりのMarkdownだけで出力してください。",
+  "挨拶・解説・コードブロックは書かず、見出しと本文だけにします。変更しない項目は空欄にしてください。",
+  "",
+  "## タイトル",
+  "## あらすじ",
+  "## 前提",
+  "## 指針",
+  "## タグ",
+  "## 登場人物",
+  "### 名前",
+  "- プロフィール: 変更後の全体を書く",
+  "- 声の性別: 男性・女性・中性的のいずれか",
+  "- 声の特徴: 読点区切りで",
+  "- 声の指示: 1文で",
+  "## 導入",
+  "- ナレーション: 情景描写",
+  "- 名前: セリフ",
+  "- あなた: 主人公のセリフ",
+  "",
+  "制約:",
+  "- 固有名詞の表記は既存に合わせる",
+  "- 新人物を出すときは登場人物にも書く",
+].join("\n")
+
 export const AI_DRAFT_SYSTEM_PROMPT = [
   "あなたはチャット小説のシナリオ作家です。ユーザーの希望をもとに、下の形式どおりのMarkdownだけを出力してください。",
   "挨拶・解説・コードブロックは書かず、見出しと本文だけにします。",
@@ -141,6 +166,53 @@ export function parseAiScenario(markdown: string): AiDraft {
   return draft
 }
 
+/** 構成案を開いている下書きへ反映する。空欄は現状維持、人物は同名更新・新名追加、導入は件数があれば置換。 */
+export function applyAiDraftToDraft(parsed: AiDraft, draft: PackDraft): PackDraft {
+  const characters = draft.characters.map((character) => ({ ...character }))
+  for (const incoming of parsed.characters) {
+    const target = characters.find((character) => character.name.trim() !== "" && character.name.trim() === incoming.name.trim())
+    if (target) {
+      if (incoming.profile) target.profile = incoming.profile
+      target.voice = {
+        ...target.voice,
+        ...(incoming.gender ? { gender: incoming.gender } : {}),
+        ...(incoming.traits ? { traits: incoming.traits } : {}),
+        ...(incoming.caption ? { caption: incoming.caption } : {}),
+      }
+      continue
+    }
+    const created = {
+      key: nextDraftKey(),
+      id: "",
+      name: incoming.name,
+      profile: incoming.profile,
+      image: null,
+      voice: { gender: incoming.gender, description: "", traits: incoming.traits, caption: incoming.caption, seed: "", referenceAudio: null },
+    }
+    created.id = assignCharacterId(characters)
+    characters.push(created)
+  }
+  const idOfName = new Map(characters.map((character) => [character.name.trim(), character.id]))
+  return {
+    ...draft,
+    title: parsed.title || draft.title,
+    summary: parsed.summary || draft.summary,
+    premise: parsed.premise || draft.premise,
+    instructions: parsed.instructions || draft.instructions,
+    tags: parsed.tags || draft.tags,
+    characters,
+    opening: parsed.opening.length > 0
+      ? parsed.opening.map((event) => event.type === "narration"
+        ? { key: nextDraftKey(), type: "narration" as const, text: event.text }
+        : {
+            key: nextDraftKey(),
+            type: "dialogue" as const,
+            speaker: event.speaker === "あなた" ? "user" : (idOfName.get(event.speaker) ?? event.speaker),
+            text: event.text,
+          })
+      : draft.opening,
+  }
+}
 /** パース結果を新規下書きへ載せる。IDは衝突しないよう採番し、話者名をIDへ結び直す。 */
 export function aiDraftToNewDraft(parsed: AiDraft, base: PackDraft): PackDraft {
   const characters = parsed.characters.map((character) => ({

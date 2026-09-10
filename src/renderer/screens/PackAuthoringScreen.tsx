@@ -162,6 +162,7 @@ export function PackAuthoringScreen({
         <DraftEditor
           draft={activeEntry.draft}
           persisted={persisted}
+          connection={connection}
           onDraftChange={(next) => handleDraftChange(activeEntry.id, next)}
           onExported={() => {
             persist(entries.map((entry) => entry.id === activeEntry.id ? { ...entry, status: "done" as const } : entry))

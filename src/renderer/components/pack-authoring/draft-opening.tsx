@@ -30,29 +30,7 @@ export function DraftOpening({
 
   return (
     <section className="grid gap-4" aria-label="導入">
-      <div className="flex items-end justify-between gap-3">
-        <SectionHeading>導入</SectionHeading>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={opening.length >= 60}
-            onClick={() => onChange([...opening, { key: nextDraftKey(), type: "dialogue", speaker: characters[0]?.id ?? "", text: "" }])}
-          >
-            <MessageSquareText />セリフ
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={opening.length >= 60}
-            onClick={() => onChange([...opening, { key: nextDraftKey(), type: "narration", text: "" }])}
-          >
-            <ScrollText />描写
-          </Button>
-        </div>
-      </div>
+      <SectionHeading>導入</SectionHeading>
       {opening.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">物語の出だしを追加してください。セリフか情景描写を選べます。</p>
       ) : null}
@@ -105,6 +83,24 @@ export function DraftOpening({
           </li>
         ))}
       </ol>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={opening.length >= 60}
+          onClick={() => onChange([...opening, { key: nextDraftKey(), type: "dialogue", speaker: characters[0]?.id ?? "", text: "" }])}
+        >
+          <MessageSquareText />セリフを追加
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={opening.length >= 60}
+          onClick={() => onChange([...opening, { key: nextDraftKey(), type: "narration", text: "" }])}
+        >
+          <ScrollText />描写を追加
+        </Button>
+      </div>
     </section>
   )
 }

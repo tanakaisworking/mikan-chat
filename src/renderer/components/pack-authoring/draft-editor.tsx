@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
-import { Download, FlaskConical } from "lucide-react"
+import { Download, FlaskConical, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/ui/section-heading"
+import { AiEditPanel } from "@/components/pack-authoring/ai-edit-panel"
 import { ChatPreview } from "@/components/pack-authoring/chat-preview"
 import { DraftBasics } from "@/components/pack-authoring/draft-basics"
 import { DraftCharacters } from "@/components/pack-authoring/draft-characters"
@@ -10,6 +11,7 @@ import { DraftGuide, DraftOpening } from "@/components/pack-authoring/draft-open
 import { DraftMedia } from "@/components/pack-authoring/draft-media"
 import { ValidationPanel, type ValidationCheck } from "@/components/pack-authoring/validation-panel"
 import { readBgmPreference } from "@/lib/audio-com"
+import type { ConnectionSettings } from "@/components/settings/ai-connection-dialog"
 import type { LoadedChatPack } from "@/lib/chat-pack"
 import {
   buildPackFiles,
@@ -25,6 +27,7 @@ import { AUTHORING_DRAFT_SCENARIO_ID, type PackDraft } from "@/lib/pack-authorin
 export function DraftEditor({
   draft,
   persisted,
+  connection,
   onDraftChange,
   onExported,
   onImportAndTalk,
@@ -32,6 +35,7 @@ export function DraftEditor({
 }: {
   draft: PackDraft
   persisted: boolean
+  connection: ConnectionSettings
   onDraftChange: (draft: PackDraft) => void
   onExported: () => void
   onImportAndTalk: (loaded: LoadedChatPack) => string | undefined
@@ -39,6 +43,7 @@ export function DraftEditor({
 }) {
   const [issues, setIssues] = useState<PackValidationIssue[]>([{ path: "(全体)", message: "入力を始めるとここで確認できます。" }])
   const [checking, setChecking] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const [working, setWorking] = useState(false)
   const [notice, setNotice] = useState("")
   const [exportError, setExportError] = useState("")
@@ -167,8 +172,19 @@ export function DraftEditor({
         </div>
         <div className="grid gap-4 lg:sticky lg:top-4">
           <ValidationPanel checks={checks} issues={issues} checking={checking} />
+          <Button type="button" variant="outline" onClick={() => setAiPanelOpen(true)}>
+            <Sparkles />AIに相談する
+          </Button>
         </div>
       </div>
+      {aiPanelOpen ? (
+        <AiEditPanel
+          draft={draft}
+          connection={connection}
+          onApplyPatch={(next) => onDraftChange(next)}
+          onClose={() => setAiPanelOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }
