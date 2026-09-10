@@ -39,7 +39,7 @@ export function DraftBasics({
   return (
     <section className="grid gap-4" aria-label="基本情報">
       <SectionHeading>基本情報</SectionHeading>
-      <TextField label="タイトル" required value={draft.title} maxLength={80} onChange={(event) => onChange({ title: event.target.value })} placeholder="「愛さない」契約なのに…" />
+      <TextField label="タイトル" required value={draft.title} maxLength={60} description="型：〇〇があなたにだけ××＋舞台（例：嘘がつけない公爵と契約結婚する初夜）" onChange={(event) => onChange({ title: event.target.value })} placeholder="「愛さない」契約なのに…" />
       <FormTextarea label="あらすじ" required value={draft.summary} rows={3} maxLength={500} onChange={(event) => onChange({ summary: event.target.value })} />
       {!draft.summary.trim() && draft.premise.trim() ? (
         <div className="-mt-2">

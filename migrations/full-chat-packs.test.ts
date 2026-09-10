@@ -34,6 +34,7 @@ const shizukuIdleMotionMigration = readFileSync(path.join(process.cwd(), "migrat
 const shizukuBundledBgmMigration = readFileSync(path.join(process.cwd(), "migrations/0029_add_shizuku_bundled_bgm.sql"), "utf8")
 const voiceProfileGenderMigration = readFileSync(path.join(process.cwd(), "migrations/0030_add_voice_profile_gender.sql"), "utf8")
 const voiceGenderFixMigration = readFileSync(path.join(process.cwd(), "migrations/0031_fix_two_voice_genders.sql"), "utf8")
+const punchyTitlesMigration = readFileSync(path.join(process.cwd(), "migrations/0032_punchy_scenario_titles.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -69,6 +70,7 @@ describe("full chat pack migration", () => {
     db.exec(shizukuBundledBgmMigration)
     db.exec(voiceProfileGenderMigration)
     db.exec(voiceGenderFixMigration)
+    db.exec(punchyTitlesMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -173,6 +175,10 @@ describe("full chat pack migration", () => {
     expect(JSON.parse(seeded.find((row) => row.id === "koharu")!.pack_json).id).toBe("cc1374b1-3147-4790-9e51-a0a3b4d01019")
     // voice.profile.gender は配信パック全件に付与される（ルシアンは男性）
     expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).plot.characters[0].voice.profile.gender).toBe("male")
+    // 性癖直球タイトル（表示名のみ、ID・バージョン不変）
+    expect(seeded.find((row) => row.id === "lucien-contract")!.title).toBe("嘘がつけない公爵と契約結婚する初夜")
+    expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).title).toBe("嘘がつけない公爵と契約結婚する初夜")
+    expect(seeded.find((row) => row.id === "shizuku-downer")!.title).toBe("男嫌いのダウナーな後輩が、放課後はあなたにだけ甘える")
     // 冬木千冬と黒瀬凪は女性に訂正されている
     expect(JSON.parse(seeded.find((row) => row.id === "chifuyu-last-match")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
     expect(JSON.parse(seeded.find((row) => row.id === "nagi-radio")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")

@@ -4,7 +4,7 @@
   "id": "ec90f80d-1a6e-4b33-961a-1f9c94cd991c",
   "version": "1.0.1",
   "language": "ja",
-  "title": "明日の天気予報が、一日だけあなたの名前を呼ぶ",
+  "title": "あなたの名前を呼ぶ明日の予報",
   "summary": "放送終了後の予報画面が、あなたの名前で警報を出した。対象は町ではなく、たった一人。",
   "author": {
     "name": "mikan chat contributors",

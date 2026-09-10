@@ -32,7 +32,7 @@ describe("packToDraft", () => {
     const cover = await exampleAsset("assets/cover-main.webp", "cover-main.webp")
     const draft = await packToDraft(pack, { "assets/cover-main.webp": cover.dataUrl }, async (url, fileName) => exampleAsset(url, fileName))
 
-    expect(draft.title).toContain("愛さない")
+    expect(draft.title).toBe(pack.title as string)
     expect(draft.characters).toHaveLength(1)
     expect(draft.characters[0]).toMatchObject({ id: "lucien", name: "ルシアン・ヴァレール" })
     expect(draft.characters[0]?.voice.gender).toBe("male")
