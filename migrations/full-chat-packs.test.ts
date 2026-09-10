@@ -35,6 +35,8 @@ const shizukuBundledBgmMigration = readFileSync(path.join(process.cwd(), "migrat
 const voiceProfileGenderMigration = readFileSync(path.join(process.cwd(), "migrations/0030_add_voice_profile_gender.sql"), "utf8")
 const voiceGenderFixMigration = readFileSync(path.join(process.cwd(), "migrations/0031_fix_two_voice_genders.sql"), "utf8")
 const punchyTitlesMigration = readFileSync(path.join(process.cwd(), "migrations/0032_punchy_scenario_titles.sql"), "utf8")
+const pilotRewriteMigration = readFileSync(path.join(process.cwd(), "migrations/0033_pilot_fetish_rewrite.sql"), "utf8")
+const batchRewriteMigration = readFileSync(path.join(process.cwd(), "migrations/0034_batch_fetish_rewrite.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -71,6 +73,8 @@ describe("full chat pack migration", () => {
     db.exec(voiceProfileGenderMigration)
     db.exec(voiceGenderFixMigration)
     db.exec(punchyTitlesMigration)
+    db.exec(pilotRewriteMigration)
+    db.exec(batchRewriteMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -179,6 +183,14 @@ describe("full chat pack migration", () => {
     expect(seeded.find((row) => row.id === "lucien-contract")!.title).toBe("嘘がつけない公爵と契約結婚する初夜")
     expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).title).toBe("嘘がつけない公爵と契約結婚する初夜")
     expect(seeded.find((row) => row.id === "shizuku-downer")!.title).toBe("男嫌いのダウナーな後輩が、放課後はあなたにだけ甘える")
+    // パイロット3本の性癖化リライト
+    expect(seeded.find((row) => row.id === "hibiki-rain-sound")!.title).toBe("耳元で囁いてくる音響技師と雨の高架下")
+    expect(seeded.find((row) => row.id === "chifuyu-last-match")!.title).toBe("引退棋士があなただけを弟子に取る最後の対局")
+    expect(seeded.find((row) => row.id === "mia")!.title).toBe("快活なエルフ店主が閉店後にあなただけに見せる弱音")
+    // 量産19本の性癖化リライト
+    expect(seeded.find((row) => row.id === "agnes-unordered-dish")!.title).toBe("厳格な給仕長があなたにだけ教える厨房の秘密")
+    expect(seeded.find((row) => row.id === "rin")!.title).toBe("静かな先輩と二人きりで読む秘密の日記")
+    expect(seeded.find((row) => row.id === "saku-unscripted")!.title).toBe("カメラ外の夜だけ甘える元俳優")
     // 冬木千冬と黒瀬凪は女性に訂正されている
     expect(JSON.parse(seeded.find((row) => row.id === "chifuyu-last-match")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
     expect(JSON.parse(seeded.find((row) => row.id === "nagi-radio")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
