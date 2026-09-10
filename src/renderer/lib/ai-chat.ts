@@ -21,6 +21,16 @@ export const GOOGLE_AI_STUDIO_ENDPOINT = "https://generativelanguage.googleapis.
 export const GOOGLE_AI_STUDIO_MODEL = "gemini-flash-latest"
 export const GOOGLE_AI_STUDIO_FALLBACK_MODEL = "gemini-flash-lite-latest"
 export const GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL = "gemini-3.5-flash-lite"
+export const GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL = "gemma-4-31b-it"
+export const GOOGLE_AI_STUDIO_RATE_LIMIT_URL = "https://aistudio.google.com/rate-limit"
+
+/** 品質優先の順番。上から試し、上限・障害時は下へ切り替える。 */
+export const GOOGLE_AI_STUDIO_CHAIN = [
+  GOOGLE_AI_STUDIO_MODEL,
+  GOOGLE_AI_STUDIO_FALLBACK_MODEL,
+  GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL,
+  GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL,
+] as const
 
 export function isGoogleAIStudioEndpoint(endpoint: string) {
   try {
@@ -54,11 +64,11 @@ export async function streamCharacterReply({
       return await streamModelReply({ provider, model, character, summary, messages, signal, onText })
     } catch (error) {
       lastError = error
-      if (signal.aborted || index === modelCandidates.length - 1 || !shouldFallback(error)) throw error
+      if (signal.aborted || index === modelCandidates.length - 1 || !shouldFallback(error)) throw withQuotaGuidance(error)
       onText("")
     }
   }
-  throw lastError
+  throw withQuotaGuidance(lastError)
 }
 
 export async function testAIConnection(connection: ConnectionSettings, signal?: AbortSignal) {
@@ -134,13 +144,20 @@ async function streamModelReply({
 
 function getModelCandidates(connection: ConnectionSettings) {
   const model = connection.model.trim()
-  return isGoogleAIStudioEndpoint(connection.endpoint) && model === GOOGLE_AI_STUDIO_MODEL
-    ? [model, GOOGLE_AI_STUDIO_FALLBACK_MODEL, GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL]
-    : [model]
+  if (!isGoogleAIStudioEndpoint(connection.endpoint)) return [model]
+  const index = (GOOGLE_AI_STUDIO_CHAIN as readonly string[]).indexOf(model)
+  return index < 0 ? [model] : GOOGLE_AI_STUDIO_CHAIN.slice(index)
 }
 
 function shouldFallback(error: unknown) {
   return !APICallError.isInstance(error) || (error.statusCode !== 401 && error.statusCode !== 403)
+}
+
+export function withQuotaGuidance(error: unknown) {
+  if (APICallError.isInstance(error) && error.statusCode === 429) {
+    return new Error(`AIの利用上限に達しました。全モデルで混み合っているため、しばらく待ってからもう一度お試しください。利用状況: ${GOOGLE_AI_STUDIO_RATE_LIMIT_URL}`)
+  }
+  return error
 }
 
 export function isConnectionReady(connection: ConnectionSettings) {
@@ -302,9 +319,14 @@ export async function streamInstructionReply({
     abortSignal: signal,
   })
   let text = ""
-  for await (const delta of result.textStream) {
-    text += delta
-    onText(text)
+  try {
+    for await (const delta of result.textStream) {
+      text += delta
+      onText(text)
+    }
+  } catch (error) {
+    if (signal.aborted) throw error
+    throw withQuotaGuidance(error)
   }
   return text
 }

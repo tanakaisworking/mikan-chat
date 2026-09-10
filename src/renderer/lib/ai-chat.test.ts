@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   GOOGLE_AI_STUDIO_ENDPOINT,
   GOOGLE_AI_STUDIO_FALLBACK_MODEL,
+  GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
   GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL,
   getConnectionError,
@@ -312,6 +313,59 @@ describe("AI chat transport", () => {
     expect(reply).toBe("安定版で成功")
     expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).model))
       .toEqual([GOOGLE_AI_STUDIO_MODEL, GOOGLE_AI_STUDIO_FALLBACK_MODEL, GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL])
+  })
+
+  it("全モデルで利用上限なら案内文で失敗する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ error: { message: "quota exceeded" } }, { status: 429 }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(streamCharacterReply({
+      connection: {
+        type: "online",
+        endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+        apiKey: "gemini-test-key",
+        model: GOOGLE_AI_STUDIO_MODEL,
+      },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: vi.fn(),
+    })).rejects.toThrow(/利用上限に達しました/)
+
+    // 4候補を順に試してから案内する
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it("途中から選ぶと残りの候補へ切り替える", async () => {
+    const successStream = new Response([
+      `data: {"id":"chatcmpl-gemma","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL}","choices":[{"index":0,"delta":{"content":"Gemmaで成功"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-gemma","object":"chat.completion.chunk","created":1,"model":"${GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL}","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+      "data: [DONE]\n\n",
+    ].join(""), { headers: { "Content-Type": "text/event-stream" } })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ error: { message: "overloaded" } }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ error: { message: "overloaded" } }, { status: 503 }))
+      .mockResolvedValueOnce(successStream)
+    vi.stubGlobal("fetch", fetchMock)
+
+    const reply = await streamCharacterReply({
+      connection: {
+        type: "online",
+        endpoint: GOOGLE_AI_STUDIO_ENDPOINT,
+        apiKey: "gemini-test-key",
+        model: GOOGLE_AI_STUDIO_FALLBACK_MODEL,
+      },
+      character: { id: "aoi", name: "葵", description: "幼なじみ", lastMessage: "", lastActive: "" },
+      messages: [{ id: "user", role: "user", text: "こんにちは", time: "12:00" }],
+      signal: new AbortController().signal,
+      onText: vi.fn(),
+    })
+
+    expect(reply).toBe("Gemmaで成功")
+    expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).model))
+      .toEqual([GOOGLE_AI_STUDIO_FALLBACK_MODEL, GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL, GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL])
   })
 
   it("複数話者と情景描写をイベントへ分解する", () => {

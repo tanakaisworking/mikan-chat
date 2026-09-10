@@ -752,7 +752,7 @@ describe("mikan chat UI flow", () => {
     render(<App />)
 
     expect(screen.getByPlaceholderText("APIキーを入力")).toHaveValue("runtime-test-key")
-    expect(screen.getByRole("textbox", { name: /モデル名/ })).toHaveValue("gemini-flash-latest")
+    expect(screen.getByRole("combobox", { name: /モデル名/ })).toHaveValue("gemini-flash-latest")
   })
 
   it("Electron版はmainプロセスから設定を復元し、変更を保存する", async () => {

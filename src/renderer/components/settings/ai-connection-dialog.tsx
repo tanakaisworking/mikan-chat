@@ -14,9 +14,12 @@ import {
 } from "@/components/ui/dialog"
 import { TextField } from "@/components/ui/text-field"
 import {
+  GOOGLE_AI_STUDIO_CHAIN,
   GOOGLE_AI_STUDIO_ENDPOINT,
   GOOGLE_AI_STUDIO_FALLBACK_MODEL,
+  GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL,
   GOOGLE_AI_STUDIO_MODEL,
+  GOOGLE_AI_STUDIO_RATE_LIMIT_URL,
   GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL,
   getConnectionError,
   getEndpointError,
@@ -74,6 +77,9 @@ export function AIConnectionDialog({
   const [localModelsError, setLocalModelsError] = useState<string | null>(null)
   const [builtinStatus, setBuiltinStatus] = useState<LocalAIStatus | null>(null)
   const [builtinBusy, setBuiltinBusy] = useState(false)
+  const [customModel, setCustomModel] = useState(
+    () => isGoogleAIStudioEndpoint(initialEndpoint) && !(GOOGLE_AI_STUDIO_CHAIN as readonly string[]).includes(initialModel.trim()),
+  )
   const [builtinActionError, setBuiltinActionError] = useState<string | null>(null)
   const testController = useRef<AbortController | null>(null)
   const testRequestId = useRef(0)
@@ -103,12 +109,18 @@ export function AIConnectionDialog({
       const useGoogleDefaults = nextConnection === "online" && initialEndpoint.startsWith("http://127.0.0.1")
       setConnection(nextConnection)
       setApiKey(initialApiKey)
-      setEndpoint(useGoogleDefaults ? GOOGLE_AI_STUDIO_ENDPOINT : initialEndpoint)
-      setModel(useGoogleDefaults
+      const nextEndpoint = useGoogleDefaults ? GOOGLE_AI_STUDIO_ENDPOINT : initialEndpoint
+      const nextModel = useGoogleDefaults
         ? GOOGLE_AI_STUDIO_MODEL
         : nextConnection === "builtin" && initialModel === BUILTIN_MODEL_ID
           ? DEFAULT_BUILTIN_MODEL.source
-          : initialModel)
+          : initialModel
+      setEndpoint(nextEndpoint)
+      setModel(nextModel)
+      setCustomModel(
+        isGoogleAIStudioEndpoint(nextEndpoint)
+        && !(GOOGLE_AI_STUDIO_CHAIN as readonly string[]).includes(nextModel.trim()),
+      )
       setTestStatus("idle")
       setTestError(null)
       setLocalModels([])
@@ -318,6 +330,38 @@ export function AIConnectionDialog({
             }}
             description={isGoogleAIStudio ? "Google AI StudioのOpenAI互換エンドポイントです。" : "OpenAI互換APIのベースURLを入力します。"}
           />
+          {isGoogleAIStudio && !customModel ? (
+            <label className="grid min-w-0 gap-2 text-sm font-medium text-foreground">
+              <span>モデル名</span>
+              <select
+                value={(GOOGLE_AI_STUDIO_CHAIN as readonly string[]).includes(model.trim()) ? model.trim() : GOOGLE_AI_STUDIO_MODEL}
+                onChange={(event) => {
+                  resetTest()
+                  if (event.target.value === "__custom__") {
+                    setCustomModel(true)
+                    return
+                  }
+                  setModel(event.target.value)
+                }}
+                className="h-12 w-full min-w-0 rounded-md border border-input bg-surface px-4 text-base text-foreground shadow-soft outline-none focus:border-primary"
+              >
+                <option value={GOOGLE_AI_STUDIO_MODEL}>Gemini Flash（最新・高品質）</option>
+                <option value={GOOGLE_AI_STUDIO_FALLBACK_MODEL}>Gemini Flash-Lite（軽量）</option>
+                <option value={GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL}>Gemini 3.5 Flash-Lite（安定・枠大）</option>
+                <option value={GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL}>Gemma 4 31B（枠最大）</option>
+                <option value="__custom__">直接入力…</option>
+              </select>
+              <span className="text-xs font-normal leading-relaxed text-muted-foreground">
+                {(() => {
+                  const index = (GOOGLE_AI_STUDIO_CHAIN as readonly string[]).indexOf(model.trim())
+                  return index >= 0 && index < GOOGLE_AI_STUDIO_CHAIN.length - 1
+                    ? `失敗時は${GOOGLE_AI_STUDIO_CHAIN.slice(index + 1).join("、")}の順に切り替えます。`
+                    : "失敗時は自動で切り替えません。"
+                })()}
+              </span>
+            </label>
+          ) : null}
+          {(!isGoogleAIStudio || customModel) && (
           <TextField
             name="model"
             label="モデル名"
@@ -327,8 +371,31 @@ export function AIConnectionDialog({
               resetTest()
               setModel(event.target.value)
             }}
-            description={isGoogleAIStudio && model.trim() === GOOGLE_AI_STUDIO_MODEL ? `失敗時は${GOOGLE_AI_STUDIO_FALLBACK_MODEL}、さらに${GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL}へ切り替えます。` : undefined}
+            description={isGoogleAIStudio && model.trim() === GOOGLE_AI_STUDIO_MODEL ? `失敗時は${GOOGLE_AI_STUDIO_FALLBACK_MODEL}、${GOOGLE_AI_STUDIO_STABLE_FALLBACK_MODEL}、${GOOGLE_AI_STUDIO_GEMMA_FALLBACK_MODEL}の順に切り替えます。` : undefined}
           />
+          )}
+          {isGoogleAIStudio && customModel ? (
+            <div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  resetTest()
+                  setModel(GOOGLE_AI_STUDIO_MODEL)
+                  setCustomModel(false)
+                }}
+              >
+                候補から選ぶ
+              </Button>
+            </div>
+          ) : null}
+          {isGoogleAIStudio ? (
+            <div className="grid gap-1 rounded-md border border-border/70 bg-surface px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <p>無料枠の目安：通常モデルは1日20リクエストまで、Lite系は1日500リクエストまで、Gemma系は1日14,400リクエストまで。上限時は自動で切り替えます。</p>
+              <a className="w-fit font-semibold text-primary underline underline-offset-4" href={GOOGLE_AI_STUDIO_RATE_LIMIT_URL} target="_blank" rel="noreferrer">利用量を確認する</a>
+            </div>
+          ) : null}
           {connection === "local" ? (
             <div className="grid gap-3 border-t border-border/70 pt-4">
               <Button variant="outline" onClick={() => void loadLocalModels()} disabled={localModelsStatus === "loading" || Boolean(endpointError)}>
