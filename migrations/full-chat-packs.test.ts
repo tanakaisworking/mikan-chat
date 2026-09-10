@@ -37,6 +37,7 @@ const voiceGenderFixMigration = readFileSync(path.join(process.cwd(), "migration
 const punchyTitlesMigration = readFileSync(path.join(process.cwd(), "migrations/0032_punchy_scenario_titles.sql"), "utf8")
 const pilotRewriteMigration = readFileSync(path.join(process.cwd(), "migrations/0033_pilot_fetish_rewrite.sql"), "utf8")
 const batchRewriteMigration = readFileSync(path.join(process.cwd(), "migrations/0034_batch_fetish_rewrite.sql"), "utf8")
+const hooklinesMigration = readFileSync(path.join(process.cwd(), "migrations/0035_scenario_hooklines.sql"), "utf8")
 
 describe("full chat pack migration", () => {
   it("既存行を壊さず54件のフルパックを投入する", () => {
@@ -75,6 +76,7 @@ describe("full chat pack migration", () => {
     db.exec(punchyTitlesMigration)
     db.exec(pilotRewriteMigration)
     db.exec(batchRewriteMigration)
+    db.exec(hooklinesMigration)
 
     const rows = db.prepare("SELECT id, title, cover_path, rating, sort_order, pack_json FROM scenarios ORDER BY sort_order, id").all() as Array<{
       id: string
@@ -191,6 +193,13 @@ describe("full chat pack migration", () => {
     expect(seeded.find((row) => row.id === "agnes-unordered-dish")!.title).toBe("厳格な給仕長があなたにだけ教える厨房の秘密")
     expect(seeded.find((row) => row.id === "rin")!.title).toBe("静かな先輩と二人きりで読む秘密の日記")
     expect(seeded.find((row) => row.id === "saku-unscripted")!.title).toBe("カメラ外の夜だけ甘える元俳優")
+    // おすすめ用キャッチコピーは54件全件に付与される
+    for (const row of seeded) {
+      const hookline = JSON.parse(row.pack_json).extensions?.["mikan.hookline"]
+      expect(typeof hookline, row.id).toBe("string")
+      expect(hookline.length, row.id).toBeGreaterThan(0)
+    }
+    expect(JSON.parse(seeded.find((row) => row.id === "lucien-contract")!.pack_json).extensions["mikan.hookline"]).toBe("あなたを愛することは、ない。")
     // 冬木千冬と黒瀬凪は女性に訂正されている
     expect(JSON.parse(seeded.find((row) => row.id === "chifuyu-last-match")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")
     expect(JSON.parse(seeded.find((row) => row.id === "nagi-radio")!.pack_json).plot.characters[0].voice.profile.gender).toBe("female")

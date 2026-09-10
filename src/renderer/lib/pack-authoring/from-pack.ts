@@ -71,6 +71,7 @@ export async function packToDraft(
     tags: "",
     description: "",
     audience: "all",
+    hookline: "",
     cover: null,
     premise: "",
     instructions: "",
@@ -81,6 +82,8 @@ export async function packToDraft(
   const discovery = isRecord(pack.discovery) ? pack.discovery : null
   draft.tags = asStringArray(discovery?.tags).join("、")
   draft.description = asString(discovery?.description)
+  const hookline = isRecord(pack.extensions) ? pack.extensions["mikan.hookline"] : null
+  draft.hookline = typeof hookline === "string" ? hookline.slice(0, 60) : ""
   const audiences = asStringArray(isRecord(pack.extensions) && isRecord(pack.extensions["mikan.recommendation"])
     ? (pack.extensions["mikan.recommendation"] as Record<string, unknown>).targetAudiences
     : null)

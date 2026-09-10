@@ -40,6 +40,13 @@ export function DraftBasics({
     <section className="grid gap-4" aria-label="基本情報">
       <SectionHeading>基本情報</SectionHeading>
       <TextField label="タイトル" required value={draft.title} maxLength={60} description="型：〇〇があなたにだけ××＋舞台（例：嘘がつけない公爵と契約結婚する初夜）" onChange={(event) => onChange({ title: event.target.value })} placeholder="「愛さない」契約なのに…" />
+      <TextField
+        label="おすすめの一言"
+        value={draft.hookline}
+        maxLength={30}
+        description="おすすめに大きく出ます（例：あなたを愛することは、ない。）空欄ならタイトル表示"
+        onChange={(event) => onChange({ hookline: event.target.value })}
+      />
       <FormTextarea label="あらすじ" required value={draft.summary} rows={3} maxLength={500} onChange={(event) => onChange({ summary: event.target.value })} />
       {!draft.summary.trim() && draft.premise.trim() ? (
         <div className="-mt-2">

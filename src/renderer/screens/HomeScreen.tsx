@@ -2,6 +2,7 @@ import { useId, useState } from "react"
 import { MessageCircleMore } from "lucide-react"
 
 import { DesktopSidebar, MobileHeader, MobileNavigation, type Page } from "@/components/navigation/app-navigation"
+import { packHookline } from "@/lib/chat-pack"
 import { SectionHeading } from "@/components/ui/section-heading"
 import type { Character } from "@/data/characters"
 
@@ -107,6 +108,8 @@ export function HomeScreen({
 
 function ScenarioCard({ character, onClick }: { character: Character; onClick: () => void }) {
   const title = character.packTitle ?? character.name
+  const hookline = packHookline(character.pack) ?? title
+  const showTitle = hookline !== title
   const titleId = useId()
   const detailsId = useId()
   const [loadedImage, setLoadedImage] = useState<string | null>(null)
@@ -137,7 +140,8 @@ function ScenarioCard({ character, onClick }: { character: Character; onClick: (
         )}
         <span className="absolute inset-x-0 bottom-0 h-[76%] bg-linear-to-t from-[#201712]/98 via-[#2a2019]/82 to-transparent" aria-hidden="true" />
         <span className="absolute inset-x-0 bottom-0 block p-5 text-white max-md:p-3">
-          <span id={titleId} className="line-clamp-2 text-xl leading-snug font-semibold break-words text-balance max-md:text-[15px]">{title}</span>
+          <span id={titleId} className="line-clamp-2 text-xl leading-snug font-semibold break-words text-balance max-md:text-[15px]">{hookline}</span>
+          {showTitle ? <span className="mt-1 block truncate text-xs text-white/70 max-md:text-[11px]">{title}</span> : null}
           <span className="mt-2 block max-h-12 overflow-hidden text-sm leading-6 text-white/84 max-md:mt-1.5 max-md:max-h-10 max-md:text-xs max-md:leading-5">{character.description}</span>
           <span className="mt-3 flex flex-wrap gap-x-2 gap-y-1 text-xs text-white/75 max-md:mt-2 max-md:text-[11px]">
             {(character.tags ?? []).slice(0, 3).map((tag, index) => <span key={tag} className={index === 2 ? "max-md:hidden" : undefined}>#{tag}</span>)}

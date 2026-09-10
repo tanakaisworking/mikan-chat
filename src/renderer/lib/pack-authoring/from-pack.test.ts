@@ -33,6 +33,9 @@ describe("packToDraft", () => {
     const draft = await packToDraft(pack, { "assets/cover-main.webp": cover.dataUrl }, async (url, fileName) => exampleAsset(url, fileName))
 
     expect(draft.title).toBe(pack.title as string)
+    expect(draft.hookline).toBe(
+      ((pack.extensions as Record<string, unknown>)["mikan.hookline"] ?? "") as string,
+    )
     expect(draft.characters).toHaveLength(1)
     expect(draft.characters[0]).toMatchObject({ id: "lucien", name: "ルシアン・ヴァレール" })
     expect(draft.characters[0]?.voice.gender).toBe("male")
@@ -42,6 +45,7 @@ describe("packToDraft", () => {
     const { pack: rebuilt, files } = await buildPackFiles(draft, { customUrl: null, volume: 20, enabled: true })
     expect(() => validateBuiltPack(rebuilt, files)).not.toThrow()
     expect((rebuilt.plot as { characters: unknown[] }).characters).toHaveLength(1)
+    expect((rebuilt.extensions as Record<string, unknown>)["mikan.hookline"]).toBe(draft.hookline)
     const original = examplePack("contract-honest-duke")
     const rebuiltPlot = rebuilt.plot as Record<string, unknown>
     const originalPlot = original.plot as Record<string, unknown>

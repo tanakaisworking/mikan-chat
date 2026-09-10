@@ -38,6 +38,15 @@ function isEntryLike(value: unknown): value is DraftEntry {
     && isDraftLike((value as Record<string, unknown>).draft)
 }
 
+/** 古い下書きに足りない項目を補う。 */
+export function normalizeDraft(draft: PackDraft): PackDraft {
+  return {
+    ...draft,
+    hookline: typeof draft.hookline === "string" ? draft.hookline : "",
+    kept: draft.kept ?? undefined,
+  }
+}
+
 function migrateLegacyDraft(): DraftEntry[] {
   try {
     const stored = JSON.parse(window.localStorage.getItem(LEGACY_DRAFT_STORAGE_KEY) ?? "null") as unknown
@@ -57,7 +66,7 @@ export function loadLibrary(): DraftEntry[] {
   try {
     const stored = JSON.parse(window.localStorage.getItem(LIBRARY_STORAGE_KEY) ?? "null") as unknown
     if (Array.isArray(stored) && stored.every(isEntryLike)) {
-      memoryLibrary = stored
+      memoryLibrary = stored.map((entry) => ({ ...entry, draft: normalizeDraft(entry.draft) }))
       return memoryLibrary
     }
   } catch {

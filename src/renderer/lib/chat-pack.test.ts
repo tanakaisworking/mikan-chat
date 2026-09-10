@@ -3,7 +3,7 @@ import path from "node:path"
 import { zipSync, strToU8 } from "fflate"
 import { describe, expect, it, vi } from "vitest"
 
-import { ChatPackError, loadChatPack, revokeChatPackAssets } from "@/lib/chat-pack"
+import { ChatPackError, loadChatPack, packHookline, revokeChatPackAssets } from "@/lib/chat-pack"
 
 const webp = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
@@ -280,5 +280,12 @@ describe("Chat Pack loader", () => {
     await expect(loadChatPack(createPack({}, { "README.md": strToU8("untrusted markdown") }))).rejects.toEqual(
       expect.objectContaining<Partial<ChatPackError>>({ message: "許可されていないファイルです: README.md" }),
     )
+  })
+
+  it("おすすめ用キャッチコピーを読む", () => {
+    expect(packHookline({ extensions: { "mikan.hookline": "あなたを愛することは、ない。" } })).toBe("あなたを愛することは、ない。")
+    expect(packHookline({ extensions: { "mikan.hookline": "   " } })).toBeNull()
+    expect(packHookline({})).toBeNull()
+    expect(packHookline(undefined)).toBeNull()
   })
 })

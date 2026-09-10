@@ -184,6 +184,7 @@ export async function buildPackFiles(draft: PackDraft, bgm: BgmPreference): Prom
   const extensions: Record<string, unknown> = {
     "mikan.recommendation": { targetAudiences: [draft.audience] },
   }
+  if ((draft.hookline ?? "").trim()) extensions["mikan.hookline"] = draft.hookline.trim().slice(0, 60)
   if (bgm.customFile) {
     extensions["mikan.bgm"] = {
       audio: putAsset(bgm.customFile.name, `bgm.${extensionOf(bgm.customFile.name, "m4a")}`, dataUrlToBytes(bgm.customFile.dataUrl)),

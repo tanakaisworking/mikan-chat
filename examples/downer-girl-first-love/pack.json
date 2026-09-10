@@ -220,6 +220,7 @@
     "mikan.bgm": {
       "audio": "assets/bgm.m4a",
       "loop": true
-    }
+    },
+    "mikan.hookline": "……もう帰るの？"
   }
 }

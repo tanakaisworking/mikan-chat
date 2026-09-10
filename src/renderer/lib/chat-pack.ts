@@ -96,6 +96,15 @@ export function revokeChatPackAssets(loaded: LoadedChatPack) {
   }
 }
 
+/** おすすめ表示用のキャッチコピー。なければ null（呼び出し側でタイトルへ戻す）。 */
+export function packHookline(pack: Record<string, unknown> | undefined): string | null {
+  if (!pack || typeof pack !== "object" || Array.isArray(pack)) return null
+  const extensions = pack.extensions
+  if (!extensions || typeof extensions !== "object" || Array.isArray(extensions)) return null
+  const hookline = (extensions as Record<string, unknown>)["mikan.hookline"]
+  return typeof hookline === "string" && hookline.trim() ? hookline.trim() : null
+}
+
 export class ChatPackError extends Error {
   constructor(message: string) {
     super(message)

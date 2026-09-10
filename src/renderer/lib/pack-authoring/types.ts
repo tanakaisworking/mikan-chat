@@ -55,6 +55,7 @@ export type PackDraft = {
   tags: string
   description: string
   audience: "all" | "men" | "women"
+  hookline: string
   cover: DraftAsset | null
   premise: string
   instructions: string
@@ -85,6 +86,7 @@ export function createEmptyDraft(): PackDraft {
     tags: "",
     description: "",
     audience: "all",
+    hookline: "",
     cover: null,
     premise: "",
     instructions: "",
