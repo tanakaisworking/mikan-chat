@@ -2,6 +2,12 @@
   "name": "mikan-chat",
   "version": "0.1.0",
   "private": true,
+  "license": "MPL-2.0",
+  "author": "Hibachi Inc.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tanakaisworking/mikan-chat.git"
+  },
   "description": "ライトユーザー向けのローカルAIキャラクターチャットシミュレーター",
   "main": "out/main/index.js",
   "type": "module",

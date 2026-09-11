@@ -154,7 +154,7 @@ export function ScenarioBgmPlayer({ scenarioId, pack, title, mode = "player", bu
                     )
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground">BGM：かまタマゴ（商用利用OK・アプリ組込可）</p>
+                <p className="text-xs text-muted-foreground">BGM：<a className="font-semibold text-primary underline underline-offset-4" href="https://kamatamago.com" target="_blank" rel="noreferrer">かまタマゴ</a>（商用利用OK・アプリ組込可）</p>
               </fieldset>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 自作または利用許諾のある音源だけを指定してください。Audio.comの公開ページで利用条件を確認してから、音源IDまたは埋め込みURLを入力してください。

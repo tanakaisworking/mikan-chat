@@ -137,6 +137,14 @@ Web版はCloudflare Workers Static Assetsで配信します。ローカル確認
 
 このリポジトリのソースコードは[Mozilla Public License 2.0](LICENSE)で公開しています。
 
+### 第三者の素材・モデル
+
+- 同梱の読み上げエンジン（`public/kokoro-js-jp`）はApache-2.0等のオープンライセンスです。帰属表示は同梱の[LICENSE](public/kokoro-js-jp/LICENSE)と[THIRD_PARTY_NOTICES.md](public/kokoro-js-jp/THIRD_PARTY_NOTICES.md)に従います。
+- 同梱BGM（`public/bgm`）は[かまたまご](https://kamatamago.com)の楽曲で、商用利用・アプリ組み込み可のガイドラインのもと利用しています。アプリ内のBGM設定にクレジットを表示しています。
+- シナリオカバー画像（`public/scenario-covers`）と待機モーション（`public/scenario-motion`）はプロジェクト用に生成した素材で、本リポジトリのライセンスで提供します。
+- 読み上げ・会話モデルは初回利用時に端末へダウンロードされ、リポジトリには含まれません。Kokoro-82MとQwen3はApache-2.0、Gemma系の利用には[Gemma利用規約](https://ai.google.dev/gemma/terms)が適用されます。アプリ内のモデル選択画面にも記載しています。
+- Hayamimiは別配布の[MITライセンスのプログラム](https://github.com/oboroge0/hayamimi)で、本リポジトリには含みません。音声入力に使う場合は各自で入手し、`--input ws`付きで起動してください。
+
 ---
 
 ## English
@@ -185,3 +193,5 @@ Accounts, payments, DRM, paid packs, and an official marketplace are outside the
 The project is community-first and primarily maintained in Japanese. Issues and pull requests in English are also welcome.
 
 Source code in this repository is licensed under the [Mozilla Public License 2.0](LICENSE).
+
+Third-party materials: the bundled speech engine (`public/kokoro-js-jp`) follows its included LICENSE and THIRD_PARTY_NOTICES.md; bundled BGM tracks are by [Kamatamago](https://kamatamago.com) and credited in the BGM settings; scenario artwork is project-generated; AI models download to the device on first use (Kokoro-82M and Qwen3 are Apache-2.0, Gemma-family use is subject to the [Gemma Terms of Use](https://ai.google.dev/gemma/terms)); Hayamimi is a separate MIT-licensed program and is not included.

@@ -241,7 +241,7 @@ export function AIConnectionDialog({
         <>
           <div>
             <p className="font-semibold">使うモデル</p>
-            <p className="mt-1 text-sm text-muted-foreground">初回ダウンロード後はオフラインで使えます。</p>
+            <p className="mt-1 text-sm text-muted-foreground">初回ダウンロード後はオフラインで使えます。モデルはHugging Faceから取得します。Gemma系の利用には<a className="font-semibold text-primary underline underline-offset-4" href="https://ai.google.dev/gemma/terms" target="_blank" rel="noreferrer">Gemma利用規約</a>が適用されます。</p>
           </div>
           <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1" role="group" aria-label="おすすめの内蔵AIモデル">
             {[DEFAULT_BUILTIN_MODEL, GEMMA_4_12B_MODEL].map((preset) => {
