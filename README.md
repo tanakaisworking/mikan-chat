@@ -87,7 +87,16 @@ Electron上で確認する場合は `npm run dev:electron`、品質チェック�
 
 Apple Silicon MacのElectronプレビューでは、音声設定からIrodori TTSの実行環境とモデルを自動セットアップできます。初回は数GBをダウンロードし、以後は端末内の環境を再利用します。
 
-Electron版のHayamimi連携は、Hayamimi側に接続認証が実装されるまで既定で無効です。開発時に信頼できるローカルサーバーへ接続する場合だけ、`MIKAN_HAYAMIMI_WS_URL=ws://127.0.0.1:8766/ingest npm run dev:electron`のように接続先を明示します。
+Electron版のHayamimi連携は既定で有効です。接続先はこのPC（`127.0.0.1`/`localhost`の`ws:`）に限定し、外部サーバーには接続しません。別のポートで起動したHayamimiへ接続する場合だけ、`MIKAN_HAYAMIMI_WS_URL=ws://127.0.0.1:8766/ingest npm run dev:electron`のように接続先を明示します。
+
+### Hayamimiで音声入力を使う
+
+1. Hayamimiを取得し、モデルをダウンロードします（詳しくはHayamimiのREADMEを参照）。
+2. 音声取り込み待ちで起動します。マイクはmikan chat側で取得し、Hayamimiへ転送します。
+```bash
+python scripts/realtime_transcribe.py --input ws
+```
+3. mikan chatのチャット入力欄にあるマイクボタンを押して話しかけます。聞き取り中の暫定文が入力欄に出て、確定文が追記されます。もう一度押すと停止します。音声設定の「マイクを試す」でも同じ動作を確認できます。
 
 Web版はCloudflare Workers Static Assetsで配信します。ローカル確認は `npm run dev:worker`、本番反映は `npm run deploy:worker` を使います。AIへのリクエストは、ユーザーが設定したOpenAI互換エンドポイントへブラウザから直接送信します。
 

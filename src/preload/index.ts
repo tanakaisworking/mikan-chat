@@ -3,7 +3,7 @@ import type { DesktopConversationInput, DesktopSettingsInput, DesktopStoreLoadRe
 import type { LocalAIChatRequest, LocalAIModelSpec, LocalAIStatus } from "../shared/local-ai"
 import type { IrodoriRuntimeStatus, LocalTtsReference, LocalTtsSynthesisRequest } from "../shared/local-tts"
 
-const speech = process.env.MIKAN_HAYAMIMI_WS_URL ? {
+const speech = {
   start: (sessionId: string, sampleRate: number) => ipcRenderer.invoke("speech:start", sessionId, sampleRate) as Promise<void>,
   send: (sessionId: string, audio: ArrayBuffer) => ipcRenderer.send("speech:audio", sessionId, audio),
   stop: (sessionId: string) => ipcRenderer.invoke("speech:stop", sessionId) as Promise<void>,
@@ -12,7 +12,7 @@ const speech = process.env.MIKAN_HAYAMIMI_WS_URL ? {
     ipcRenderer.on("speech:event", listener)
     return () => ipcRenderer.removeListener("speech:event", listener)
   },
-} : undefined
+}
 
 contextBridge.exposeInMainWorld("mikan", {
   platform: process.platform,
